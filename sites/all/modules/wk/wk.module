@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * @file
+ * West Kingdom customizations
+ */
+
+function wk_token_info() {
+  $node['as_year'] = array(
+    'name' => t("Anno Societatis Year"),
+    'description' => t('Year in Anno Societatis (AS). See http://www.sca.org/links/calendar.html.'),
+  );
+  $node['event_month'] = array(
+    'name' => t("Event Month"),
+    'description' => t('The month that the event is held in (reconed by starting date).'),
+  );
+  return array(
+    'tokens' => array('node' => $node),
+  );
+}
+
+function wk_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  if ($type == 'node' && !empty($data['node'])) {
+    $node = $data['node'];
+    if ($node->type == 'cal_event') {
+      foreach ($tokens as $name => $original) {
+        switch ($name) {
+          case 'as_year':
+            $start_date = $node->field_date['und'][0]['value'];
+            $as = wk_time_string_to_as($start_date);
+            $replacements[$original] = 'AS' . $as;
+            break;
+          case 'event_month':
+            $start_date = $node->field_date['und'][0]['value'];
+            $timestamp=strtotime($start_date);
+            $replacements[$original] = date('M', $timestamp);
+            break;
+        }
+      }
+    }
+  }
+  return $replacements;
+}
+
+function wk_time_string_to_as($time_string) {
+  $timestamp=strtotime($time_string);
+  return wk_timestamp_to_as($timestamp);
+}
+
+function wk_timestamp_to_as($timestamp) {
+  $date_info = getdate($timestamp);
+  $as = $date_info['year'] - 1966;
+  if ($date_info['mon'] >= 5) {
+    $as = $as + 1;
+  }
+  return $as;
+}
