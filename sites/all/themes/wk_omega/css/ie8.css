@@ -1,0 +1,59 @@
+#zone-branding-wrapper,
+#zone-menu-wrapper {
+  background: #ffc43a;
+}
+
+#zone-branding {
+  background: #ffc43a url('wk_img/header_figures/header_fighters_V4_narrow.png') no-repeat right top;
+}
+
+#zone-menu {
+  background: #ffc43a url('wk_img/header_figures/header_fighters_V4_narrow.png') no-repeat right -138px;
+}
+
+#zone-menu-wrapper ul li.first {
+  margin-left: -11px;
+}
+
+#zone-menu-wrapper ul li {
+  float:left;
+  background:url("wk_img/chrome/wk_nav_btn.png")
+    no-repeat left top;
+  margin:0;
+  padding:0 0 0 9px;
+  border-bottom:1px solid #bb7319;
+
+}
+
+#zone-menu-wrapper ul li a,
+#zone-menu-wrapper ul li a:link,
+#zone-menu-wrapper ul li a:hover,
+#zone-menu-wrapper ul li a:visited {
+  font-size: .9em;
+  float:left;
+  display:block;
+  background:url("wk_img/chrome/wk_nav_btn_rt.png")
+    no-repeat right top;
+  padding:1px 15px 1px 6px;
+  text-decoration:none;
+  font-weight:bold;
+  color: black;
+}
+
+#zone-menu-wrapper ul li:hover, #zone-menu-wrapper ul li:hover a {
+  background-position:0% -60px;
+  color:#333;
+}
+
+#zone-menu-wrapper ul li:hover a {
+  background-position:100% -60px;
+}
+
+#zone-content-wrapper {
+  padding-top: 12px;
+  background: #FFF url('wk_img/chrome/header_shadow.png') repeat-x top;
+}
+
+.logo-img {
+  padding: 0px;
+}
