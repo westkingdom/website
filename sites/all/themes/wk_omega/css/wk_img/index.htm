@@ -1,0 +1,227 @@
+<head>
+<title>The Kingdom of the West</title>
+<meta name="author" content="Julia Schmunk">
+<meta name="copyright" content="Copyright © 2009, all rights reserved">
+<meta name="description" content="The Kingdom of the West, encompassing Northern and Central California, Northern Nevada, Alaska, Japan, South Korea, and Guam.">
+<meta name="keywords" content="Kingdom, West, West Kingdom, SCA, society for creative anachronism, medieval, swords, history, martial arts, historical clothing, history buffs, historical re-creators,">
+
+<LINK REL=StyleSheet HREF="wk_style.css" TYPE="text/css" MEDIA=screen>
+<LINK REL="SHORTCUT ICON" href="http://www.westkingdom.org/westkingdom.ico">
+
+<script type="text/javascript">
+<!-- cookie functions from http://techpatterns.com/downloads/javascript_cookies.php -->
+function Set_Cookie( name, value, expires, path, domain, secure )
+{
+// set time, it's in milliseconds
+var today = new Date();
+today.setTime( today.getTime() );
+
+/*
+if the expires variable is set, make the correct
+expires time, the current script below will set
+it for x number of days, to make it for hours,
+delete * 24, for minutes, delete * 60 * 24
+*/
+if ( expires )
+{
+expires = expires * 1000 * 60 * 60 * 24;
+}
+var expires_date = new Date( today.getTime() + (expires) );
+
+document.cookie = name + "=" +escape( value ) +
+( ( expires ) ? ";expires=" + expires_date.toGMTString() : "" ) +
+( ( path ) ? ";path=" + path : "" ) +
+( ( domain ) ? ";domain=" + domain : "" ) +
+( ( secure ) ? ";secure" : "" );
+}
+
+// this fixes an issue with the old method, ambiguous values
+// with this test document.cookie.indexOf( name + "=" );
+function Get_Cookie( check_name ) {
+	// first we'll split this cookie up into name/value pairs
+	// note: document.cookie only returns name=value, not the other components
+	var a_all_cookies = document.cookie.split( ';' );
+	var a_temp_cookie = '';
+	var cookie_name = '';
+	var cookie_value = '';
+	var b_cookie_found = false; // set boolean t/f default f
+
+	for ( i = 0; i < a_all_cookies.length; i++ )
+	{
+		// now we'll split apart each name=value pair
+		a_temp_cookie = a_all_cookies[i].split( '=' );
+
+
+		// and trim left/right whitespace while we're at it
+		cookie_name = a_temp_cookie[0].replace(/^\s+|\s+$/g, '');
+
+		// if the extracted name matches passed check_name
+		if ( cookie_name == check_name )
+		{
+			b_cookie_found = true;
+			// we need to handle case where cookie has no value but exists (no = sign, that is):
+			if ( a_temp_cookie.length > 1 )
+			{
+				cookie_value = unescape( a_temp_cookie[1].replace(/^\s+|\s+$/g, '') );
+			}
+			// note that in cases where cookie is initialized but no value, null is returned
+			return cookie_value;
+			break;
+		}
+		a_temp_cookie = null;
+		cookie_name = '';
+	}
+	if ( !b_cookie_found )
+	{
+		return null;
+	}
+}
+
+function detectBrowser()
+{
+	var browser=navigator.appName;
+	var b_version=navigator.appVersion;
+	if (browser.indexOf("Microsoft") >= 0 && b_version.indexOf("MSIE 6.") >= 0) 
+	{
+		if ( Get_Cookie( 'wkweb' ))  
+		{
+		} else {
+			alert("You are running Internet Explorer 6 or older. You will have problems viewing this site. Please upgrade your browser.");
+	 	   	Set_Cookie( 'wkweb', 'IE6', '30', '/', '', '' );
+		}
+	}
+}
+
+
+</script>
+
+</head>
+<html>
+	<body onLoad="detectBrowser()">
+		<div id="wrapper">
+			<div id="page">
+				<div id="page2">
+					<div id="header"></div>
+					<div id="nav">
+  						<ul>
+    						<li><a href="http://www.westkingdom.org/index.htm" id="nav-01">Home Page</a></li>
+    						<li><a href="http://www.westkingdom.org/wk_runew.htm" id="nav-02">Are you new?</a></li>
+    						<li><a href="http://www.westkingdom.org/wk_calendarmain.htm" id="nav-03">Kingdom Events</a></li>
+    						<li><a href="http://www.westkingdom.org/wk_info.htm" id="nav-04">Kingdom Information</a></li>
+    						<li><a href="http://blog.westkingdom.org" target="_blank" id="nav-05"> </a></li>
+    						<li><a href="http://www.westkingdom.org/wk_credit.htm" id="nav-06"> </a></li>
+  						</ul>
+					</div>
+					<div id="content" class="narrowcolumn">
+						<div id="post">
+							<h2>The West Kingdom and the <em>SOCIETY FOR CREATIVE ANACHRONISM</em>, INC.</h2>
+								<div class="entry">
+								<p>The SCA is an international organization <em>dedicated to researching and re-creating the arts and skills of 
+								pre-17th-century Europe</em>.
+								Our "Known World" consists of 19 kingdoms, with over 30,000 members residing in countries around the world.
+								Members, dressed in clothing of the Middle Ages and Renaissance, attend events which feature tournaments, 
+								royal courts, feasts, dancing, various classes, workshops, and much more.
+								<p>This website is specifically for The Kingdom of the West, the first Kingdom in the SCA.
+								If you are planning a visit to our fair Kingdom from another Realm, or are interested in coming to an event, 
+								meeting, or fighter practice to find out more about the SCA, know that you are welcome in the West! 
+								</p>
+								</div>
+						</div>
+          			<div id="wkfeatured-royalty">
+             			<img src="alfar-kiffany-sm.jpg"; width="182px"; height="190px"; alt="Their Royal Majesties of the West Kingdom";>
+   					  <h3>THEIR MAJESTIES</h3>
+       					<b>King Alfar&nbsp;&amp;&nbsp;Queen Ketiley</b>
+         			</div>
+					<br>
+					<br>
+					<br>
+          			<div id="wkfeatured-links">
+            			<h3>FEATURED LINKS</h3>
+            			<p><a href="http://www.westkingdom.org/wk_featuredlinks.htm" class="read-more">View all...</a></p>
+					</div>
+          			<div id="wkofficers">
+            			<h3>KINGDOM OFFICERS</h3>
+            			<p><a href="http://www.westkingdom.org/wk_officers.htm" class="read-more">View all...</a></p>
+          			</div>						
+
+					</div>
+				<div id="sidebar">
+					<div id="calendar-news">
+						<br><br>
+						<table><tr><td>
+							<center><h3><a href="http://www.westkingdom.org/wk_calendarmain.htm" target="_blank">Complete West Kingdom Calendar</a></h3></center>
+						</td></tr></table>
+						<!--#include virtual="/wk_calendar_06_2010_widget.htm" -->
+            			<p>The calendar section is divided into individual months and spans the time frame of one Gregorian year.</p>
+            			 <p id="rss">
+            			 	<!--<a href="http://www.westkingdom.org/wk_news.htm" target="_blank" title="RSS FEED"> </a>
+            			 	-->
+            			 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            			 	<a href="http://www.westkingdom.org/wk_news.htm" target="_blank" title="West Kingdom News">IMPORTANT WEST KINGDOM NEWS</a>
+            			 	<br>
+            			 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                            <a href="http://www.westkingdom.org/wk_event_100611_a&stournament.htm">Kingdom A & S Tournament Information</a>
+                            <br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            <a href="http://acceps.ansteorra.org/regit/kingdom_event_display.php?kid=11" target=_blank>Event ACCEPS</a>
+            			 	<br>
+            			 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+							<a href="http://www.phmoms.com/westantirwar" target=_blank>West/AnTir War Information</a></h3>
+            			 	<br>
+            			 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+							<a href="http://www.westkingdom.org/wk_library.htm" target=_blank>Kingdom Laws Updated</a></h3>
+            			 </p>
+            			 <p id="rss">
+            			 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            			 	<a href="http://heralds.westkingdom.org/AwardRecommend.htm" target=_blank title="Award Recommendation">
+            			 	Recommend someone for an award!</a>
+            			 </p>
+            			 <p id="rss">
+            			 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            			 	<a href="http://history.westkingdom.org" target=_blank>The West Kingdom History Project</a>
+            			 	<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            			 	<a href="http://heralds.westkingdom.org/Awards/index.htm" target=_blank>The West Kingdom Awards List</a>
+            			 </p>
+          			</div>
+	          	   <!--
+	          	   	<div id="wkchatelaine">
+	            		<h3>Question for the Chatelaine?</h3>
+							<form action="" method="" enctype="text/plain">
+							</form>
+							<form action="MAILTO:chatelaine@westkingdom.org?subject=SCA information requested" method="post" enctype="text/plain">
+	                			<label for="name">Name:</label>
+								<input type="text" name="name" value="" class="large">
+	                			<br style="clear: both;">
+	                			<label for="email">Email:</label>
+								<input type="text" name="email" value="" class="large">
+	                			<br style="clear: both;">
+								<input type="submit" value="Send">
+								<input type="reset" value="Reset">
+							</form>
+	          		</div>
+				    -->
+				</div>
+				<div id="footer" class="container">
+					<a href="http://www.westkingdom.org">HOME</a>&nbsp;&nbsp;|&nbsp;&nbsp;</li>
+					<a href="http://www.westkingdom.org/wk_runew.htm">ARE YOU NEW?</a>&nbsp;&nbsp;|&nbsp;&nbsp;</li>
+					<a href="http://www.westkingdom.org/wk_calendarmain.htm">KINGDOM EVENTS</a>&nbsp;&nbsp;|&nbsp;&nbsp;</li>
+					<a href="http://www.westkingdom.org/wk_info.htm">KINGDOM INFORMATION</a>&nbsp;&nbsp;|&nbsp;&nbsp;</li>
+					<a href="http://www.westkingdom.org/wk_credit.htm">CREDIT</a></li>
+
+					<br><br>
+					Copyright &copy; 2010 <a href="http://www.westkingdom.org/wk_webminister.htm" title="West Kingdom">Kingdom of the West</a>. 
+					All rights reserved.&nbsp;&nbsp;|&nbsp;&nbsp; 
+					Site by: badseedkatie
+					<br>
+					Website best viewed with 
+					<a href="http://www.microsoft.com/windows/downloads/ie/getitnow.mspx" target=_blank>IE7+</a> or 
+					<a href="http://en-us.www.mozilla.com/en-US/firefox/" target=_blank>Firefox 3+</a>
+					&nbsp;&nbsp;|&nbsp;&nbsp;
+					<!--#config timefmt="%x %X" -->
+					This file last modified <!--#echo var="LAST_MODIFIED" -->
+					<br>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
