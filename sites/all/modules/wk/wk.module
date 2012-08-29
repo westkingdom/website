@@ -5,6 +5,11 @@
  * West Kingdom customizations
  */
 
+/**
+ * Hook token_info
+ *
+ * Declare tokens as_year and event_month.
+ */
 function wk_token_info() {
   $node['as_year'] = array(
     'name' => t("Anno Societatis Year"),
@@ -19,6 +24,11 @@ function wk_token_info() {
   );
 }
 
+/**
+ * Hook tokens
+ *
+ * Provide data for as_year and event_month tokens.
+ */
 function wk_tokens($type, $tokens, array $data = array(), array $options = array()) {
   $replacements = array();
   if ($type == 'node' && !empty($data['node'])) {
@@ -55,4 +65,40 @@ function wk_timestamp_to_as($timestamp) {
     $as = $as + 1;
   }
   return $as;
+}
+
+/**
+ * Hook module_implements_alter
+ *
+ * Make sure that our hook_menu_alter is called after
+ * revisioning_menu_alter.
+ */
+function wk_module_implements_alter(&$implementations, $hook) {
+  // Make our module run after all of the others
+  if ($hook == 'menu_alter' && isset($implementations['wk'])) {
+    $group = $implementations['wk'];
+    unset($implementations['wk']);
+    $implementations['wk'] = $group;
+  }
+}
+
+/**
+ * Hook menu_alter
+ *
+ * Use a consistent title, 'Revision operations' for the
+ * revisions tab.  Show the revisions page in the standard
+ * site theme, not the admin theme.
+ */
+function wk_menu_alter(&$items) {
+  // This must be a title
+  $items['node/%node/revisions']['title callback'] = '_wk_revisioning_title_for_tab';
+  $items['node/%node/revisions']['theme callback'] = '_wk_revisioning_standard_theme';
+}
+
+function _wk_revisioning_title_for_tab($node, $tab) {
+  return t('Revision operations');
+}
+
+function _wk_revisioning_standard_theme() {
+  return variable_get('theme_default');
 }
