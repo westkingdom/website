@@ -83,6 +83,23 @@ function wk_module_implements_alter(&$implementations, $hook) {
 }
 
 /**
+ * Hook menu
+ */
+function wk_menu() {
+  $items = array();
+
+  $items['node/%node/revisions/%vid/list'] = array(
+    'title' => 'List all revisions',
+    'access callback' => '_revisioning_access_node_revision',
+    'access arguments' => array('view revision list', 1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -20,
+  );
+
+  return $items;
+}
+
+/**
  * Hook menu_alter
  *
  * Use a consistent title, 'Revision operations' for the
@@ -90,9 +107,23 @@ function wk_module_implements_alter(&$implementations, $hook) {
  * site theme, not the admin theme.
  */
 function wk_menu_alter(&$items) {
-  // This must be a title
+  $items['node/%node/revisions']['page arguments'] = array(1, $items['node/%node/revisions']['page callback']);
+  $items['node/%node/revisions']['page callback'] = '_wk_revisioning_redirect';
   $items['node/%node/revisions']['title callback'] = '_wk_revisioning_title_for_tab';
   $items['node/%node/revisions']['theme callback'] = '_wk_revisioning_standard_theme';
+  unset($items['node/%node/revisions/list']);
+  $items['node/%node/revisions/%vid/view']['title callback'] = '_wk_revisioning_title_for_edit_and_view';
+  $items['node/%node/revisions/%vid/view']['title arguments'] = array(1, 3, 'view');
+  $items['node/%node/revisions/%vid/edit']['title callback'] = '_wk_revisioning_title_for_edit_and_view';
+  $items['node/%node/revisions/%vid/edit']['title arguments'] = array(1, 3, 'edit');
+}
+
+function _wk_revisioning_redirect($node, $was) {
+  $item = menu_get_item();
+  if ($item['path'] == 'node/%/revisions') {
+    drupal_goto('node/' . $node->nid . '/revisions/' . $node->current_revision_id . '/list');
+  }
+  return revisioning_node_overview($node);
 }
 
 function _wk_revisioning_title_for_tab($node, $tab) {
@@ -101,4 +132,17 @@ function _wk_revisioning_title_for_tab($node, $tab) {
 
 function _wk_revisioning_standard_theme() {
   return variable_get('theme_default');
+}
+
+function _wk_revisioning_title_for_edit_and_view($node, $vid, $tab) {
+  // TODO: stash in $node
+  $latest_vid = revisioning_get_latest_revision_id($node->nid);
+  $title = ($tab == 'edit') ? t('Edit') : t('View');
+  if ($vid == $node->current_revision_id) {
+    $title = ($tab == 'edit') ? t('Edit Current') : t('View Current');
+  }
+  if ($vid == $latest_vid) {
+    $title = ($tab == 'edit') ? t('Edit Latest') : t('View Latest');
+  }
+  return $title;
 }
