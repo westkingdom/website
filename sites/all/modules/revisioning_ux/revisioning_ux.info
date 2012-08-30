@@ -1,0 +1,5 @@
+name = revisioning_ux
+description = Adjust the revisioning user experience for more consistent tab behavior
+core = 7.x
+files[] = revisioning_ux.module
+
