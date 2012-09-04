@@ -92,6 +92,8 @@ function revisioning_ux_page_alter(&$page) {
  * in the Revisioning Operations panel are consistent.
  */
 function revisioning_ux_menu_alter(&$items) {
+  // Put back the standard access callback (remove revisioning callback that hides 'View' and 'Edit').
+  $items['node/%node']['access callback'] = 'node_access';
   $items['node/%node/revisions']['page arguments'] = array(1, $items['node/%node/revisions']['page callback']);
   $items['node/%node/revisions']['page callback'] = '_revisioning_ux_revisioning_redirect';
   $items['node/%node/revisions']['title callback'] = '_revisioning_ux_revisioning_title_for_tab';
