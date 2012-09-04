@@ -21,6 +21,23 @@ function revisioning_ux_module_implements_alter(&$implementations, $hook) {
 }
 
 /**
+ * Hook form_alter
+ */
+function revisioning_ux_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'revisioning_revisions_summary') {
+    //$node = node_load($form['nid']['#value']);
+    $vid = arg(3);
+    if (is_numeric($vid)) {
+      $form['info'][$vid]['#markup'] =
+        "<div class='revisions-active'>" .
+        $form['info'][$vid]['#markup'] .
+        "</div>";
+      drupal_add_css(drupal_get_path('module', 'revisioning_ux') . '/revisioning_ux.css');
+    }
+  }
+}
+
+/**
  * Hook menu
  */
 function revisioning_ux_menu() {
@@ -35,6 +52,35 @@ function revisioning_ux_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Hook page alter
+ */
+function revisioning_ux_page_alter(&$page) {
+  if (array_key_exists('system_main', $page['content']) && array_key_exists('#form_id',$page['content']['system_main']) && ($page['content']['system_main']['#form_id'] == 'revisioning_revisions_summary')) {
+    $node = node_load($page['content']['system_main']['nid']['#value']);
+    $page['content']['buttons']['#prefix'] = '<div class="revisioning-ux-buttons">';
+    $page['content']['buttons']['#suffix'] = '</div>';
+
+    if (!empty($node->revision_moderation)) {
+      if (_revisioning_access_node_revision('publish revisions', $node)) {
+        $page['content']['buttons']['publish'] = drupal_get_form('revisioning_ux_publish', $node);
+      }
+      elseif (_revisioning_access_node_revision('unpublish current revision', $node)) {
+        $page['content']['buttons']['unpublish'] = drupal_get_form('revisioning_ux_unpublish', $node);
+      }
+    }
+    if (_revisioning_access_node_revision('delete archived revisions', $node)) {
+      $num_archived = revisioning_get_number_of_archived_revisions($node);
+      if ($num_archived > 0) {
+        $page['content']['buttons']['delete-archived'] = drupal_get_form('revisioning_ux_delete_archived', $node);
+      }
+    }
+    if (_revisioning_access_node_revision('delete node', $node)) {
+      $page['content']['buttons']['delete-all'] = drupal_get_form('revisioning_ux_delete_all', $node);
+    }
+  }
 }
 
 /**
@@ -55,6 +101,9 @@ function revisioning_ux_menu_alter(&$items) {
   $items['node/%node/revisions/%vid/view']['title arguments'] = array(1, 3, 'view');
   $items['node/%node/revisions/%vid/edit']['title callback'] = '_revisioning_ux_revisioning_title_for_edit_and_view';
   $items['node/%node/revisions/%vid/edit']['title arguments'] = array(1, 3, 'edit');
+
+  // Remove these menu items and make them buttons
+
 }
 
 function _revisioning_ux_revisioning_redirect($node, $was) {
@@ -84,4 +133,116 @@ function _revisioning_ux_revisioning_title_for_edit_and_view($node, $vid, $tab) 
     $title = ($tab == 'edit') ? t('Edit Latest') : t('View Latest');
   }
   return $title;
+}
+
+/**
+ * Form builder: Publish.
+ */
+function revisioning_ux_publish($form, $form_state, $node) {
+  $form = array();
+  $form['node'] = array(
+    '#type' => 'value',
+    '#value' => $node
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Publish'),
+    '#submit' => array('revisioning_ux_publish_submit'),
+  );
+  return $form;
+}
+
+/**
+ * Form submit function for publish button
+ */
+function revisioning_ux_publish_submit(&$form, &$form_state) {
+  if (isset($form_state['values']['node'])) {
+    $node = $form_state['values']['node'];
+    $form_state['redirect'] = "node/{$node->nid}/publish";
+  }
+}
+
+/**
+ * Form builder: Unpublish.
+ */
+function revisioning_ux_unpublish($form, $form_state, $node) {
+  $form = array();
+  $form['node'] = array(
+    '#type' => 'value',
+    '#value' => $node
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Unpublish current revision'),
+    '#submit' => array('revisioning_ux_unpublish_submit'),
+  );
+  return $form;
+}
+
+/**
+ * Form submit function for unpublish button
+ */
+function revisioning_ux_unpublish_submit(&$form, &$form_state) {
+  if (isset($form_state['values']['node'])) {
+    $node = $form_state['values']['node'];
+    $form_state['redirect'] = "node/{$node->nid}/unpublish";
+  }
+}
+
+/**
+ * Form builder: Delete archived.
+ */
+function revisioning_ux_delete_archived($form, $form_state, $node) {
+  $form = array();
+  $form['node'] = array(
+    '#type' => 'value',
+    '#value' => $node
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Delete archived'),
+    '#submit' => array('revisioning_ux_delete_archived_submit'),
+  );
+  return $form;
+}
+
+/**
+ * Form submit function for delete archived button
+ */
+function revisioning_ux_delete_archived_submit(&$form, &$form_state) {
+  if (isset($form_state['values']['node'])) {
+    $node = $form_state['values']['node'];
+    $form_state['redirect'] = "node/{$node->nid}/revisions/delete-archived";
+  }
+}
+
+/**
+ * Form builder: Delete all.
+ */
+function revisioning_ux_delete_all($form, $form_state, $node) {
+  $text =
+    (empty($node->revision_moderation) || $node->num_revisions == 1)
+    ? t('Delete')
+    : t('Delete all');
+  $form = array();
+  $form['node'] = array(
+    '#type' => 'value',
+    '#value' => $node
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => $text,
+    '#submit' => array('revisioning_ux_delete_all_submit'),
+  );
+  return $form;
+}
+
+/**
+ * Form submit function for delete all button
+ */
+function revisioning_ux_delete_all_submit(&$form, &$form_state) {
+  if (isset($form_state['values']['node'])) {
+    $node = $form_state['values']['node'];
+    $form_state['redirect'] = "node/{$node->nid}/delete";
+  }
 }
