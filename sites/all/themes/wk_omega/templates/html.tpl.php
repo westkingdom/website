@@ -63,7 +63,6 @@ function _wk_zen2_insert_random_background($css_selector, $image_path, $image_ba
   <?php print $head; ?>
   <title><?php print $head_title; ?></title>
   <?php print $styles; ?>
-  <?php print $scripts; ?>
     <style type="text/css">
 <?php
       _wk_zen2_insert_random_background('supporter_l', 'wk_img/supporters_l', "$directory/css", "no-repeat");
@@ -77,6 +76,7 @@ $css = _wk_zen2_css_relative_path();
 print "<link type='text/css' rel='stylesheet' href='/$css/ie8.css'/>";
 ?>
 <![endif]-->
+  <?php print $scripts; ?>
 </head>
 <body<?php print $attributes;?>>
   <div id="skip-link">
