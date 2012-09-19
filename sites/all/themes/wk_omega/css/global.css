@@ -227,6 +227,7 @@ a:hover {
 #zone-footer {
   background: #FFE992;
   margin: auto;
+  padding-top: 5px;
   text-align: center;
   border-top: 1px solid black;
   font-size: 0.8em;
