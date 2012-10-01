@@ -8,9 +8,8 @@
 **/.rspec_system
 
 # Ignore configuration files that may contain sensitive information.
-sites/*/settings*.php
+htdocs/sites/*/settings*.php
 
 # Ignore paths that contain user-generated content.
-sites/*/files
-sites/*/private
-
+htdocs/sites/*/files
+htdocs/sites/*/private
