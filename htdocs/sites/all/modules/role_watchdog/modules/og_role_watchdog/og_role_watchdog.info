@@ -1,0 +1,9 @@
+name = OG Role watchdog
+description = Logs changes to user roles made in Organic Groups.
+core = 7.x
+
+dependencies[] = role_watchdog
+dependencies[] = og
+files[] = og_role_watchdog.install
+files[] = og_role_watchdog.module
+files[] = og_role_watchdog.pages.inc
