@@ -1,3 +1,7 @@
+# Custom php settings:
+AddHandler application/x-httpd-php53 .php
+SuPHP_ConfigPath /home/westking
+
 #
 # Apache/PHP/Drupal settings:
 #
