@@ -1,3 +1,6 @@
+# Ignore the error log
+htdocs/error_log
+
 # Ignore configuration files that may contain sensitive information.
 htdocs/sites/*/settings*.php
 
