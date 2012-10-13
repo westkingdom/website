@@ -6,6 +6,40 @@
  */
 
 /**
+ * Hook module_implements_alter
+ *
+ * Make sure that our hook_form_alter is called after
+ * revisioning_form_alter.
+ */
+function wk_module_implements_alter(&$implementations, $hook) {
+  // Do nothing unless we implement the hook being tested (safety)
+  if (isset($implementations['wk'])) {
+    switch($hook) {
+      // Make hook form_alter runs last
+      case 'form_alter':
+        $group = $implementations['wk'];
+        unset($implementations['wk']);
+        $implementations['wk'] = $group;
+        break;
+    }
+  }
+}
+
+/**
+ * Hook form_alter
+ */
+function wk_form_alter(&$form, &$form_state) {
+  // 0 == Modify current revision, no moderation
+  // 1 == Create new revision, no moderation
+  // 2 == Create new revision and moderate
+  // Revisioning usually makes the default value '2', but
+  // we prefer it to be '0' (no moderation unless specified).
+  // TODO:  Check user access to make sure that current user
+  // has the ability to publish content.
+  $form['revision_information']['revision_operation']['#default_value'] = 0;
+}
+
+/**
  * Hook token_info
  *
  * Declare tokens as_year and event_month.
