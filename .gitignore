@@ -1,5 +1,7 @@
 # Ignore the error log
 htdocs/error_log
+htdocs/moving.page
+htdocs/suspended.page
 
 # Ignore configuration files that may contain sensitive information.
 htdocs/sites/*/settings*.php
