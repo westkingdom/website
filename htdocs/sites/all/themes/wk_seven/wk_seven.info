@@ -1,0 +1,11 @@
+name = 'wk_seven'
+description = 'Overrides for admin theme'
+core = '7.x'
+base theme = 'seven'
+stylesheets[screen][] = wk_seven.css
+regions[content] = Content
+regions[help] = Help
+regions[page_top] = Page top
+regions[page_bottom] = Page bottom
+regions[sidebar_first] = First sidebar
+regions_hidden[] = sidebar_first
