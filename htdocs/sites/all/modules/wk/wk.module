@@ -6,7 +6,7 @@
  */
 
 /**
- * Hook module_implements_alter
+ * Implements hook_module_implements_alter
  *
  * Make sure that our hook_form_alter is called after
  * revisioning_form_alter.
@@ -26,7 +26,7 @@ function wk_module_implements_alter(&$implementations, $hook) {
 }
 
 /**
- * Hook form_alter
+ * Implements hook_form_alter
  */
 function wk_form_alter(&$form, &$form_state) {
   // 0 == Modify current revision, no moderation
@@ -45,6 +45,7 @@ function wk_form_alter(&$form, &$form_state) {
  * Declare tokens as_year and event_month.
  */
 function wk_token_info() {
+  // These tokens are only available for nodes of type 'cal_event'
   $node['as_year'] = array(
     'name' => t("Anno Societatis Year"),
     'description' => t('Year in Anno Societatis (AS). See http://www.sca.org/links/calendar.html.'),
@@ -52,6 +53,33 @@ function wk_token_info() {
   $node['event_month'] = array(
     'name' => t("Event Month"),
     'description' => t('The month that the event is held in (reconed by starting date).'),
+  );
+  // Because of http://drupal.org/node/691078, we just hack in our own
+  // field-based tokens here for now (cough).
+  // These tokens are only available for nodes of type 'location'
+  $node['field_location_street'] = array(
+    'name' => t("Location Street"),
+    'description' => t('The street address that a location is located at.'),
+  );
+  $node['field_location_city'] = array(
+    'name' => t("Location City"),
+    'description' => t('The city that a location is in.'),
+  );
+  $node['field_location_province'] = array(
+    'name' => t("Location Province"),
+    'description' => t('The abbreviation for the province (State) that a location is in.'),
+  );
+  $node['field_location_province_name'] = array(
+    'name' => t("Location Province Name"),
+    'description' => t('The full name of the province (State) that a location is in.'),
+  );
+  $node['field_location_country'] = array(
+    'name' => t("Location Country"),
+    'description' => t('The country that a location is in.'),
+  );
+  $node['field_location_country_name'] = array(
+    'name' => t("Location Country Name"),
+    'description' => t('The full name of the country that a location is in.'),
   );
   return array(
     'tokens' => array('node' => $node),
@@ -80,6 +108,20 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
             $timestamp=strtotime($start_date);
             $replacements[$original] = date('M', $timestamp);
             break;
+        }
+      }
+    }
+    if ($node->type == 'location') {
+      foreach ($tokens as $name => $original) {
+        if (substr($name,0,15) == 'field_location_') {
+          // $name is always 'field_location_xxx', so key is 'xxx'.
+          $key = substr($name, 15);
+          if (isset($node->field_location['und'][0][$key])) {
+            $replacements[$original] = strtolower($node->field_location['und'][0][$key]);
+          }
+          else {
+            $replacements[$original] = '';
+          }
         }
       }
     }
