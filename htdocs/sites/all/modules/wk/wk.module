@@ -56,7 +56,8 @@ function wk_token_info() {
   );
   // Because of http://drupal.org/node/691078, we just hack in our own
   // field-based tokens here for now (cough).
-  // These tokens are only available for nodes of type 'location'
+  // These tokens are only available for nodes of type 'location' and
+  // 'cal_event' (if the calendar event has a location set).
   $node['field_location_street'] = array(
     'name' => t("Location Street"),
     'description' => t('The street address that a location is located at.'),
@@ -111,13 +112,24 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
         }
       }
     }
-    if ($node->type == 'location') {
+    $location_field = array();
+    if (($node->type == 'location') && (isset($node->field_location['und'][0]))) {
+      $location_field = $node->field_location['und'][0];
+    }
+    if (($node->type == 'cal_event') && (isset($node->field_event_site['und'][0]))) {
+      $location_nid = $node->field_event_site['und'][0]['nid'];
+      $location_node = node_load($location_nid);
+      if (isset($location_node->field_location['und'][0])) {
+        $location_field = $location_node->field_location['und'][0];
+      }
+    }
+    if (!empty($location_field)) {
       foreach ($tokens as $name => $original) {
         if (substr($name,0,15) == 'field_location_') {
           // $name is always 'field_location_xxx', so key is 'xxx'.
           $key = substr($name, 15);
-          if (isset($node->field_location['und'][0][$key])) {
-            $replacements[$original] = strtolower($node->field_location['und'][0][$key]);
+          if (isset($location_field[$key])) {
+            $replacements[$original] = $location_field[$key];
           }
           else {
             $replacements[$original] = '';
