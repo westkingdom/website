@@ -82,6 +82,10 @@ function wk_token_info() {
     'name' => t("Location Country Name"),
     'description' => t('The full name of the country that a location is in.'),
   );
+  $node['field_location_summary'] = array(
+    'name' => t("Location Summary"),
+    'description' => t('A parenthesized summary of the location (City, State).'),
+  );
   return array(
     'tokens' => array('node' => $node),
   );
@@ -124,6 +128,7 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
       }
     }
     if (!empty($location_field)) {
+      $location_field['summary'] = "(" . $location_field['city'] . ", " . $location_field['province'] . ")";
       foreach ($tokens as $name => $original) {
         if (substr($name,0,15) == 'field_location_') {
           // $name is always 'field_location_xxx', so key is 'xxx'.
