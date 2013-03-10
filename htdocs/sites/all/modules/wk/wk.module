@@ -36,7 +36,9 @@ function wk_form_alter(&$form, &$form_state) {
   // we prefer it to be '0' (no moderation unless specified).
   // TODO:  Check user access to make sure that current user
   // has the ability to publish content.
-  $form['revision_information']['revision_operation']['#default_value'] = 0;
+  if (isset($form['revision_information']['revision_operation'])) {
+    $form['revision_information']['revision_operation']['#default_value'] = 1;
+  }
 }
 
 /**
