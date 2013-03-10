@@ -32,7 +32,7 @@ function hook_ckeditor_link_types() {
  *   The types returned by hook_ckeditor_link_types(). The types are keyed by
  *   'MODULE.TYPE' for easy lookup.
  *
- * @see hook_ckeditor_link_types().
+ * @see hook_ckeditor_link_types()
  */
 function hook_ckeditor_link_types_alter(&$types) {
   // Change types
@@ -46,12 +46,14 @@ function hook_ckeditor_link_types_alter(&$types) {
  *
  * @param $string
  *   The string to autocomplete.
+ * @param $limit
+ *   The maximum number of suggestions to return.
  *
  * @return
  *   An array of suggestions where keys are non-aliased internal paths
  *   and values are titles.
  */
-function hook_ckeditor_link_TYPE_autocomplete($string) {
+function hook_ckeditor_link_TYPE_autocomplete($string, $limit) {
   $matches = array();
 
   $matches['the-path/123'] = 'The title 1';
@@ -68,7 +70,7 @@ function hook_ckeditor_link_TYPE_autocomplete($string) {
  * @param $string
  *   The string to autocomplete.
  *
- * @see hook_ckeditor_link_TYPE_autocomplete().
+ * @see hook_ckeditor_link_TYPE_autocomplete()
  */
 function hook_ckeditor_link_autocomplete_alter(&$results, $string) {
   // Change results.

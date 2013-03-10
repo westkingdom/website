@@ -1,0 +1,21 @@
+<?php
+
+function dereference_list_allowed_list_values($field, $instance, $entity_type, $entity) {
+  $return = array();
+  if ($entity) {
+    $settings = $field['settings'];
+    $reference_field = field_info_field($settings['entityreference_field']);
+    $reference_items = field_get_items($entity_type, $entity, $reference_field['field_name']);
+    $referenced_entity_type = $reference_field['settings']['target_type'];
+    $referenced_entity_id = $reference_items[0]['target_id'];
+    if ($referenced_entity_id) {
+      $referenced_entities = entity_load($referenced_entity_type, array($referenced_entity_id));
+      $referenced_entity = $referenced_entities[$referenced_entity_id];
+      $dereference_field_items = field_get_items($referenced_entity_type, $referenced_entity, $settings['dereferenced_field']);
+      foreach ($dereference_field_items as $item) {
+        $return[$item['value']] = $item['value'];
+      }
+    }
+  }
+  return $return;
+}

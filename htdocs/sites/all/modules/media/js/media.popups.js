@@ -100,7 +100,7 @@ Drupal.media.popups.mediaBrowser = function (onSelect, globalOptions, pluginOpti
 
 Drupal.media.popups.mediaBrowser.mediaBrowserOnLoad = function (e) {
   var options = e.data;
-  if (this.contentWindow.Drupal.media.browser == undefined) return;
+  if (this.contentWindow.Drupal.media == undefined) return;
 
   if (this.contentWindow.Drupal.media.browser.selectedMedia.length > 0) {
     var ok = (Drupal && Drupal.t) ? Drupal.t('OK') : 'OK';
@@ -305,9 +305,9 @@ Drupal.media.popups.getDialogOptions = function () {
     modal: true,
     draggable: false,
     resizable: false,
-    minWidth: 600,
-    width: 800,
-    height: 550,
+    minWidth: 500,
+    width: 670,
+    height: 280,
     position: 'center',
     overlay: {
       backgroundColor: '#000000',

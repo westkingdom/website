@@ -20,6 +20,13 @@ function subpathauto_menu() {
  * Implements hook_url_inbound_alter().
  */
 function subpathauto_url_inbound_alter(&$path, $original_path, $language) {
+  // If the current menu item exists at this path, then we should not continue
+  // processing.
+  $item = menu_get_item($path);
+  if (!empty($item) && $item['href'] == $path) {
+    return FALSE;
+  }
+
   if ($source = subpathauto_lookup_subpath('source', $path, $original_path, $language)) {
     $path = $source;
   }

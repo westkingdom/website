@@ -34,16 +34,14 @@ Drupal.behaviors.mediaViews = {
       }
     }
 
-    // We want to be able to reset state on tab-changes, so we bind on the
-    // 'select' event on the tabset
-    $('#media-browser-tabset').tabs({
-      select: function(e, ui) {
-        var view = $('.view', ui.panel);
-        if (view.length) {
-          Drupal.media.browser.views.select(view);
-        }
+    // Reset the state on tab-changes- bind on the 'select' event on the tabset
+    $('#media-browser-tabset').bind('tabsselect', function(event, ui) {
+      var view = $('.view', ui.panel);
+      if (view.length) {
+        Drupal.media.browser.views.select(view);
       }
-    })
+    });
+
   }
 }
 

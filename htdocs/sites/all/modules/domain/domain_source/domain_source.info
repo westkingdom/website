@@ -1,0 +1,17 @@
+name = Domain Source
+description = Creates a canonical source domain for linking to content from other domains.
+package = Domain Access
+dependencies[] = domain
+core = 7.x
+files[] = domain_source.domain.inc
+files[] = domain_source.install
+files[] = domain_source.module
+files[] = domain_source.views.inc
+
+
+; Information added by drupal.org packaging script on 2012-05-30
+version = "7.x-3.4"
+core = "7.x"
+project = "domain"
+datestamp = "1338415255"
+

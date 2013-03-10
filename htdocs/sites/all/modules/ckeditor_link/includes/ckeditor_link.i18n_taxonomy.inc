@@ -8,7 +8,7 @@
 /**
  * Implementation of hook_ckeditor_link_TYPE_autocomplete().
  */
-function ckeditor_link_ckeditor_link_i18n_taxonomy_autocomplete($string) {
+function ckeditor_link_ckeditor_link_i18n_taxonomy_autocomplete($string, $limit) {
   // Currently, this function only supports MySQL.
   // TODO: Add support for pgsql.
   if (!in_array(db_driver(), array('mysql'))) {
@@ -27,7 +27,7 @@ function ckeditor_link_ckeditor_link_i18n_taxonomy_autocomplete($string) {
     $query->fields('lt', array('language'));
     $query->where('CONVERT(lt.translation USING utf8) LIKE :pattern', array(':pattern' => '%'. db_like($string) .'%'));
     $query->orderBy('name');
-    $query->range(0, 10);
+    $query->range(0, $limit);
     $query->addTag('term_access');
     if (!in_array('- any -', $vocabularies)) {
       $query->condition('t.vid', $vocabularies, 'IN');

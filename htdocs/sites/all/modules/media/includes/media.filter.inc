@@ -548,10 +548,7 @@ function media_format_form($form, $form_state, $file) {
   $form['#attached']['library'][] = array('system', 'form');
   $form['#attached']['js'][] = drupal_get_path('module', 'media') . '/js/media.format_form.js';
 
-  $form['heading'] = array(
-    '#type' => 'markup',
-    '#prefix' => '<h1 class="title">',
-    '#suffix' => '</h1>',
+  $form['title'] = array(
     '#markup' => t('Embedding %filename', array('%filename' => $file->filename)),
   );
 
@@ -571,23 +568,29 @@ function media_format_form($form, $form_state, $file) {
 
   $form['options']['format'] = array(
     '#type' => 'select',
-    '#title' => t('Current format is'),
+    '#title' => t('Display as'),
     '#options' => $options,
     '#default_value' => $default_view_mode,
+    '#description' => t('Choose the type of display you would like for this
+      file. Please be aware that files may display differently than they do when
+      they are insterted into an editor.')
   );
 
   if ($file->type === 'image') {
     $form['options']['alt'] = array(
       '#type' => 'textfield',
       '#title' => t('Alternate text'),
-      '#description' => t('This text will be used by screen readers, search engines, or when the image cannot be loaded.'),
+      '#description' => t('Alternative text is used by screen readers, search
+        engines, and when the image cannot be loaded. By adding alt text you
+        improve accesibility and search engine optimization.'),
       '#default_value' => isset($file->field_file_image_alt_text['und'][0]['safe_value']) ? $file->field_file_image_alt_text['und'][0]['safe_value'] : '',
     );
-
     $form['options']['title'] = array(
       '#type' => 'textfield',
-      '#title' => t('Title'),
-      '#description' => t('The title is used as a tool tip when the user hovers the mouse over the image.'),
+      '#title' => t('Title text'),
+      '#description' => t('Title text is used in the tool tip when a user hovers
+        their mouse over the image. Adding title text makes it easier to
+        understand the context of an image and improves usability.'),
       '#default_value' => isset($file->field_file_image_title_text['und'][0]['safe_value']) ? $file->field_file_image_title_text['und'][0]['safe_value'] : '',
     );
   }

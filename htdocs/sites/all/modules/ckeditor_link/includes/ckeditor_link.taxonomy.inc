@@ -8,7 +8,7 @@
 /**
  * Implementation of hook_ckeditor_link_TYPE_autocomplete().
  */
-function ckeditor_link_ckeditor_link_taxonomy_autocomplete($string) {
+function ckeditor_link_ckeditor_link_taxonomy_autocomplete($string, $limit) {
   $matches = array();
 
   $vocabularies = array_keys(array_filter(variable_get('ckeditor_link_autocomplete_vocabularies', array())));
@@ -17,7 +17,7 @@ function ckeditor_link_ckeditor_link_taxonomy_autocomplete($string) {
       ->fields('t', array('tid', 'name'))
       ->condition('t.name', '%'. db_like($string) .'%', 'LIKE')
       ->orderBy('t.name')
-      ->range(0, 10)
+      ->range(0, $limit)
       ->addTag('term_access');
     if (!in_array('- any -', $vocabularies)) {
       $query->condition('t.vid', $vocabularies, 'IN');

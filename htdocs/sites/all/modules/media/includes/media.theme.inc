@@ -35,7 +35,6 @@ function template_preprocess_media_dialog_page(&$variables) {
 function theme_media_thumbnail($variables) {
   $label = '';
   $element = $variables['element'];
-  $destination = drupal_get_destination();
 
  // Wrappers to go around the thumbnail.
   $attributes = array(
@@ -50,7 +49,7 @@ function theme_media_thumbnail($variables) {
   $thumb = $element['#children'];
   $target = 'file/' . $element['#file']->fid . '/edit';
   $options = array(
-    'query' => $destination,
+    'query' => drupal_get_destination(),
     'html' => TRUE,
     'attributes' => array('title' => t('Click to edit details')),
   );
@@ -59,10 +58,6 @@ function theme_media_thumbnail($variables) {
   if (!empty($element['#show_names']) && $element['#name']) {
     $label = '<div class="label-wrapper"><label class="media-filename">' . $element['#name'] . '</label></div>';
   }
-
-  // @todo should CSS be attached to the form element here?
-  // $element['#attached']['css'][] = drupal_get_path('module', 'media') . '/css/media.css';
-  drupal_add_css(drupal_get_path('module', 'media') . '/css/media.css');
 
   $output = $prefix;
   if (!empty($element['#add_link'])) {

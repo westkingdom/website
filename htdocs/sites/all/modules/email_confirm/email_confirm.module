@@ -163,14 +163,14 @@ function email_confirm_variable_info($options) {
     'localize' => TRUE,
   );
 
-  return $type;  
+  return $type;
 }
 
 /**
  * Implements hook_user_presave().
  */
 function email_confirm_user_presave(&$edit, $account, $category) {
-  if (!empty($edit['mail']) && (isset($account->mail) && $account->mail != $edit['mail']) && !user_access('administer users') && (!isset($edit['email_confirmed']) || $edit['email_confirmed'] === FALSE)) {
+  if (!empty($edit['mail']) && (isset($account->mail) && $account->mail != $edit['mail']) && !user_access('administer users') && !drupal_installation_attempted() && (!isset($edit['email_confirmed']) || $edit['email_confirmed'] === FALSE)) {
     // Set a temporary session variable to indicate that the email was changed. Is used in hook_exit
     // to clear out a Drupal message set by the user module after user_save() is called.
     $_SESSION['email_changed'] = TRUE;
@@ -251,10 +251,11 @@ function email_confirm_user_change_mail($uid = NULL, $timestamp = NULL, $new_mai
     }
     elseif ($timestamp > $account->login && $timestamp < $current) {
       watchdog('user', 'User %name used one-time e-mail change link at time %timestamp.', array('%name' => $account->name, '%timestamp' => $timestamp));
+      $old_mail = $account->mail;
       user_save($account, array('mail' => $new_mail, 'login' => REQUEST_TIME, 'email_confirmed' => TRUE));
-      module_invoke_all('email_confirm', 'email confirmation', $account->uid, $account->mail, $new_mail);
+      module_invoke_all('email_confirm', 'email confirmation', $account->uid, $old_mail, $new_mail);
       if (module_exists('rules')) {
-        rules_invoke_event('email_confirm_email_change_confirmation', $account, $account->mail, $new_mail);
+        rules_invoke_event('email_confirm_email_change_confirmation', $account, $old_mail, $new_mail);
       }
       drupal_set_message(t('Your e-mail address is now %mail.', array('%mail' => $new_mail)));
       if ($user->uid) {

@@ -8,7 +8,7 @@
 /**
  * Implementation of hook_ckeditor_link_TYPE_autocomplete().
  */
-function ckeditor_link_ckeditor_link_i18n_menu_autocomplete($string) {
+function ckeditor_link_ckeditor_link_i18n_menu_autocomplete($string, $limit) {
   // Currently, this function only supports MySQL.
   // TODO: Add support for pgsql.
   if (!in_array(db_driver(), array('mysql'))) {
@@ -29,7 +29,7 @@ function ckeditor_link_ckeditor_link_i18n_menu_autocomplete($string) {
     $query->condition('ml.hidden', 0);
     $query->condition('ml.external', 0);
     $query->orderBy('link_title');
-    $query->range(0, 10);
+    $query->range(0, $limit);
     if (!in_array('- any -', $menus)) {
       $query->condition('ml.menu_name', $menus, 'IN');
     }

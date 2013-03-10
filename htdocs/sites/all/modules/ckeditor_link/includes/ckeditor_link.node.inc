@@ -8,7 +8,7 @@
 /**
  * Implementation of hook_ckeditor_link_TYPE_autocomplete().
  */
-function ckeditor_link_ckeditor_link_node_autocomplete($string) {
+function ckeditor_link_ckeditor_link_node_autocomplete($string, $limit) {
   $matches = array();
 
   $node_types = array_keys(array_filter(variable_get('ckeditor_link_autocomplete_node_types', array('- any -' => '- any -'))));
@@ -18,7 +18,7 @@ function ckeditor_link_ckeditor_link_node_autocomplete($string) {
       ->condition('n.title', '%'. db_like($string) .'%', 'LIKE')
       ->orderBy('n.title')
       ->orderBy('n.type')
-      ->range(0, 10)
+      ->range(0, $limit)
       ->addTag('node_access');
     if (!in_array('- any -', $node_types)) {
       $query->condition('n.type', $node_types, 'IN');
