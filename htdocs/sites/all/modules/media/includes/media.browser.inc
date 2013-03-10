@@ -131,33 +131,49 @@ function media_browser($selected = NULL) {
       $settings['media']['browser'][$key] = $plugin_output[$key]['#settings'];
     }
 
-    // If this is a "ajax" style tab, add the href, otherwise an id.
-    $href = '#media-tab-' . $key;
+    // If this is a "ajax" style tab, add the href, otherwise an id. jQuery UI
+    // will use an href value to load content from that url
+    $tabid = 'media-tab-' . check_plain($key);
     if (!empty($plugin_output[$key]['#callback'])) {
       $href = $plugin_output[$key]['#callback'];
     }
     else {
+      $attributes = array(
+        'class' => array('media-browser-tab'),
+        'id' => $tabid,
+        'data-tabid' => $key,
+      );
       // Create a div for each tab's content.
       $plugin_output[$key] += array(
-        '#prefix' => '<div class="media-browser-tab" id="media-tab-' . check_plain($key) . '">',
-        '#suffix' => '</div>',
+        '#prefix' => '<div '. drupal_attributes($attributes) . ">\n",
+        '#suffix' => "</div>\n",
       );
     }
 
-    $tabs[] = "<a href='$href'><span>" . check_plain($plugin_output[$key]['#title']) . "</span></a>";
+    $attributes = array(
+      'href' => '#' . $tabid,
+      'data-tabid' => $key,
+      'title' => $plugin_output[$key]['#title'],
+    );
+    $tabs[]['element'] = array(
+      '#markup' => '<li><a' . drupal_attributes($attributes) . '>' . check_plain($plugin_output[$key]['#title']) . "</a></li>\n",
+    );
   }
 
   drupal_add_js($settings, 'setting');
 
-  $output['tabset'] = array(
-    '#prefix' => '<div id="media-browser-tabset">',
-    '#suffix' => '</div>',
-  );
-  $output['tabset']['list'] = array(
-    '#markup' => theme('item_list', array('items' => $tabs)),
+  $output['title'] = array(
+    '#markup' => t('Select a file')
   );
 
-  $output['tabset']['plugins'] = $plugin_output;
+  $output['tabset']['tabs'] = array(
+    '#theme' => 'menu_local_tasks',
+    '#attributes' => array('class' => array('tabs', 'primary')),
+    '#primary' => $tabs,
+  );
+
+  $output['tabset']['panes'] = $plugin_output;
+
   return $output;
 }
 

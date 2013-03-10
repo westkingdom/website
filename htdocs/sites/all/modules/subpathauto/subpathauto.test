@@ -25,10 +25,10 @@ class SubPathautoUnitTestCase extends DrupalWebTestCase {
   function testSubPathAliases() {
     $this->assertAlias('node/1', 'content/first-node');
     $this->assertAlias('node/1/a', 'content/first-node/a');
-    $this->assertAlias('node/1/a/b', 'node/1/a/b');
+    $this->assertNoAlias('node/1/a/b');
     $this->assertAlias('node/1/test', 'content/first-node-test');
     $this->assertAlias('node/1/test/a', 'content/first-node-test/a');
-    $this->assertAlias('node/1/test/a/b', 'node/1/test/a/b');
+    $this->assertNoAlias('node/1/test/a/b');
 
     // Change the depth to two-levels deep.
     variable_set('subpathauto_depth', 2);
@@ -36,15 +36,21 @@ class SubPathautoUnitTestCase extends DrupalWebTestCase {
     $this->assertAlias('node/1', 'content/first-node');
     $this->assertAlias('node/1/a', 'content/first-node/a');
     $this->assertAlias('node/1/a/b', 'content/first-node/a/b');
-    $this->assertAlias('node/1/a/b/c', 'node/1/a/b/c');
+    $this->assertNoAlias('node/1/a/b/c');
     $this->assertAlias('node/1/test', 'content/first-node-test');
     $this->assertAlias('node/1/test/a/b', 'content/first-node-test/a/b');
-    $this->assertAlias('node/1/test/a/b/c', 'node/1/test/a/b/c');
+    $this->assertNoAlias('node/1/test/a/b/c');
 
     // Test that admin paths should be excluded.
     drupal_static_reset();
-    $this->assertAlias('node/1/edit', 'node/1/edit');
-    $this->assertAlias('admin/modules', 'admin/modules');
+    $this->assertNoAlias('node/1/edit');
+    $this->assertNoAlias('admin/modules');
+
+    // Test with $options['alias'] and $options['external'].
+    $this->assertNoAlias('node/1/a', array('alias' => TRUE));
+    $this->assertAlias('node/1/a', 'content/first-node/a', array('alias' => FALSE));
+    $this->assertNoAlias('node/1/a', array('external' => TRUE));
+    $this->assertAlias('node/1/a', 'content/first-node/a', array('external' => FALSE));
 
     // Enable sub-path aliases for admin paths.
     variable_set('subpathauto_ignore_admin', 0);
@@ -84,7 +90,7 @@ class SubPathautoUnitTestCase extends DrupalWebTestCase {
     }
 
     if ($options['external']) {
-      return FALSE;
+      return $path;
     }
 
     global $base_url, $base_secure_url, $base_insecure_url;
@@ -104,8 +110,8 @@ class SubPathautoUnitTestCase extends DrupalWebTestCase {
     return $path;
   }
 
-  function assertAlias($source, $alias) {
-    $actual_alias = $this->getPathAlias($source);
+  function assertAlias($source, $alias, array $options = array()) {
+    $actual_alias = $this->getPathAlias($source, $options);
     $actual_source = drupal_get_normal_path($alias);
     $args = array(
       '@source' => $source,
@@ -115,6 +121,10 @@ class SubPathautoUnitTestCase extends DrupalWebTestCase {
     );
     return $this->assertIdentical($alias, $actual_alias, t("drupal_get_path_alias('@source') was '@alias-actual' and expected '@alias'", $args))
         || $this->assertIdentical($source, $actual_source, t("drupal_get_normal_path('@alias') was '@source-actual' and expected '@source'", $args));
+  }
+
+  function assertNoAlias($source, array $options = array()) {
+    return $this->assertAlias($source, $source, $options);
   }
 
   function addAlias($source, $alias, $langcode = LANGUAGE_NONE) {

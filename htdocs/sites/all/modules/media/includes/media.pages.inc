@@ -71,7 +71,7 @@ function media_file_edit_modal($form, &$form_state, $file, $js) {
     $commands = $output;
 
     if ($form_state['executed']) {
-      $commands[] = ctools_modal_command_dismiss(t('File saved'));
+      $commands = array(ctools_modal_command_dismiss(t('File saved')));
     }
 
     print ajax_render($commands);

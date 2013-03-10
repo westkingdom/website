@@ -27,8 +27,16 @@ function admin_views_views_plugins() {
         'admin' => t('System'),
       ),
     ),
+    'access' => array(
+      'menu' => array(
+        'title' => t('Menu system path'),
+        'help' => t('Access will be granted based on the original system path.'),
+        'handler' => 'views_plugin_access_menu',
+        'uses options' => FALSE,
+        'path' => "$path/plugins",
+      ),
+    ),
   );
 
   return $plugins;
 }
-

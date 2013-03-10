@@ -205,6 +205,11 @@ function ensure_tagmap () {
  *    A object containing the media file information (fid, view_mode, etc).
  */
 function create_element (html, info) {
+  if ($('<div></div>').append(html).text().length === html.length) {
+    // Element is not an html tag. Surround it in a span element
+    // so we can pass the file attributes.
+    html = '<span>' + html + '</span>';
+  }
   var element = $(html);
 
   // Move attributes from the file info array to the placeholder element.

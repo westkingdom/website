@@ -46,21 +46,22 @@ function ckeditor_link_autocomplete($string = '') {
 
   if ($string !== '') {
     $types = ckeditor_link_get_types();
+    $limit = variable_get('ckeditor_link_limit', 10);
     $results = array();
     foreach ($types as $type) {
       $func = $type['module'] .'_ckeditor_link_'. $type['type'] .'_autocomplete';
       if (function_exists($func)) {
-        $results += $func($string);
-        if (count($results) > 10) {
+        $results += $func($string, $limit);
+        if (count($results) > $limit) {
           break;
         }
       }
     }
     drupal_alter('ckeditor_link_autocomplete', $results, $string);
 
-    array_splice($results, 10);
+    array_splice($results, $limit);
     foreach ($results as $path => $title) {
-      $matches[$title .' ('. $path. ')'] = '<div class="reference-autocomplete">'. check_plain($title) .'</div>';
+      $matches[$title .' ('. $path .')'] = '<div class="reference-autocomplete">'. check_plain($title) .'</div>';
     }
   }
 
@@ -132,7 +133,6 @@ function ckeditor_link_get_types() {
  * Implementation of hook_ckeditor_link_types().
  */
 function ckeditor_link_ckeditor_link_types() {
-  $types[] = array('type' => 'file', 'file' => 'includes/ckeditor_link.file.inc');
   $types[] = array('type' => 'node', 'file' => 'includes/ckeditor_link.node.inc');
 
   if (module_exists('taxonomy')) {
@@ -258,7 +258,7 @@ function _ckeditor_link_filter_process($matches, $langcode = NULL) {
     }
   }
 
-  return 'href="'. ckeditor_link_url($path, $langcode);
+  return 'href="'. base_path() . $matches[1];
 }
 
 function ckeditor_link_get_link_type_name() {

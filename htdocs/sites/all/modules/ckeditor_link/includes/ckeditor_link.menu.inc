@@ -8,7 +8,7 @@
 /**
  * Implementation of hook_ckeditor_link_TYPE_autocomplete().
  */
-function ckeditor_link_ckeditor_link_menu_autocomplete($string) {
+function ckeditor_link_ckeditor_link_menu_autocomplete($string, $limit) {
   $matches = array();
 
   $menus = array_keys(array_filter(variable_get('ckeditor_link_autocomplete_menus', array())));
@@ -19,7 +19,7 @@ function ckeditor_link_ckeditor_link_menu_autocomplete($string) {
       ->condition('hidden', 0)
       ->condition('external', 0)
       ->orderBy('link_title')
-      ->range(0, 10);
+      ->range(0, $limit);
     if (function_exists('ckeditor_link_ckeditor_link_i18n_menu_autocomplete')) {
       $query->fields('menu_links', array('language'));
     }

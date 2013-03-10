@@ -122,7 +122,7 @@ function media_menu() {
     'title' => 'Thumbnails',
     'description' => 'Manage files used on your site.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('file_entity_admin_files'),
+    'page arguments' => array('file_entity_admin_file'),
     'access arguments' => array('administer files'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'file_entity.admin.inc',
@@ -296,11 +296,11 @@ function media_theme() {
  */
 function media_image_default_styles() {
   $styles = array();
-  $styles['square_thumbnail'] = array(
+  $styles['media_thumbnail'] = array(
     'effects' => array(
       array(
         'name' => 'image_scale_and_crop',
-        'data' => array('width' => 180, 'height' => 180),
+        'data' => array('width' => 100, 'height' => 100),
         'weight' => 0,
       ),
     ),
@@ -652,10 +652,10 @@ function media_library() {
       $path . '/js/media.popups.js' => array('group' => JS_DEFAULT),
     ),
     'dependencies' => array(
-      array('media', 'media_base'),
       array('system', 'ui.resizable'),
       array('system', 'ui.draggable'),
       array('system', 'ui.dialog'),
+      array('media', 'media_base'),
     ),
   );
 
@@ -665,14 +665,11 @@ function media_library() {
     'js' => array(
       $path . '/js/media.browser.js'  => array('group' => JS_DEFAULT),
     ),
-    'css' => array(
-      $path . '/css/media.browser.css' => array('group' => CSS_DEFAULT),
-    ),
     'dependencies' => array(
-      array('media', 'media_base'),
       array('system', 'ui.tabs'),
       array('system', 'ui.draggable'),
       array('system', 'ui.dialog'),
+      array('media', 'media_base'),
     ),
   );
 
@@ -967,9 +964,6 @@ function media_element_process(&$element, &$form_state, $form) {
  */
 function media_element_validate(&$element, &$form_state) {
   if ($element['#required']) {
-    $field_name = $element['#field_name'];
-    $lang = $element['#language'];
-
     $has_value = FALSE;
     $widget_parents = $element['#array_parents'];
     array_pop($widget_parents);
@@ -1032,6 +1026,9 @@ function media_get_thumbnail_preview($file, $link = NULL) {
   if (!file_type_is_enabled($file->type)) {
     $file->type = file_get_type($file);
   }
+  // @todo should CSS be attached to the form element here?
+  // $element['#attached']['css'][] = drupal_get_path('module', 'media') . '/css/media.css';
+  drupal_add_css(drupal_get_path('module', 'media') . '/css/media.css');
   $preview = file_view_file($file, 'preview');
   $preview['#show_names'] = TRUE;
   $preview['#add_link'] = $link;
@@ -1062,39 +1059,19 @@ function media_file_validate_types(stdClass $file, $types) {
 }
 
 /**
- * Implements hook_file_type_info_alter().
+ * Implements hook_file_displays_alter().
  */
-function media_file_type_info_alter(array &$info) {
-  // Add default view callback support for all file types.
-  foreach ($info as $type => $type_info) {
-    $info[$type] += array(
-      'default view callback' => 'media_file_type_media_default_view',
+function media_file_displays_alter(&$displays, $file, $view_mode) {
+  if ($view_mode == 'preview' && empty($displays)) {
+    // We re in the media browser and this file has no formatters enabled.
+    // Instead of letting it go through theme_file_link(), pass it through
+    // theme_media_formatter_large_icon() to get our cool file icon instead.
+    $displays['file_field_media_large_icon'] = array(
+      'weight' => 0,
+      'status' => 1,
+      'settings' => NULL,
     );
   }
-}
-
-/**
- * Implements hook_file_type_TYPE_default_view().
- *
- * Returns a drupal_render() array for displaying the file when there are no
- * administrator-configured formatters, or none of the configured ones return a
- * display.
- */
-function media_file_type_media_default_view($file, $view_mode, $langcode) {
-  // During preview, or when custom attribute values are needed on the displayed
-  // element, use a media icon.
-  if ($view_mode == 'preview' || isset($file->override)) {
-    return array(
-      '#theme' => 'media_formatter_large_icon',
-      '#file' => $file,
-    );
-  }
-
-  // Finally, fall back to File module's generic file display.
-  return array(
-    '#theme' => 'file_link',
-    '#file' => $file,
-  );
 }
 
 /**
@@ -1141,7 +1118,7 @@ function media_get_hidden_stream_wrappers() {
  * It also makes modifications to the thumbnail view by replacing the existing
  * checkboxes and table with thumbnails.
  */
-function media_form_file_entity_admin_files_alter(&$form, $form_state) {
+function media_form_file_entity_admin_file_alter(&$form, $form_state) {
   if (!empty($form_state['values']['operation'])) {
     // The form is being rebuilt because an operation requiring confirmation
     // We don't want to be messing with it in this case.
@@ -1153,7 +1130,7 @@ function media_form_file_entity_admin_files_alter(&$form, $form_state) {
   // tasks.
   $path = drupal_get_path('module', 'media');
   require_once $path . '/includes/media.browser.inc';
-  $form['#attributes']['class'][] = 'file-entity-admin-files-form';
+  $form['#attributes']['class'][] = 'file-entity-admin-file-form';
   $form['#attached']['js'][] = $path . '/js/media.admin.js';
   $form['#attached']['css'][] = $path . '/css/media.css';
   media_attach_browser_js($form);
@@ -1162,22 +1139,24 @@ function media_form_file_entity_admin_files_alter(&$form, $form_state) {
   // the 'thumbnails' tab, Media generates a thumbnail for each file and
   // replaces the tableselect with a grid of thumbnails.
   if (arg(3) == 'thumbnails') {
-    if (empty($form['#files'])) {
+    if (empty($form['admin']['files'])) {
       // Display empty text if there are no files.
-      $form['files'] = array(
+      $form['admin']['files'] = array(
         '#markup' => '<p>' . $form['files']['#empty'] . '</p>',
       );
     }
     else {
-      $form['files'] = array(
+      $files = file_load_multiple(array_keys($form['admin']['files']['#options']));
+
+      $form['admin']['files'] = array(
         '#tree' => TRUE,
         '#prefix' => '<div class="media-display-thumbnails media-clear clearfix"><ul id="media-browser-library-list" class="media-list-thumbnails">',
         '#suffix' => '</ul></div>',
       );
 
-      foreach ($form['#files'] as $file) {
+      foreach ($files as $file) {
         $preview = media_get_thumbnail_preview($file, TRUE);
-        $form['files'][$file->fid] = array(
+        $form['admin']['files'][$file->fid] = array(
           '#type' => 'checkbox',
           '#title' => '',
           '#prefix' => '<li>' . drupal_render($preview),

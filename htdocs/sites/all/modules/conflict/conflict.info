@@ -1,0 +1,10 @@
+name = Conflict
+description = Fieldwise conflict prevention and resolution.
+core = 7.x
+files[] = conflict.test
+; Information added by drupal.org packaging script on 2012-06-29
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "conflict"
+datestamp = "1340997488"
+
