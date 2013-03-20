@@ -76,6 +76,10 @@ function wk_token_info() {
     'name' => t("Location Province Name"),
     'description' => t('The full name of the province (State) that a location is in.'),
   );
+  $node['field_location_postal_code'] = array(
+    'name' => t("Location Postal Code"),
+    'description' => t('The postal code for the location.'),
+  );
   $node['field_location_country'] = array(
     'name' => t("Location Country"),
     'description' => t('The country that a location is in.'),
