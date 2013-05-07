@@ -15,7 +15,12 @@ function location_location_from_node_ctools_relationships() {
     'description' => t('Creates a location context from a node.'),
     'required context' => new ctools_context_required(t('Node'), 'node'),
     'context' => 'location_location_from_node_context',
-    'settings form' => 'location_location_from_node_settings_form',
+    'edit form' => 'location_location_from_node_settings_form',
+    'defaults' => array(
+       'location_cck_field_name' => '',
+       'location_cck_field_offset' => 0,
+       'location_type' => NULL,
+     ),
   );
 }
 
@@ -53,8 +58,8 @@ function location_location_from_node_context($context, $conf) {
     elseif ($conf['location_type'] == 'location_cck' && isset($conf['location_cck_field_name'])) {
       $field_name = $conf['location_cck_field_name'];
       $field_offset = isset($conf['location_cck_field_offset']) ? $conf['location_cck_field_offset'] : 0;
-      if (isset($context->data->{$field_name}[$field_offset]['lid'])) {
-        $location = $context->data->{$field_name}[$field_offset];
+      if (isset($context->data->{$field_name}[LANGUAGE_NONE][$field_offset]['lid'])) {
+        $location = $context->data->{$field_name}[LANGUAGE_NONE][$field_offset];
       }
     }
   }
@@ -100,7 +105,7 @@ function location_location_from_node_context($context, $conf) {
  * @return
  *   FormAPI array of settings form elements.
  */
-function location_location_from_node_settings_form($conf) {
+function location_location_from_node_settings_form($form, &$form_state) {
   ctools_include('dependent');
   $location_type_options = array();
   $offset_options = array();
@@ -124,9 +129,9 @@ function location_location_from_node_settings_form($conf) {
   }
   if (module_exists('location_cck')) {
     $cck_options = array();
-    foreach (content_fields() as $field) {
+    foreach (field_info_fields() as $field) {
       if ($field['type'] == 'location') {
-        $cck_options[$field['field_name']] = t($field['widget']['label']);
+        $cck_options[$field['field_name']] = check_plain($field['field_name']);
       }
     }
     if (!empty($cck_options)) {

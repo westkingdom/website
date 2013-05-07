@@ -9,7 +9,8 @@ function elements_element_info() {
     '#size' => 60,
     '#maxlength' => 128,
     '#autocomplete_path' => FALSE,
-    '#process' => array('ajax_process_form'),
+    '#process' => array('ajax_process_form', 'elements_process_pattern'),
+    '#element_validate' => array('elements_validate_email'),
     '#theme' => 'emailfield',
     '#theme_wrappers' => array('form_element'),
   );
@@ -26,7 +27,7 @@ function elements_element_info() {
     '#input' => TRUE,
     '#size' => 20,
     '#maxlength' => 64,
-    '#process' => array('ajax_process_form'),
+    '#process' => array('ajax_process_form', 'elements_process_pattern'),
     '#theme' => 'telfield',
     '#theme_wrappers' => array('form_element'),
   );
@@ -35,19 +36,26 @@ function elements_element_info() {
     '#size' => 80,
     '#maxlength' => 128,
     '#autocomplete_path' => FALSE,
-    '#process' => array('ajax_process_form'),
+    '#process' => array('ajax_process_form', 'elements_process_pattern'),
+    '#element_validate' => array('elements_validate_url'),
     '#theme' => 'urlfield',
     '#theme_wrappers' => array('form_element'),
   );
   $types['numberfield'] = array(
     '#input' => TRUE,
+    '#step' => 1,
     '#process' => array('ajax_process_form'),
+    '#element_validate' => array('elements_validate_number'),
     '#theme' => 'numberfield',
     '#theme_wrappers' => array('form_element'),
   );
   $types['rangefield'] = array(
     '#input' => TRUE,
+    '#step' => 1,
+    '#min' => 0,
+    '#max' => 100,
     '#process' => array('ajax_process_form'),
+    '#element_validate' => array('elements_validate_number'),
     '#theme' => 'rangefield',
     '#theme_wrappers' => array('form_element'),
   );
@@ -59,12 +67,14 @@ function elements_element_info() {
  * Implements hook_element_info_alter().
  */
 function elements_element_info_alter(&$types) {
-  // Add placeholder support to textfields and textareas.
+  // Add placeholder and pattern support to core form elements.
   foreach (array_keys($types) as $type) {
     switch ($type) {
       case 'textfield':
       case 'textarea':
-        $types[$type]['#process'][] = 'form_process_placeholder';
+      case 'password':
+        $types[$type]['#process'][] = 'elements_process_placeholder';
+        $types[$type]['#process'][] = 'elements_process_pattern';
         break;
     }
   }
@@ -138,19 +148,175 @@ function elements_add_autocomplete(&$element) {
 }
 
 /**
- * Element process callback; adds support for the HTML5 placeholder attribute.
+ * #process callback for #placeholder form element property.
  *
  * @param $element
- *   An associative array containing the properties of the element.
+ *   An associative array containing the properties and children of the
+ *   generic input element.
  *
  * @return
  *   The processed element.
  */
-function form_process_placeholder($element) {
+function elements_process_placeholder($element) {
   if (isset($element['#placeholder']) && !isset($element['#attributes']['placeholder'])) {
-    // If the placeholder FAPI property is set, simply add it to the form's
-    // attributes so it will be output in the HTML tag.
     $element['#attributes']['placeholder'] = $element['#placeholder'];
   }
+
   return $element;
+}
+
+/**
+ * #process callback for #pattern form element property.
+ *
+ * @param $element
+ *   An associative array containing the properties and children of the
+ *   generic input element.
+ *
+ * @return
+ *   The processed element.
+ *
+ * @see elements_validate_pattern()
+ */
+function elements_process_pattern($element) {
+  if (isset($element['#pattern']) && !isset($element['#attributes']['pattern'])) {
+    $element['#attributes']['pattern'] = $element['#pattern'];
+    $element['#element_validate'][] = 'form_validate_pattern';
+  }
+
+  return $element;
+}
+
+/**
+ * #element_validate callback for #pattern form element property.
+ *
+ * @param $element
+ *   An associative array containing the properties and children of the
+ *   generic form element.
+ * @param $form_state
+ *   The $form_state array for the form this element belongs to.
+ *
+ * @see element_process_pattern()
+ */
+function elements_validate_pattern($element, &$form_state) {
+  if ($element['#value'] !== '') {
+    // The pattern must match the entire string and should have the same
+    // behavior as the RegExp object in ECMA 262.
+    // - Use bracket-style delimiters to avoid introducing a special delimiter
+    //   character like '/' that would have to be escaped.
+    // - Put in brackets so that the pattern can't interfere with what's
+    //   prepended and appended.
+    $pattern = '{^(?:' . $element['#pattern'] . ')$}';
+
+    if (!preg_match($pattern, $element['#value'])) {
+      form_error($element, t('%name field is not in the right format.', array('%name' => $element['#title'])));
+    }
+  }
+}
+
+/**
+ * Form element validation handler for #type 'email'.
+ *
+ * Note that #maxlength and #required is validated by _form_validate() already.
+ */
+function elements_validate_email(&$element, &$form_state) {
+  if ($element['#value'] && !valid_email_address($element['#value'])) {
+    form_error($element, t('The e-mail address %mail is not valid.', array('%mail' => $element['#value'])));
+  }
+}
+
+/**
+ * Form element validation handler for #type 'url'.
+ *
+ * Note that #maxlength and #required is validated by _form_validate() already.
+ */
+function elements_validate_url(&$element, &$form_state) {
+  if ($element['#value'] && !valid_url($element['#value'], TRUE)) {
+    form_error($element, t('The URL %url is not valid.', array('%url' => $element['#value'])));
+  }
+}
+
+/**
+ * Form element validation handler for #type 'number'.
+ *
+ * Note that #required is validated by _form_validate() already.
+ */
+function elements_validate_number(&$element, &$form_state) {
+  $value = $element['#value'];
+  if ($value === '') {
+    return;
+  }
+
+  $name = empty($element['#title']) ? $element['#parents'][0] : $element['#title'];
+
+  // Ensure the input is numeric.
+  if (!is_numeric($value)) {
+    form_error($element, t('%name must be a number.', array('%name' => $name)));
+    return;
+  }
+
+  // Ensure that the input is greater than the #min property, if set.
+  if (isset($element['#min']) && $value < $element['#min']) {
+    form_error($element, t('%name must be higher or equal to %min.', array('%name' => $name, '%min' => $element['#min'])));
+  }
+
+  // Ensure that the input is less than the #max property, if set.
+  if (isset($element['#max']) && $value > $element['#max']) {
+    form_error($element, t('%name must be below or equal to %max.', array('%name' => $name, '%max' => $element['#max'])));
+  }
+
+  if (isset($element['#step']) && strtolower($element['#step']) != 'any') {
+    // Check that the input is an allowed multiple of #step (offset by #min if
+    // #min is set).
+    $offset = isset($element['#min']) ? $element['#min'] : 0.0;
+
+    if (!elements_valid_number_step($value, $element['#step'], $offset)) {
+      form_error($element, t('%name is not a valid number.', array('%name' => $name)));
+    }
+  }
+}
+
+/**
+ * Verifies that a number is a multiple of a given step.
+ *
+ * The implementation assumes it is dealing with IEEE 754 double precision
+ * floating point numbers that are used by PHP on most systems.
+ *
+ * This is based on the number/range verification methods of webkit.
+ *
+ * @param $value
+ *   The value that needs to be checked.
+ * @param $step
+ *   The step scale factor. Must be positive.
+ * @param $offset
+ *   (optional) An offset, to which the difference must be a multiple of the
+ *   given step.
+ *
+ * @return bool
+ *   TRUE if no step mismatch has occured, or FALSE otherwise.
+ *
+ * @see http://opensource.apple.com/source/WebCore/WebCore-1298/html/NumberInputType.cpp
+ */
+function elements_valid_number_step($value, $step, $offset = 0.0) {
+  $double_value = (double) abs($value - $offset);
+
+  // The fractional part of a double has 53 bits. The greatest number that could
+  // be represented with that is 2^53. If the given value is even bigger than
+  // $step * 2^53, then dividing by $step will result in a very small remainder.
+  // Since that remainder can't even be represented with a single precision
+  // float the following computation of the remainder makes no sense and we can
+  // safely ignore it instead.
+  if ($double_value / pow(2.0, 53) > $step) {
+    return TRUE;
+  }
+
+  // Now compute that remainder of a division by $step.
+  $remainder = (double) abs($double_value - $step * round($double_value / $step));
+
+  // $remainder is a double precision floating point number. Remainders that
+  // can't be represented with single precision floats are acceptable. The
+  // fractional part of a float has 24 bits. That means remainders smaller than
+  // $step * 2^-24 are acceptable.
+  $computed_acceptable_error = (double) ($step / pow(2.0, 24));
+
+  return $computed_acceptable_error >= $remainder || $remainder >= ($step - $computed_acceptable_error);
 }

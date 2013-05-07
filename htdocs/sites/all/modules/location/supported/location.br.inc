@@ -69,15 +69,15 @@ function location_map_link_br_google($location = array()) {
 
   if (location_has_coordinates($location)) {
     $q = $location['latitude'] . ' ' . $location['longitude'];
-    if ($location[name] != "") {
-       $q .= " ($location[name]," . implode(', ', $query_params) . ")";
+    if ($location['name'] != "") {
+       $q .= " (" . $location['name'] . "," . implode(', ', $query_params) . ")";
     } else {
        $q .= ' (' . implode(', ', $query_params) . ')';
     }
   } else if (count($query_params) > 0) {
     $q = implode(", ", $query_params);
-    if ($location[name] != "") {
-       $q .= " ($location[name])";
+    if ($location['name'] != "") {
+       $q .= " ( " . $location['name'] . ")";
     }
   }
 

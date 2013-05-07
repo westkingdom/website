@@ -14,12 +14,12 @@ function revisioning_views_default_views() {
    */
   $view = new view;
   $view->name = 'revisioning_content_summary';
+  $view->human_name = 'Content summary';
   $view->description = 'Summary of moderated and unmoderated site content.';
   $view->tag = 'default';
   $view->base_table = 'node';
-  $view->human_name = '';
   $view->core = 0;
-  $view->api_version = '3.0-alpha1';
+  $view->api_version = '3.0';
   $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
 
   /* Display: Defaults */

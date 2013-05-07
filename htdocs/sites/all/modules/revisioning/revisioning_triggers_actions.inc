@@ -140,7 +140,7 @@ function revisioning_action_info() {
       'type' => 'node',
       'label' => t('Delete archived revisions'),
       'configurable' => FALSE,
-      'triggers' => array('node_update')
+      'triggers' => array('any') // array('node_update')
     ),
     'revisioning_publish_latest_revision_action' => array(
       'type' => 'node',
@@ -150,7 +150,7 @@ function revisioning_action_info() {
       'configurable' => FALSE,
    // 'behavior' => array('changes_property'),
    // Unlike 'node_publish_action', this is NOT a 'node_presave' action:
-      'triggers' => array('node_insert', 'node_update')
+      'triggers' => array('any') // array('node_insert', 'node_update')
     )
   );
   return $action_info;

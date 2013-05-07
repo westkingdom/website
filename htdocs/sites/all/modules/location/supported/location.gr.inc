@@ -29,3 +29,42 @@ function location_bounds_gr() {
     'maxlat' => 41.885033,
   );
 }
+
+function location_map_link_gr_google($location = array()) {
+  $query_params = array();
+
+  foreach (array('street', 'city', 'province', 'postal_code') as $field) {
+    if (isset($location[$field]) && $location[$field]!= '') {
+      $query_params[] = $location[$field];
+    }
+  }
+  //country always exists
+  if (count($query_params)!=0 && isset($location['country']) && $location['country']!= '') {
+    $query_params[] = $location['country'];
+  }
+  //when no address provided, but coordinates do, link to coordinates
+  if (count($query_params)==0) {
+    foreach (array('latitude', 'longitude') as $field) {
+      if (isset($location[$field])) {
+        $query_params[] = $location[$field];
+      }
+    }
+  }
+
+  if (count($query_params)) {
+    return ('http://maps.google.com?q='. urlencode(implode(", ", $query_params)));
+  }
+  else {
+    return NULL;
+  }
+}
+
+function location_map_link_gr_providers() {
+  return array('google' => array('name' => 'Google Maps', 'url' => 'http://www.google.com/help/terms_maps.html'));
+}
+
+
+function location_map_link_gr_default_providers() {
+  return array('google');
+}
+

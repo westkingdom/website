@@ -14,7 +14,7 @@
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #title, #value, #description, #size, #maxlength,
- *     #required, #placeholder, #attributes, #autocomplete_path.
+ *     #placeholder, #required, #attributes, #autocomplete_path.
  *
  * @ingroup themeable
  */
@@ -37,7 +37,7 @@ function theme_emailfield($variables) {
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #title, #value, #description, #size, #maxlength,
- *     #required, #placeholder, #attributes, #autocomplete_path.
+ *     #placeholder, #required, #attributes, #autocomplete_path.
  *
  * @ingroup themeable
  */
@@ -60,7 +60,7 @@ function theme_searchfield($variables) {
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #title, #value, #description, #size, #maxlength,
- *     #required, #placeholder, #attributes.
+ *     #placeholder, #required, #attributes.
  *
  * @ingroup themeable
  */
@@ -83,7 +83,7 @@ function theme_telfield($variables) {
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #title, #value, #description, #size, #maxlength,
- *     #required, #placeholder, #attributes, #autocomplete_path.
+ *     #placeholder, #required, #attributes, #autocomplete_path.
  *
  * @ingroup themeable
  */
@@ -105,15 +105,15 @@ function theme_urlfield($variables) {
  * @param $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
- *     Properties used: #title, #value, #description, #size, #maxlength,
- *     #placeholder, #min, #max, #step, #required, #attributes.
+ *     Properties used: #title, #value, #description, #min, #max, #placeholder,
+ *     #required, #attributes, #step.
  *
  * @ingroup themeable
  */
 function theme_numberfield($variables) {
   $element = $variables['element'];
   $element['#attributes']['type'] = 'number';
-  element_set_attributes($element, array('id', 'name', 'value', 'size', 'maxlength', 'placeholder', 'min', 'max', 'step'));
+  element_set_attributes($element, array('id', 'name', 'value', 'step', 'min', 'max', 'placeholder'));
   _form_set_class($element, array('form-text', 'form-number'));
 
   $output = '<input' . drupal_attributes($element['#attributes']) . ' />';
@@ -127,15 +127,15 @@ function theme_numberfield($variables) {
  * @param $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
- *     Properties used: #title, #value, #description, #size, #maxlength,
- *     #placeholder, #min, #max, #step, #required, #attributes.
+ *     Properties used: #title, #value, #description, #min, #max, #attributes,
+ *     #step.
  *
  * @ingroup themeable
  */
 function theme_rangefield($variables) {
   $element = $variables['element'];
   $element['#attributes']['type'] = 'range';
-  element_set_attributes($element, array('id', 'name', 'value', 'size', 'maxlength', 'placeholder', 'min', 'max', 'step'));
+  element_set_attributes($element, array('id', 'name', 'value', 'step', 'min', 'max'));
   _form_set_class($element, array('form-text', 'form-range'));
 
   $output = '<input' . drupal_attributes($element['#attributes']) . ' />';

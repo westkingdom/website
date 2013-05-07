@@ -3,11 +3,11 @@ description = "Allows revisions to be published or reverted at specified times."
 dependencies[] = revisioning
 configure = admin/config/content/revisioning_scheduler
 core = "7.x"
-version = "7.x-1.x-dev"
 
-; Information added by drupal.org packaging script on 2012-04-01
-version = "7.x-1.4"
+
+; Information added by drupal.org packaging script on 2013-04-23
+version = "7.x-1.5"
 core = "7.x"
 project = "revisioning"
-datestamp = "1333254385"
+datestamp = "1366759212"
 

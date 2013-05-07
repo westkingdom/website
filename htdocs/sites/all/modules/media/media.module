@@ -899,7 +899,7 @@ function media_element_process(&$element, &$form_state, $form) {
   $element['select'] = array(
     '#type' => 'link',
     '#href' => '',
-    '#title' => $file ? t('Replace') : t('Add'),
+    '#title' => t('Select'),
     '#attributes' => array('class' => array('button', 'launcher')),
     '#options' => array('fragment' => FALSE, 'external' => TRUE),
     '#weight' => 10,

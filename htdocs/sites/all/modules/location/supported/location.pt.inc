@@ -1,38 +1,74 @@
-<?php
+﻿<?php
+// $Id: location.pt.inc,v 1.6 2008/01/24 09:00:03 bdragon Exp $
 
 // Portugal
 
 function location_province_list_pt() {
-  return array('AV' => "Aveiro",
-    'AR' => "Acores (Azores)",
-    'BJ' => "Beja",
-    'BA' => "Braga",
-    'BN' => "Braganca",
-    'CB' => "Castelo Branco",
-    'CO' => "Coimbra",
-    'EV' => "Evora",
-    'FA' => "Faro",
-    'GU' => "Guarda",
-    'LE' => "Leiria",
-    'LI' => "Lisboa",
-    'MA' => "Madeira",
-    'PG' => "Portalegre",
-    'PO' => "Porto",
-    'SA' => "Santarem",
-    'SE' => "Setubal",
-    'VC' => "Viana do Castelo",
-    'VR' => "Vila Real",
-    'VS' => "Viseu");
+  return array(
+    'Aveiro' => "Aveiro",
+    'Açores' => "Açores",
+    'Beja' => "Beja",
+    'Braga' => "Braga",
+    'Bragança' => "Bragança",
+    'Castelo Branco' => "Castelo Branco",
+    'Coimbra' => "Coimbra",
+    'Évora' => "Évora",
+    'Faro' => "Faro",
+    'Guarda' => "Guarda",
+    'Leiria' => "Leiria",
+    'Lisboa' => "Lisboa",
+    'Madeira' => "Madeira",
+    'Portalegre' => "Portalegre",
+    'Porto' => "Porto",
+    'Santarém' => "Santarém",
+    'Setúbal' => "Setúbal",
+    'Viana do Castelo' => "Viana do Castelo",
+    'Vila Real' => "Vila Real",
+    'Viseu' => "Viseu"
+ );
 }
 
-/**
- * Returns minimum and maximum latitude and longitude needed to create a bounding box.
- */
-function location_bounds_pt() {
+function location_map_link_pt_providers() {
   return array(
-    'minlng' => -31.25925,
-    'minlat' => 32.335633,
-    'maxlng' => -6.25515,
-    'maxlat' => 42.028267,
+    'google' => array(
+      'name' => 'Google Maps',
+      'url' => 'http://maps.google.pt',
+      'tos' => 'http://www.google.pt/help/terms_maps.html',
+    ),
   );
+}
+
+function location_map_link_pt_default_providers() {
+  return array('google');
+}
+
+function location_map_link_pt_google($location = array()) {
+  $query_params = array();
+  $q = NULL;
+
+    foreach (array('street', 'city', 'province','postal_code', 'country') as $field) {
+    if (isset($location[$field])) {
+      $query_params[] = $location[$field];
+    }
+  }
+
+  if (location_has_coordinates($location)) {
+    $q = urlencode($location['latitude'] . ' ' . $location['longitude'] . ' (' . implode(', ', $query_params) . ')' );
+  } else if (count($query_params) > 0) {
+    $q = urlencode(implode(", ", $query_params));
+  }
+
+  if ($q != NULL) {
+    return ('http://maps.google.pt?q='.$q );
+  }
+  else {
+    return NULL;
+  }
+
+  if (count($query_params)) {
+    return ('http://maps.google.pt?q='. urlencode(implode(', ', $query_params)));
+  }
+  else {
+    return NULL;
+  }
 }

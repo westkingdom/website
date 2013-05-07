@@ -391,7 +391,7 @@ function location_cck_field_widget_info() {
  */
 function location_cck_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   if ($field['type'] == 'location') {
-    $settings = $field['settings']['location_settings'];
+    $settings = isset($field['settings']['location_settings']) ? $field['settings']['location_settings'] : array();
 
     // Load location data for existing locations.
     if ($form_state['rebuild'] && !empty($form_state['values'][$field['field_name']][$langcode][$delta])) {
@@ -470,7 +470,7 @@ function theme_location_cck_field_all($variables) {
  * multiple values in the same map.
  */
 function theme_location_cck_formatter_combined($variables) {
-  $location = $variables['element'];
+  $element = $variables['element'];
 
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $locations = $element['#items'];

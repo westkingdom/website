@@ -81,7 +81,6 @@ function domain_schema() {
  */
 function domain_uninstall() {
   $variables = array(
-    'domain_behavior',
     'domain_bootstrap_modules',
     'domain_classes',
     'domain_cron_rule',
@@ -89,7 +88,6 @@ function domain_uninstall() {
     'domain_default_source',
     'domain_edit_on_primary',
     'domain_force_admin',
-    'domain_form_elements',
     'domain_grant_all',
     'domain_list_size',
     'domain_paths',
@@ -113,6 +111,55 @@ function domain_uninstall() {
 }
 
 /**
+ * Checks module requirements.
+ */
+function domain_requirements($phase) {
+  $requirements = array();
+  switch ($phase) {
+    case 'install':
+      module_load_include('module', 'domain');
+      $root = strtolower(rtrim($_SERVER['HTTP_HOST']));
+      if ($error = domain_valid_domain($root)) {
+        $requirements['domain'] = array(
+          'title' => t('Domain Access'),
+          'value' => $error . t('If you are using drush, please provide the --uri option (e.g. drush en domain --uri="http://example.com/optional_subdirectory").'),
+          'severity' => REQUIREMENT_ERROR,
+        );
+      }
+      break;
+    case 'runtime':
+      $messages = array();
+      $severity = REQUIREMENT_ERROR;
+      // Ensure we have a primary domain.
+      $check = domain_default();
+      if ($check['domain_id'] == 0) {
+        $updated = t('set by an administrator');
+        if (user_access('administer domains')) {
+          $updated = l(t('set properly'), 'admin/structure/domain');
+        }
+        $messages[] = t('The site has no primary domain and needs to be !updated.', array('!updated' => $updated));
+      }
+      // Check for domain_id 0.
+      $list = domain_update_module_check();
+      domain_update_messages($messages, $list);
+
+      // Now report.
+      $t = get_t();
+      if (empty($message)) {
+        $severity = REQUIREMENT_OK;
+        $messages[] = t('Module installed correctly.');
+      }
+      $requirements['domain'] = array(
+        'title' => $t('Domain Access'),
+        'value' => theme('item_list', array('items' => $messages)),
+        'severity' => $severity,
+      );
+      break;
+  }
+  return $requirements;
+}
+
+/**
  * Update note.
  *
  * Upgrading from Drupal 5 to Drupal 7 is not supported.
@@ -131,7 +178,8 @@ function domain_update_7000(&$sandbox) {
       '1' => 'information',
     ),
   );
-  update_fix_d7_block_deltas($sandbox, $renamed_deltas);
+  $moved_deltas = array();
+  update_fix_d7_block_deltas($sandbox, $renamed_deltas, $moved_deltas);
   return t('Domain Access blocks updated.');
 }
 
@@ -155,7 +203,7 @@ function domain_update_7001(&$sandbox) {
  */
 function domain_update_7300(&$sandbox) {
   if (db_field_exists('domain', 'weight')) {
-    return('No update required');
+    return t('No update required');
   }
   db_add_field('domain', 'weight', array('type' => 'int', 'unsigned' => FALSE, 'not null' => TRUE, 'default' => 0), array());
   db_add_index('domain', 'weight', array('weight'));
@@ -168,7 +216,7 @@ function domain_update_7300(&$sandbox) {
  */
 function domain_update_7301(&$sandbox) {
   if (db_field_exists('domain', 'is_default')) {
-    return('No update required');
+    return t('No update required');
   }
   db_add_field('domain', 'is_default', array('type' => 'int', 'size' => 'tiny', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0), array());
   db_update('domain')
@@ -310,6 +358,17 @@ function domain_update_7306(&$sandbox) {
 }
 
 /**
+ * Updates the {domain_export} table for new key handling.
+ */
+function domain_update_7307(&$sandbox) {
+  db_drop_primary_key('domain_export');
+  // Just in case a unique key already exists, drop it.
+  db_drop_unique_key('domain_export', 'machine_name');
+  db_add_unique_key('domain_export', 'machine_name', array('machine_name'));
+  return t('{domain_export} table keys updated.');
+}
+
+/**
  * Generates a machine name during the update process.
  *
  * @param $subdomain
@@ -323,50 +382,70 @@ function domain_update_machine_name($subdomain) {
 }
 
 /**
- * Checks module requirements.
+ * Replace domain_behavior with default node access settings.
  */
-function domain_requirements($phase) {
-  $requirements = array();
-  switch ($phase) {
-    case 'install':
-      module_load_include('module', 'domain');
-      $root = strtolower(rtrim($_SERVER['HTTP_HOST']));
-      if ($error = domain_valid_domain($root)) {
-        $requirements['domain'] = array(
-          'title' => t('Domain Access'),
-          'value' => $error . t('If you are using drush, please provide the --uri option (e.g. drush en domain --uri="http://example.com/optional_subdirectory").'),
-          'severity' => REQUIREMENT_ERROR,
-        );
+function domain_update_7308(&$sandbox) {
+  $behavior = variable_get('domain_behavior', 0);
+  if (function_exists('node_type_get_types')) {
+    $types = node_type_get_types();
+    foreach ($types as $key => $type) {
+      $node_access_values = array('DOMAIN_ACTIVE');
+      $all_sites = variable_get('domain_node_' . $key, 0);
+      if ($behavior == 1 || $all_sites == 1) {
+        $node_access_values[] = 'DOMAIN_ALL';
       }
-      break;
-    case 'runtime':
-      $messages = array();
-      $severity = REQUIREMENT_ERROR;
-      // Ensure we have a primary domain.
-      $check = domain_default();
-      if ($check['domain_id'] == 0) {
-        $updated = t('set by an administrator');
-        if (user_access('administer domains')) {
-          $updated = l(t('set properly'), 'admin/structure/domain');
-        }
-        $messages[] = t('The site has no primary domain and needs to be !updated.', array('!updated' => $updated));
-      }
-      // Check for domain_id 0.
-      $list = domain_update_module_check();
-      domain_update_messages($messages, $list);
-
-      // Now report.
-      $t = get_t();
-      if (empty($message)) {
-        $severity = REQUIREMENT_OK;
-        $messages[] = t('Module installed correctly.');
-      }
-      $requirements['domain'] = array(
-        'title' => $t('Domain Access'),
-        'value' => theme('item_list', array('items' => $messages)),
-        'severity' => $severity,
-      );
-      break;
+      variable_set('domain_node_' . $key, $node_access_values);
+    }
   }
-  return $requirements;
+  variable_del('domain_behavior');
+
+  return t('Ported domain behavior to default node access settings.');
+}
+
+/**
+ * Updates domain_roles variable to use machine names.
+ */
+function domain_update_7309(&$sandbox) {
+  $defaults = variable_get('domain_roles', array());
+  $new = array();
+  foreach ($defaults as $rid => $domains) {
+    $new[$rid][DOMAIN_ALL] = $domains['all'];
+    foreach ($domains as $domain_id => $check) {
+      $domain = domain_lookup($domain_id);
+      if ($domain != -1) {
+        $new[$rid][$domain['machine_name']] = $check;
+      }
+    }
+  }
+  variable_set('domain_roles', $new);
+}
+
+/**
+ * Updates node grants for unpublished content.
+ */
+function domain_update_7310(&$sandbox) {
+  node_access_rebuild(TRUE);
+}
+
+/**
+ * Remove stale domain_node_{bundle} variables.
+ */
+function domain_update_7311(&$sandbox) {
+  if (function_exists('node_type_get_types')) {
+    $variable_names = array();
+    foreach (node_type_get_types() as $key => $type) {
+      $variable_names[] = 'domain_node_' . $key;
+    }
+    db_delete('variable')
+      ->condition('name', 'domain_node_%', 'LIKE')
+      ->condition('name', $variable_names, 'NOT IN')
+      ->execute();
+  }
+}
+
+/**
+ * Removes deprecated setting 'domain_form_elements'.
+ */
+function domain_update_7312(&$sandbox) {
+  variable_del('domain_form_elements');
 }

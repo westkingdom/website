@@ -5,11 +5,12 @@
  * Tests for earth.inc functionality.
  */
 
-require_once drupal_get_path('module', 'location') .'/earth.inc';
-require_once drupal_get_path('module', 'location') .'/tests/location_testcase.php';
+require_once drupal_get_path('module', 'location') . '/earth.inc';
+require_once drupal_get_path('module', 'location') . '/tests/location_testcase.test';
+
 
 class LocationEarthTest extends LocationTestCase {
-  function getInfo() {
+public static function getInfo() {
     return array(
       'name' => t('Location earth.inc tests'),
       'description' => t('Test earth.inc calculations.'),
@@ -18,7 +19,7 @@ class LocationEarthTest extends LocationTestCase {
   }
 
   function setUp() {
-    parent::setUp('location');
+    parent::setUp('location', 'location_node', 'devel');
   }
 
   function testXYZ() {

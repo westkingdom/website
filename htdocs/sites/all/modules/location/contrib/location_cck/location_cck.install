@@ -22,8 +22,8 @@ function location_cck_update_6301() {
 
   $insert_select = db_select('node', 'n')
     ->fields('n', array('nid', 'vid'))
-    ->fields('l', array('genid', 'lid'))
-    ->join($join_select, 'l', 'n.vid = l.genvid');
+    ->fields('l', array('genid', 'lid'));
+  $insert_select->join($join_select, 'l', 'n.vid = l.genvid');
 
   db_insert('location_instance_tmp')
     ->fields(array('nid', 'vid', 'genid', 'lid'))

@@ -93,7 +93,7 @@ function location_addanother_form_submit($form, &$form_state) {
  * Implements hook_node_type_delete().
  * Synchronize our settings.
  */
-function hook_node_type_delete($info) {
+function location_addanother_node_type_delete($info) {
   variable_del('location_addanother_' . $info->type);
 }
 
@@ -101,7 +101,7 @@ function hook_node_type_delete($info) {
  * Implements hook_node_type_update().
  * Synchronize our settings.
  */
-function hook_node_type_update($info) {
+function location_addanother_node_type_update($info) {
   if (!empty($info->old_type) && $info->old_type != $info->type) {
     $setting = variable_get('location_addanother_' . $info->old_type, 0);
     variable_del('location_addanother_' . $info->old_type);

@@ -11,11 +11,13 @@ files[] = location.inc
 files[] = location.token.inc
 files[] = location.views.inc
 files[] = location.views_default.inc
-files[] = tests/location_testcase.php
+files[] = location.migrate.inc
+files[] = tests/location_testcase.test
 files[] = tests/cow.test
 files[] = tests/earth.test
 files[] = tests/google_geocoder.test
 files[] = tests/location_cck.test
+files[] = tests/location_cck2.test
 files[] = handlers/location_handler_argument_location_country.inc
 files[] = handlers/location_handler_argument_location_province.inc
 files[] = handlers/location_handler_argument_location_proximity.inc
@@ -34,9 +36,9 @@ files[] = handlers/location_views_handler_filter_proximity.inc
 files[] = plugins/contexts/location.inc
 files[] = plugins/relationships/location_from_node.inc
 
-; Information added by drupal.org packaging script on 2012-07-25
-version = "7.x-3.0-alpha1"
+; Information added by drupal.org packaging script on 2013-04-22
+version = "7.x-3.0-alpha9"
 core = "7.x"
 project = "location"
-datestamp = "1343220794"
+datestamp = "1366648521"
 

@@ -175,36 +175,6 @@ function domain_configure() {
  * FormsAPI for configuring the domain module.
  */
 function domain_configure_form($form, &$form_state, $user_submitted = FALSE) {
-  $form['domain_behavior'] = array(
-    '#type' => 'radios',
-    '#title' => t('New content settings'),
-    '#required' => TRUE,
-    '#default_value' => (int) variable_get('domain_behavior', DOMAIN_INSTALL_RULE),
-    '#options' => array(1 => t('Show on all affiliate sites'), 2 => t('Only show on selected sites')),
-    '#description' => t('If set to <em>Show on all affiliate sites</em>, this value will automatically assign new content to all affiliates.')
-  );
-  $node_types = node_type_get_names();
-  $form['domain_node'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Send to all affiliates'),
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-    '#states' => array(
-      'visible' => array(
-        ':input[name=domain_behavior]' => array('value' => '2'),
-      ),
-    ),
-  );
-  foreach ($node_types as $key => $value) {
-    $form['domain_node']['domain_node_' . $key] = array(
-      '#type' => 'checkbox',
-      '#title' => check_plain($value),
-      '#default_value' => variable_get('domain_node_' . $key, 0),
-    );
-  }
-  $form['domain_node']['message'] = array(
-    '#markup' => t('If new content is set to "Show on all affiliate sites," these settings will be ignored.'),
-  );
   $form['domain_sitename_override'] = array(
     '#type' => 'checkbox',
     '#title' => t('Override site name with name of domain.'),
@@ -488,7 +458,6 @@ function domain_form($form, &$form_state, $domain = array(), $arguments = array(
       'exists' => 'domain_check_machine_name',
     ),
     '#default_value' => $domain['machine_name'],
-    '#disabled' => !empty($domain['machine_name']),
   );
   $form['sitename'] = array(
     '#type' => 'textfield',
@@ -591,7 +560,7 @@ function domain_form_submit($form, &$form_state) {
   }
 
   if (!empty($values['is_default'])) {
-    $message .= t(' Set as primary domain.');
+    $message .= ' ' . t('Set as primary domain.');
   }
 
   // Run the save routine.
@@ -691,60 +660,6 @@ function domain_delete_form_submit($form, &$form_state) {
     drupal_set_message(t('Domain record deleted.'));
     $form_state['redirect'] = 'admin/structure/domain/view';
   }
-}
-
-/**
- * Implement domain_advanced_form.
- *
- * @param $form
- *   The current form, passed by FormsAPI.
- * @param $form_state
- *   The current form state, passed by FormsAPI.
- */
-function domain_advanced_form($form, &$form_state) {
-  $form = array();
-  $node_types = node_type_get_names();
-  // In D7, type handling is strict, so make this value 0 or 1.
-  // @TODO: clean up DOMAIN_INSTALL handling.
-  $default = (int) variable_get('domain_behavior', DOMAIN_INSTALL_RULE);
-  if ($default == 2) {
-    $default = 0;
-  }
-  $form['domain_node'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Domain node types'),
-    '#collapsible' => TRUE
-  );
-  $form['domain_node']['intro'] = array('#value' => t('<p>Check the content types that should be published to all affiliates when new content is created.</p>'));
-  foreach ($node_types as $key => $value) {
-    $form['domain_node']['domain_node_' . $key] = array(
-      '#type' => 'checkbox',
-      '#title' => check_plain($value),
-      '#default_value' => variable_get('domain_node_' . $key, $default),
-    );
-  }
-  // Some editors will not have full node editing permissions.  This allows us
-  // to give selected permissions for nodes within the editor's domain.
-  $form['domain_form'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Domain node editing'),
-    '#collapsible' => TRUE
-  );
-  $form['domain_form']['intro'] = array('#value' => t('<p>When editors view domain-access restricted nodes, which form elements should be exposed?</p>'));
-  $options = array(
-    'log' => t('Log messages'),
-    'options' => t('Publishing options'),
-    'comment_settings' => t('Comment settings'),
-    'path' => t('Path aliasing'),
-  );
-  ksort($options);
-  $form['domain_form']['domain_form_elements'] = array(
-    '#type' => 'checkboxes',
-    '#default_value' => variable_get('domain_form_elements', array('options', 'delete', 'comment_settings', 'path')),
-    '#options' => $options,
-    '#description' => t('Some elements may not be editable for all users due to permission restrictions.'),
-  );
-  return system_settings_form($form);
 }
 
 /**
@@ -943,7 +858,14 @@ function domain_batch_form($form, &$form_state, $action, $batch, $domains) {
     $form['domain_batch'][$domain['domain_id']]['#sitename'] = check_plain($domain['sitename']);
     $form['domain_batch'][$domain['domain_id']]['#subdomain'] = check_plain($domain['subdomain']);
     if (isset($default[$domain['domain_id']])) {
-      $form['domain_batch'][$domain['domain_id']]['#default_value'] = $default[$domain['domain_id']];
+      if (is_array($default[$domain['domain_id']])) {
+        foreach ($default[$domain['domain_id']] as $fieldname => $value) {
+          $form['domain_batch'][$domain['domain_id']][$fieldname]['#default_value'] = $value;
+        }
+      }
+      else {
+        $form['domain_batch'][$domain['domain_id']]['#default_value'] = $default[$domain['domain_id']];
+      }
     }
   }
   $api_keys = array('variable', 'table', 'data_type');
@@ -981,7 +903,7 @@ function theme_domain_batch_form($variables) {
   foreach (element_children($form['domain_batch']) as $key) {
     $temp = $form['domain_batch'][$key]['#title'];
     unset($form['domain_batch'][$key]['#title']);
-    $row = array($key, $form['domain_batch'][$key]['#sitename'] .'<div class="description">'. $form['domain_batch'][$key]['#subdomain'] .'</div>', drupal_render($form['domain_batch'][$key]));
+    $row = array($key, $form['domain_batch'][$key]['#sitename'] . '<div class="description">' . $form['domain_batch'][$key]['#subdomain'] . '</div>', drupal_render($form['domain_batch'][$key]));
     $rows[] = $row;
     $form['domain_batch'][$key]['#title'] = $temp;
   }
@@ -1078,6 +1000,78 @@ function domain_batch_form_submit($form, &$form_state) {
 }
 
 /**
+ * FormAPI to set default domain settings per content type.
+ */
+function domain_nodes_form($form, &$form_state) {
+  $form = array();
+
+  $node_types = node_type_get_names();
+  $options = array(DOMAIN_ALL => t('All domains'), DOMAIN_ACTIVE => t('Author\'s currently active domain'));
+  foreach (domain_domains() as $key => $value) {
+    $options[$value['machine_name']] = $value['sitename'];
+  }
+
+  foreach ($options as $key => $value) {
+    $form['#domain_node'][$key] = $value;
+  }
+
+  foreach ($node_types as $type => $name) {
+    $default_values = domain_default_node_access_settings($type);
+    $form['domain_node']['domain_node_' . $type] = array(
+      '#type' => 'checkboxes',
+      '#tree' => TRUE,
+      '#options' => $options,
+      '#default_value' => $default_values,
+    );
+  }
+
+  $form = system_settings_form($form);
+  // System settings form adds a theme we cannot use.
+  unset($form['#theme']);
+  return $form;
+}
+
+/**
+ * FormsAPI theming.
+ */
+function theme_domain_nodes_form($variables) {
+  $form = $variables['form'];
+  $output = '<p>' . t('You may set default domain publishing options to the content types when new content will be created. When you publish to <em>All domains</em>, you can additionally define domain memberships.') . '</p>';
+  $num_columns = 15;
+  $node_types = node_type_get_names();
+  $num_node_types = count($node_types);
+
+  for ($i = 0; $i < $num_node_types; $i += $num_columns) {
+    $header = array(t('Domains'));
+    $rows = array();
+    $count = 0;
+    $used_node_types = array();
+    foreach ($node_types as $type => $name) {
+      if ($count == $num_columns) {
+        break;
+      }
+      $header[] = $name;
+      $used_node_types[$type] = $name;
+      array_shift($node_types);
+      $count++;
+    }
+    foreach ($form['#domain_node'] as $key => $sitename) {
+      $row = array();
+      $row[] = filter_xss_admin($sitename);
+      foreach ($used_node_types as $type => $name) {
+        $form['domain_node']['domain_node_' . $type][$key]['#title'] = '';
+        $row[] = drupal_render($form['domain_node']['domain_node_' . $type][$key]);
+      }
+      $rows[] = $row;
+    }
+    $output .= theme('table', array('header' => $header, 'rows' => $rows));
+  }
+
+  $output .= drupal_render_children($form);
+  return $output;
+}
+
+/**
  * FormsAPI to set default domain membership for each role.
  *
  * These settings are added to the $user object.
@@ -1099,6 +1093,7 @@ function domain_roles_form($form, &$form_state) {
 
   $roles = user_roles();
   $defaults = variable_get('domain_roles', array());
+
   $roles[0] = t('new user');
   ksort($roles);
 
@@ -1108,26 +1103,26 @@ function domain_roles_form($form, &$form_state) {
   );
   $domains = array();
   foreach (domain_domains() as $key => $value) {
-    $domains[$key] = $value['sitename'];
+    $domains[$value['machine_name']] = $value['sitename'];
   }
   foreach ($roles as $rid => $role) {
     $form['domain_roles'][$rid]['#tree'] = TRUE;
     $title = t('All domains');
-    $form['#domain_roles']['all'] = $title;
-    $form['domain_roles'][$rid]['all'] = array(
+    $form['#domain_roles'][DOMAIN_ALL] = $title;
+    $form['domain_roles'][$rid][DOMAIN_ALL] = array(
       '#title' => $title,
       '#type' => 'checkbox',
-      '#default_value' => (isset($defaults[$rid]['all'])) ? $defaults[$rid]['all'] : 0,
+      '#default_value' => (isset($defaults[$rid][DOMAIN_ALL])) ? $defaults[$rid][DOMAIN_ALL] : 0,
     );
-    foreach ($domains as $domain_id => $domain) {
-      $form['#domain_roles'][$domain_id] = $domain_id;
-      $form['domain_roles'][$rid][$domain_id] = array(
+    foreach ($domains as $machine_name => $domain) {
+      $form['#domain_roles'][$machine_name] = $domain;
+      $form['domain_roles'][$rid][$machine_name] = array(
         '#title' => filter_xss_admin($domain),
         '#type' => 'checkbox',
-        '#default_value' => (isset($defaults[$rid][$domain_id])) ? $defaults[$rid][$domain_id] : 0,
+        '#default_value' => (isset($defaults[$rid][$machine_name])) ? $defaults[$rid][$machine_name] : 0,
         '#states' => array(
           'disabled' => array(
-            'input[name="domain_roles[' . $rid . '][all]"]' => array('checked' => TRUE),
+            'input[name="domain_roles[' . $rid . '][' . DOMAIN_ALL . ']"]' => array('checked' => TRUE),
           ),
         ),
       );
@@ -1155,12 +1150,12 @@ function theme_domain_roles_form($variables) {
   foreach ($roles as $rid => $role) {
     $header[] = $role;
   }
-  foreach ($form['#domain_roles'] as $domain_id => $title) {
+  foreach ($form['#domain_roles'] as $machine_name => $title) {
     $row = array();
-    $row[] = isset($domains[$domain_id]) ? filter_xss_admin($domains[$domain_id]['sitename']) : $title;
+    $row[] = isset($domains[$machine_name]) ? filter_xss_admin($domains[$machine_name]['sitename']) : $title;
     foreach ($roles as $rid => $role) {
-      $form['domain_roles'][$rid][$domain_id]['#title'] = '';
-      $row[] = drupal_render($form['domain_roles'][$rid][$domain_id]);
+      $form['domain_roles'][$rid][$machine_name]['#title'] = '';
+      $row[] = drupal_render($form['domain_roles'][$rid][$machine_name]);
     }
     $rows[] = $row;
   }
@@ -1233,7 +1228,7 @@ function domain_repair_form($form, &$form_state) {
       '#markup' => theme('item_list', array('items' => $modules)),
     );
     $form['outro'] = array(
-      '#markup' => '<p>' . t('All records marked with domain_id 0 will be assigned to the default domain.') .'</p>',
+      '#markup' => '<p>' . t('All records marked with domain_id 0 will be assigned to the default domain.') . '</p>',
     );
     $form['tables'] = array(
       '#type' => 'value',

@@ -69,7 +69,9 @@ function _media_filter_add_file_usage_from_fields($entity_type, $entity) {
         $deprecate = $old_file_count - $entity_files[$fid];
         // Now deprecate this usage
         $file = file_load($fid);
-        file_usage_delete($file, 'media', $entity_type, $entity_id, $deprecate);
+        if ($file) {
+          file_usage_delete($file, 'media', $entity_type, $entity_id, $deprecate);
+        }
         // Usage is deleted, nothing more to do with this file
         unset($entity_files[$fid]);
       }

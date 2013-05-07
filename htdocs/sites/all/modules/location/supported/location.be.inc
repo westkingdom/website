@@ -58,7 +58,7 @@ function location_map_link_be_google($location = array()) {
   }
 
   if (count($query_params)) {
-    return ('http://maps.google.co.be?q='. urlencode(implode(', ', $query_params)));
+    return ('http://maps.google.be?q='. urlencode(implode(', ', $query_params)));
   }
   else {
     return NULL;

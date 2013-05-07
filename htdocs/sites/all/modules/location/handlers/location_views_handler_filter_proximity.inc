@@ -46,7 +46,7 @@ class location_views_handler_filter_proximity extends views_handler_filter {
       'dist' => t('Proximity (Circular)'),
     );
   }
-  
+
   function expose_options() {
     parent::expose_options();
     $this->options['expose']['gmap_macro'] = array('default' => '[gmap ]');
@@ -86,11 +86,14 @@ class location_views_handler_filter_proximity extends views_handler_filter {
         'nid_arg' => t("Node's Latitude / Longitude from views nid argument"),
         'uid_arg' => t("User's Latitude / Longitude from views uid argument"),
       ),
-      '#description' => t('This will be the way the latitude/longitude of origin is determined.  If this filter is exposed, this will determine the default values. NOTE: The PHP code, nid argument and uid argument options will not be available when the filter is exposed and the use of map is only available when the filter is exposed.'),
+      '#description' => t('This will be the way the latitude/longitude of origin is determined.  If this filter is exposed, this will determine the default values. NOTE: The PHP code, nid argument and uid argument options will not be available when the filter is exposed and the use of map is only available when the filter is exposed.  To use the visitor\'s IP address, you must have the geoip module with the MaxMind GeoLiteCity installed.'),
       '#default_value' => $this->options['origin'] ? $this->options['origin'] : 'user',
     );
     if (module_exists('gmap')) {
       $form['origin']['#options']['latlon_gmap'] = t('Latitude / Longitude input (use map)');
+    }
+    if (module_exists('geoip')) {
+      $form['origin']['#options']['geoip'] = t("IP Address of visitor (fall back to static if unset)");
     }
 
     // [11:44] <merlinofchaos> If you load the page from scratch, $input for your identifier will be empty.
@@ -121,7 +124,7 @@ class location_views_handler_filter_proximity extends views_handler_filter {
       '#title' => t('Latitude'),
       '#default_value' => $this->value['latitude'],
       '#process' => array('ctools_dependent_process'),
-      '#dependency' => array('edit-options-origin' => array('hybrid', 'static', 'latlon_gmap')),
+      '#dependency' => array('edit-options-origin' => array('hybrid', 'static', 'latlon_gmap', 'geoip')),
       '#weight' => 1,
     );
     $form['value']['longitude'] = array(
@@ -129,7 +132,7 @@ class location_views_handler_filter_proximity extends views_handler_filter {
       '#title' => t('Longitude'),
       '#default_value' => $this->value['longitude'],
       '#process' => array('ctools_dependent_process'),
-      '#dependency' => array('edit-options-origin' => array('hybrid', 'static', 'latlon_gmap')),
+      '#dependency' => array('edit-options-origin' => array('hybrid', 'static', 'latlon_gmap', 'geoip')),
       '#weight' => 2,
     );
 
@@ -151,6 +154,9 @@ class location_views_handler_filter_proximity extends views_handler_filter {
       '#process' => array('ctools_dependent_process'),
       '#dependency' => array('edit-options-origin' => array('postal')),
       '#weight' => 4,
+      '#attributes' => array(
+        'class' => array('location_auto_country'),
+      ),
     );
 
     $form['value']['php_code'] = array(
