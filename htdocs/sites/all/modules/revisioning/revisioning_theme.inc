@@ -65,7 +65,7 @@ function revisioning_revisions_summary($form, &$form_state, $extra) {
             '!username' => theme('username', array('account' => $revision))))
       . (empty($revision->log) ? '' : '<p class="revision-log">' . filter_xss($revision->log) . '</p>');
     $form['info'][$vid] = array(
-      '#type' => 'item',
+      '#type' => 'markup', // Was: 'item', see [#1884696]
       '#markup' => $first_cell
     );
 
@@ -133,7 +133,7 @@ function revisioning_revisions_summary_validate($form, &$form_state) {
   $form_state['values']['tickbox'] = array_filter($form_state['values']['tickbox']);
   $count = count($form_state['values']['tickbox']);
   if ($count != 2) {
-    form_set_error('tickbox', t('Please select 2 revisions rather than !count', array('!count' => $count)));
+    form_set_error('tickbox', t('Please select 2 revisions rather than @count', array('@count' => $count)));
   }
 }
 
@@ -233,9 +233,9 @@ function theme_revisioning_revisions_summary($variables) {
     else {
       $status = array('data' => $is_current && $node->status ? drupal_placeholder(t('current revision (published)')) : t('archived'));
     }
-    if (user_access('administer nodes')) {
-      $status['data'] .= ' [status=' . $form['status'][$vid]['#value'] . ']';
-    }
+    //if (user_access('administer nodes')) { // debug
+    //  $status['data'] .= ' [status=' . $form['status'][$vid]['#value'] . ']';
+    //}
     $row[] = $status;
 
     // Apply CSS class
@@ -317,7 +317,7 @@ function _revisioning_generate_node_links_according_to_permissions($node, $link_
       $themed_links[] = l(t('Publish'), "node/$nid/revisions/$node->vid/publish");
     }
     elseif (_revisioning_access_node_revision('unpublish current revision', $node)) {
-      $themed_links[] = l(t('Unpublish current revision'), "node/$nid/unpublish");
+      $themed_links[] = l(t('Unpublish current revision'), "node/$nid/unpublish-current");
     }
   }
   if (_revisioning_access_node_revision('delete archived revisions', $node)) {

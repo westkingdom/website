@@ -6,23 +6,40 @@
  */
 class revisioning_handler_field_revision_state extends views_handler_field {
 
+  protected $_node_based = FALSE;
+
   function construct() {
     parent::construct();
     // Collect additional data required prior to rendering
     $this->additional_fields['nid'] = 'nid';
     $this->additional_fields['vid'] = 'vid';
-    $this->additional_fields['published'] = array('table' => 'node', 'field' => 'status');
-    $this->additional_fields['current_vid']  = array('table' => 'node', 'field' => 'vid');
   }
 
   function access() {
     return user_access('view revisions');
   }
 
+  function pre_query() {
+    $this->_node_based = $this->view->base_table == 'node' || (!empty($this->options['relationship']) && $this->options['relationship'] !== 'none');
+
+    if ($this->_node_based) {
+      $this->additional_fields['published'] = array('table' => 'node', 'field' => 'status');
+      $this->additional_fields['current_vid'] = array('table' => 'node', 'field' => 'vid');
+    }
+  }
+
   function query() {
     // Not calling parent::query() as it will treat 'state' as a real db field.
     $this->ensure_my_table();
     $this->add_additional_fields();
+    
+    if (empty($this->_node_based)) {
+      $join = new views_join();
+      $join->construct('node', $this->table_alias, 'nid', 'nid');       $table_alias = $this->query->ensure_table('node', $this->table_alias, $join);
+
+      $this->aliases['published'] = $this->query->add_field($table_alias, 'status');
+      $this->aliases['current_vid'] = $this->query->add_field($table_alias, 'vid');
+    }
   }
 
   /**

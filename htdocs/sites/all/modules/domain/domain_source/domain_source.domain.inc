@@ -11,7 +11,17 @@
  * Implements hook_domain_source_alter().
  */
 function domain_source_domain_source_alter(&$source, $nid) {
-  $source = domain_source_lookup($nid);
+  $source_id = domain_source_lookup($nid);
+  // If FALSE returned, no source is defined.
+  if (!$source_id) {
+    return;
+  }
+  // The source_id always returns a valid domain.
+  $source = domain_lookup($source_id);
+  // DOMAIN_SOURCE_USE_ACTIVE is the status for 'Use active domain.'
+  if ($source == DOMAIN_SOURCE_USE_ACTIVE) {
+    $source = domain_get_domain();
+  }
 }
 
 /**

@@ -10,20 +10,35 @@
 /************************** Rules Events **************************************/
 
 /**
+ * Implements hook_rules_data_info()
+ *
+function revisioning_rules_data_info() {
+  require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'entity') . '/modules/node.info.inc';
+  $rules_data = array(
+    'revisioning_revision' => array(
+      'label' => t('Content revision'),
+      'group' => t('Revisioning'),
+      'parent' => 'node',
+      'ui class' => 'RulesDataUIEntity',
+      'wrap' => TRUE,
+    )
+  );
+  return $rules_data;
+}
+*/
+
+/**
  * Implements hook_rules_event_info() on behalf of the Revisioning module.
  */
 function revisioning_rules_event_info() {
   $default = array(
     'group' => t('Revisioning'),
-  //'module' => 'revisioning',
-    'variables' => _revisioning_rules_event_arguments(),
-  //'redirect' => TRUE,
+    'variables' => _revisioning_rules_event_variables(),
   );
   $events = array(
     'revisioning_post_update' => $default + array(
       'label' => t('Content revision has been updated'),
     ),
-
     'revisioning_pre_publish' => $default + array(
       'label' => t('Content revision is going to be published'),
     ),
@@ -47,46 +62,55 @@ function revisioning_rules_event_info() {
 }
 
 /**
- * Returns arguments suitable for using it with a node.
+ * Returns event variables (aka Data Selectors) suitable for use with a node
+ * revision event.
  */
-function _revisioning_rules_event_arguments() {
-  return array(
-    'node' => array(
-      'type' => 'node',
-      'label' => t('target revision of operation'),
-    ),
-    'current_revision' => array(
-      'type' => 'revision',
-      'label' => t('current revision of target content'),
-      'handler' => 'revisioning_events_argument_current_revision'
-    ),
-    'author' => array(
-      'type' => 'user',
-      'label' => t('content author'),
-      'handler' => 'rules_events_argument_node_author'
-    ),
-    'target_author' => array(
-      'type' => 'user',
-      'label' => t('target revision author'),
-      'handler' => 'revisioning_events_argument_target_revision_author'
-    ),
-    'current_author' => array(
-      'type' => 'user',
-      'label' => t('current revision author'),
-      'handler' => 'revisioning_events_argument_current_revision_author'
-    ),
+function _revisioning_rules_event_variables() {
+  $vars = array(
     'user' => array(
       'type' => 'user',
       'label' => t('acting user'),
-      'handler' => 'rules_events_argument_global_user'
+      'description' => t('The acting user.'),
+      'handler' => 'revisioning_events_argument_global_user'
     ),
+    'revision' => array(
+      'type' => 'node', // revisioning_revision',
+      'label' => t('current revision of target content.'),
+      'description' => t('The current content revision'),
+      'handler' => 'revisioning_events_argument_current_revision'
+    ),
+//    'author' => array(
+//      'type' => 'user',
+//      'label' => t('content author'),
+//      'description' => 'The creator of the initial version of the content',
+//      'handler' => 'revisioning_events_argument_node_author'
+//    ),
+//    'target_author' => array(
+//      'type' => 'user',
+//      'label' => t('target revision author'),
+//      'description' => t('The author of the target revision.'),
+//      'handler' => 'revisioning_events_argument_target_revision_author'
+//    ),
+//    'current_author' => array(
+//      'type' => 'user',
+//      'label' => t('current revision author'),
+//      'description' => t('The author of the current revision.'),
+//      'handler' => 'revisioning_events_argument_current_revision_author'
+//    ),
   );
+  return $vars;
 }
 
-/**
- * Current revision argument handler.
- */
+function revisioning_events_argument_global_user($arguments, $name, $info) {
+  global $user;
+  return user_load($user->uid);
+}
+
 function revisioning_events_argument_current_revision($arguments, $name, $info) {
+  if (empty($arguments['node'])) {
+    drupal_set_message(t('Revisioning: could not evaluate rule condition -- node variable missing.'), 'warning');
+    return FALSE;
+  }
   $node = $arguments['node'];
   $current_vid = $node->current_revision_id; // revisioning_get_current_node_revision_id($node->nid);
   if ($node->vid != $current_vid) {
@@ -98,15 +122,18 @@ function revisioning_events_argument_current_revision($arguments, $name, $info) 
 
 /**
  * Target revision author argument handler.
- */
+ *
 function revisioning_events_argument_target_revision_author($arguments, $name, $info) {
+  global $user;
   $node = $arguments['node'];
-  return user_load($node->revision_uid);
+  return $user; // user_load($node->revision_uid);
 }
 
-/**
- * Current revision author argument handler.
- */
+function revisioning_events_argument_node_author($arguments, $name, $info) {
+  $node = $arguments['node'];
+  return user_load($node->uid);
+}
+
 function revisioning_events_argument_current_revision_author($arguments, $name, $info) {
   $node = $arguments['node'];
   $current_vid = $node->current_revision_id; // revisioning_get_current_node_revision_id($node->nid);
@@ -257,6 +284,28 @@ function revisioning_rules_action_publish_latest($node) {
   _revisioning_publish_latest_revision($node);
 }
 
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function revisioning_entity_property_info_alter(&$info) {
+  //$info['node']['properties']['author']['getter callback'] = 'revisioning_user_get_properties';
+  return;
+}
+
+/**
+ * Callback for getting node properties.
+ *
+ * @see entity_metadata_node_entity_info_alter()
+ *
+function revisioning_user_get_properties($node, array $options, $name, $entity_type) {
+  global $user;
+  switch ($name) {
+    case 'editor':
+      return $user;
+  }
+}
+*/
 /**
  * @}
  */

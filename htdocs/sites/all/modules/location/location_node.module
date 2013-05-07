@@ -93,12 +93,15 @@ function location_node_node_view($node, $view_mode) {
 
   if ($view_mode == 'rss') {
     $mode = isset($settings['rss']['mode']) ? $settings['rss']['mode'] : 'simple';
-    if ($mode != 'none') {
-      if (is_array($node->locations)) {
-        foreach ($node->locations as $location) {
-          if (($item = location_rss_item($location, $mode))) {
-            $node->rss_elements[] = $item;
-          }
+    if ($mode == 'none') {
+      return;
+    }
+    if (is_array($node->locations) && !empty($node->locations)) {
+      require_once(drupal_get_path('module', 'location') . '/location.georss.inc');
+      $node->rss_namespaces += location_rss_namespaces($mode);
+      foreach ($node->locations as $location) {
+        if (($item = location_rss_item($location, $mode))) {
+          $node->rss_elements[] = $item;
         }
       }
     }

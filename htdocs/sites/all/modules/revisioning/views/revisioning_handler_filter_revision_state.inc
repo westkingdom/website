@@ -16,6 +16,17 @@ class revisioning_handler_filter_revision_state extends views_handler_filter_in_
     }
     $revisions_table = $this->ensure_my_table();
     $node_table = $this->query->ensure_table('node', $this->relationship);
+    if (!$node_table) {
+      $node_table = $this->query->ensure_table('node');
+      // If we are using a relationship we need to try again because the alias
+      // is not going to be node!
+      if (!$node_table) {
+        $node_table = $this->query->ensure_table('node_' . $revisions_table);
+      }
+      if (!$node_table) { // final desperate guess ...
+        $node_table = 'node';
+      }
+    }
 
     $subclauses = array();
     foreach ($this->value as $state_code) {

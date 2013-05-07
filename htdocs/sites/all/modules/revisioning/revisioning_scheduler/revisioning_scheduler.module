@@ -121,9 +121,7 @@ function revisioning_scheduler_form_node_form_alter(&$form, &$form_state, $form_
       '#weight' => 10,
       '#attributes' => array('class' => array('publication-date')),
     );
-    $form['#attached']['js'] = array(
-      drupal_get_path('module', 'revisioning_scheduler') . '/revision-schedule.js'
-    );
+    $form['#attached']['js'][] = drupal_get_path('module', 'revisioning_scheduler') . '/revision-schedule.js';
   }
 }
 
@@ -249,6 +247,10 @@ function revisioning_scheduler_revisionapi($op, $node) {
  * later date.
  */
 function revisioning_scheduler_node_presave($node) {
+  if (!isset($node->nid)) {
+    // This may happen when importing files using Feeds module.
+    return;
+  }
   if (empty($node->revision_moderation) || !empty($node->auto_publish)) {
     _revisioning_scheduler_unschedule_all_revisions($node->nid);
   }
@@ -301,6 +303,14 @@ function revisioning_scheduler_node_update($node) {
 }
 
 /**
+ * Implements hook_node_delete().
+ */
+function revisioning_scheduler_node_delete($node) {
+  // Delete scheduled publication of revisions of the deleted node.
+  _revisioning_scheduler_unschedule_all_revisions($node->nid);
+}
+
+/**
  * Implements hook_cron().
  *
  * If there are any revisions with times that have passed, then publish them
@@ -312,7 +322,9 @@ function revisioning_scheduler_cron() {
     array(':date' => time())
   );
   foreach ($result as $revision) {
-    _revisioning_publish_revision(node_load($revision->revision_nid, $revision->revision_vid));
+    if ($node_revision = node_load($revision->revision_nid, $revision->revision_vid)) {
+      _revisioning_publish_revision($node_revision);
+    }
     _revisioning_scheduler_unschedule_all_revisions($revision->revision_nid);
   }
 }

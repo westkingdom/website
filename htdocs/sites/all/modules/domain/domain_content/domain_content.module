@@ -155,6 +155,7 @@ function domain_content_node_operations() {
     );
     return $operations;
   }
+  return array();
 }
 
 /**
@@ -167,21 +168,11 @@ function domain_content_node_operations_process($nodes) {
 }
 
 /**
- * The multiple delete form issues a redirect in its submit function.
- * So we must supply the proper path as a form element.
- *
- * @link http://drupal.org/node/336218
- */
-function domain_content_form_node_multiple_delete_confirm_alter(&$form, &$form_state) {
-  $form['#redirect'] = $_GET['q'];
-}
-
-/**
  * Allow domain assignment to be made from the default content form.
  */
 function domain_content_form_node_admin_content_alter(&$form, &$form_state) {
   // Privileged users can make global changes to Domain Access permissions.
-  if (!user_access('set domain access')) {
+  if (!user_access('set domain access') || isset($form['operation']['#value'])) {
     return;
   }
 
@@ -235,7 +226,7 @@ function domain_content_add_form_widget(&$form) {
     '#title' => t('Send to all affiliates'),
     '#required' => FALSE,
     '#description' => t('Select if this content can be shown to all affiliates.  This setting will override the options below.'),
-    '#default_value' => variable_get('domain_behavior', DOMAIN_INSTALL_RULE),
+    '#default_value' => DOMAIN_INSTALL_RULE,
   );
   $form['domain']['domains'] = array(
     '#type' => empty($format) ? 'checkboxes' : 'select',

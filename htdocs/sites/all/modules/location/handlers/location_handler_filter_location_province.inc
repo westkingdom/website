@@ -67,18 +67,22 @@ class location_handler_filter_location_province extends views_handler_filter {
 
   function grovel_country() {
     $country = variable_get('location_default_country', 'us');
-    if (!empty($this->view->filter))
-    foreach ($this->view->filter as $k => $v) {
-      if ($v->table == 'location' && $v->field == 'country' && $v->options['relationship'] == $this->options['relationship']) {
-        $country = $v->value;
-        if (!empty($v->options['expose']['identifier'])) {
-          if (isset($this->view->exposed_input[$v->options['expose']['identifier']])) {
-            $country = $this->view->exposed_input[$v->options['expose']['identifier']];
+    if (!empty($this->view->filter)) {
+      foreach ($this->view->filter as $k => $v) {
+        if ($v->table == 'location' && $v->options['relationship'] == $this->options['relationship']) {
+          if ($v->field == 'country' || $v->field == 'distance') {
+            $country = ($v->field == 'distance') ? $v->value['country'] : $v->value;
+            if (!empty($v->options['expose']['identifier'])) {
+              if (isset($this->view->exposed_input[$v->options['expose']['identifier']])) {
+                $country = $this->view->exposed_input[$v->options['expose']['identifier']];
+              }
+              $this->location_country_identifier = $v->options['expose']['identifier'];
+            }
           }
-          $this->location_country_identifier = $v->options['expose']['identifier'];
         }
       }
     }
+
     if ($country == '' || $country == 'All' || $country == '  ' || $country == 'xx') {
       // It's set to something nonsensical, reset to the default to prevent malfunctions.
       $country = variable_get('location_default_country', 'us');

@@ -54,3 +54,9 @@ function revisioning_scheduler_update_7014() {
     ->execute();
 }
 
+/**
+ * Delete scheduled publication of revisions of already deleted nodes.
+ */
+function revisioning_scheduler_update_7015() {
+  db_query('DELETE FROM {revisioning_scheduler} WHERE revision_nid NOT IN (SELECT nid FROM {node})');
+}

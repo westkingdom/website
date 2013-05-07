@@ -26,7 +26,7 @@ function location_phone_locationapi(&$location, $op, $a3 = NULL, $a4 = NULL) {
           '#size' => 31,
           '#maxlength' => 31,
           '#description' => NULL,
-          '#required' => ($a4 == 2),
+          '#required' => ($a4['collect'] == 2),
           '#default_value' => $location,
         );
       }

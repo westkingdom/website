@@ -31,7 +31,7 @@ function domain_features_export_options() {
 function domain_features_export_render($module_name, $data, $export = NULL) {
   domain_features_load($module_name, 'domain_default_domains', FALSE);
   $code = array();
-  $code[] = '$domains = array();';
+  $code[] = '  $domains = array();';
   // Set the wipe tables item.
   if ($wipe = domain_features_export_wipe_tables_code($data, $code, $export, 'domains') && empty($export)) {
     // Check for changes against the target database.
@@ -41,10 +41,10 @@ function domain_features_export_render($module_name, $data, $export = NULL) {
     $record = domain_machine_name_load($name);
     if (!empty($record)) {
       unset($record['domain_id']);
-      $code[] = "  \$domains['" . $record['machine_name'] . "'] = " . features_var_export($record) .";";
+      $code[] = "  \$domains['" . $record['machine_name'] . "'] = " . features_var_export($record, '  ') . ";";
     }
   }
-  $code[] = "\nreturn \$domains;";
+  $code[] = "\n  return \$domains;";
   $output = implode("\n", $code);
 
   return array('domain_default_domains' => $output);
@@ -70,10 +70,11 @@ function domain_features_rebuild($module) {
           domain_delete($domain);
         }
       }
+      unset($defaults['wipe-domain-tables']);
     }
     // Save the domains in this feature.
-    foreach ($defaults as $domain) {
-      if ($id = domain_load_domain_id($domain['machine_name'])) {
+    foreach ($defaults as $key => $domain) {
+      if ($id = domain_load_domain_id($key)) {
         $domain['domain_id'] = $id;
       }
       domain_save($domain, $domain);

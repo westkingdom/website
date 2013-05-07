@@ -7,6 +7,9 @@
  * @ingroup domain_content
  */
 
+// Ensure that the node admin page functions are loaded.
+module_load_include('inc', 'node', 'node.admin');
+
 /**
  * The domain content page of menu callbacks.
  *
@@ -170,14 +173,15 @@ function domain_content_view($domain_id = NULL, $all_affiliates = FALSE) {
  * @return
  *   A themed HTML batch content editing form.
  */
-function domain_content_admin() {
-  // Load the form basics for administering nodes.
-  include_once drupal_get_path('module', 'node') . '/node.admin.inc';
-  $form = array();
+function domain_content_admin($form, &$form_state) {
   $form['#attached']['css'] = array(drupal_get_path('module', 'domain_content') . '/domain_content.css');
 
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
-    return node_multiple_delete_confirm($form, $form_state, array_filter($form_state['values']['nodes']));
+    $form = node_multiple_delete_confirm($form, $form_state, array_filter($form_state['values']['nodes']));
+    // Set the proper path for form actions.
+    $form['actions']['cancel']['#href'] = $form['actions']['cancel']['#options']['path'] = request_path();
+    $form['#submit'][] = 'domain_content_delete_multiple_submit';
+    return $form;
   }
   $form['filter'] = node_filter_form();
   $form['#submit'][] = 'node_filter_form_submit';
@@ -196,13 +200,19 @@ function domain_content_admin() {
 }
 
 /**
+ * On delete confirmation, redirect properly.
+ */
+function domain_content_delete_multiple_submit($form, &$form_state) {
+  $form_state['redirect'] = $form['actions']['cancel']['#href'];
+}
+
+/**
  * Rewrites node_admin_nodes() to use db_rewrite_sql().
  *
  * @return
  *   A form array according to the FormsAPI.
  */
 function domain_content_form() {
-  module_load_include('inc', 'node', 'node.admin');
   $_domain = domain_get_domain();
   $admin_access = user_access('administer nodes');
 
@@ -211,11 +221,24 @@ function domain_content_form() {
     '#type' => 'fieldset',
     '#title' => t('Update options'),
     '#attributes' => array('class' => array('container-inline')),
-    '#access' => $admin_access,
   );
   $options = array();
-  foreach (module_invoke_all('node_operations') as $operation => $array) {
-    $options[$operation] = $array['label'];
+  // Get the actions the user may perform.
+  if ($admin_access) {
+    foreach (module_invoke_all('node_operations') as $operation => $array) {
+      $options[$operation] = $array['label'];
+    }
+  }
+  // Otherwise, only allow domain content module operations.
+  else {
+    $list = domain_content_node_operations();
+    foreach ($list as $key => $value) {
+      $options[$key] = $value['label'];
+    }
+  }
+  // No options? No form access.
+  if (empty($options)) {
+    $form['options']['#access'] = FALSE;
   }
   $form['options']['operation'] = array(
     '#type' => 'select',
@@ -425,7 +448,6 @@ function domain_content_view_domains($node) {
  *   No return value. Modify by reference.
  */
 function domain_content_filter_operations(&$operations) {
-  $settings = variable_get('domain_form_elements', array('options', 'delete', 'comment_settings', 'path'));
   // Administer nodes can do anything.
   if (user_access('administer nodes')) {
     return;
@@ -433,15 +455,6 @@ function domain_content_filter_operations(&$operations) {
   // Check for the delete perm.
   if (!user_access('delete domain content')) {
     unset($operations['delete']);
-  }
-  // The publish, promote and sticky operations all depend on having $settings['options'].
-  if (!in_array('options', array_filter($settings))) {
-    unset($operations['publish']);
-    unset($operations['unpublish']);
-    unset($operations['promote']);
-    unset($operations['demote']);
-    unset($operations['sticky']);
-    unset($operations['unsticky']);
   }
 }
 
@@ -475,6 +488,12 @@ function domain_content_alter_node_query(QueryAlterableInterface $query, $all_af
           ->condition("{$access_alias}.gid", $domain_id)
           ->condition("{$access_alias}.realm", 'domain_id')
         );
+        if (user_access('view unpublished domain content')) {
+          $or->condition(db_and()
+            ->condition("{$access_alias}.gid", $domain_id)
+            ->condition("{$access_alias}.realm", 'domain_unpublished')
+          );
+        }
       }
       $query->condition($or);
       // Node module will not have run, so add the distinct.

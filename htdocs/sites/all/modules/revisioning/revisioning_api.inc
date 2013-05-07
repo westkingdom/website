@@ -85,12 +85,20 @@ function revisioning_get_number_of_archived_revisions($node) {
 
 /**
  * Delete all revisions with a vid less than the current.
+ *
+ * Use node_revision_delete from node.module to ensure that we cleanup not
+ * only node revisions but also all attached field revisions as well.
  */
 function revisioning_delete_archived_revisions($node) {
-  return db_delete('node_revision')
-    ->condition('nid', $node->nid)
-    ->condition('vid', $node->current_revision_id, '<')
+  $revisions = db_select('node_revision', 'n')
+    ->fields('n', array('vid'))
+    ->condition('n.nid', $node->nid)
+    ->condition('n.vid', $node->current_revision_id, '<')
     ->execute();
+
+  foreach ($revisions as $rev) {
+    node_revision_delete($rev->vid);
+  }
 }
 
 /**
@@ -375,6 +383,17 @@ function _revisioning_unpublish_node($nid_or_node, $clear_cache = TRUE) {
       'pathauto' => FALSE // so that pathauto_node_update() does nothing
     );
   }
+  elseif (!isset($node->path['alias'])) {
+    // [#1328180], [#1576552]
+    $node->path['alias'] = '';
+  }
+
+  // Hack to work around issue [#1436044] in OG module
+  if (module_exists('og')) {
+    $original = new stdClass();
+    $original->uid = $node->uid;
+    $node->original = $original;
+  }
   module_invoke_all('node_update', $node);
   module_invoke_all('entity_update', $node, 'node');
 
@@ -392,11 +411,6 @@ function _revisioning_unpublish_node($nid_or_node, $clear_cache = TRUE) {
  * This is same as node_revision_delete_confirm_submit() in node_pages.inc,
  * except it doesn't put any messages on the screen. This way it becomes
  * reusable (eg. in actions).
- * Since we are calling nodeapi as in node_revision_delete_confirm_submit(), we
- * invoke our "post delete" revisionapi hook in nodeapi. This way revisionapi
- * hooks work the same way both with "delete revision" submit handler and when
- * this function is called, and we don't invoke revisionapi "post delete" hook
- * twice.
  *
  * @param $node
  *  Target $node object (loaded with target revision) or nid of target node
@@ -411,8 +425,8 @@ function _revisioning_delete_revision(&$node, $vid = NULL) {
   db_delete('node_revision')
     ->condition('vid', $node_revision->vid)
     ->execute();
-  module_invoke_all('node_' . $node_revision, 'delete revision');
   watchdog('content', '@type: deleted %title revision %revision.', array('@type' => $node_revision->type, '%title' => $node_revision->title, '%revision' => $node_revision->vid));
+  module_invoke_all('revisionapi', 'post delete', $node_revision);
 }
 
 /**
@@ -471,7 +485,7 @@ function _revisioning_publish_revision(&$node_revision, $clear_cache = TRUE) {
     // revisioning_update_taxonomy_index(), via revisioning_node_update().
     $node_revision->current_revision_id = $node_revision->vid;
   }
-  $node_revision->status = NODE_PUBLISHED;
+  $node_revision->status = $node_revision->current_status = NODE_PUBLISHED;
 
   // Make sure the alias, if present, is not changed when publishing.
   if (!isset($node_revision->path['pathauto'])) {
@@ -480,11 +494,26 @@ function _revisioning_publish_revision(&$node_revision, $clear_cache = TRUE) {
       'pathauto' => FALSE // so that pathauto_node_update() does nothing
     );
   }
+  elseif (!isset($node_revision->path['alias'])) {
+    // [#1328180], [#1576552]
+    $node_revision->path['alias'] = '';
+  }
+
+  // Hack to work around issue [#1436044] in OG module
+  if (module_exists('og')) {
+    $original = new stdClass();
+    $original->uid = $node_revision->uid;
+    $node_revision->original = $original;
+  }
   module_invoke_all('node_update', $node_revision);
   module_invoke_all('entity_update', $node_revision, 'node');
 
-  // Update node_access table
-  node_access_acquire_grants($node_revision);
+  // Update node_access table only for existing nodes. When the node is newly
+  // created via the node/add page, node_access_acquire_grants() is called by
+  // node_save() anyway. See [#1243018].
+  if (empty($node_revision->is_new)) {
+    node_access_acquire_grants($node_revision);
+  }
 
   if ($clear_cache) {
     cache_clear_all();

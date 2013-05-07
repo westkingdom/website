@@ -7,6 +7,25 @@
 
 /**
  * @function
+ * Return an array of namespaces needed for a mode.
+ */
+function location_rss_namespaces($mode = 'simple') {
+  switch ($mode) {
+    case 'w3c':
+    case 'w3c_bugcompat':
+      return array('xmlns:geo' => 'http://www.w3.org/2003/01/geo/wgs84_pos#');
+    case 'simple':
+      return array('xmlns:georss' => 'http://www.georss.org/georss');
+    case 'gml':
+      return array(
+        'xmlns:georss' => 'http://www.georss.org/georss',
+        'xmlns:gml' => 'http://www.opengis.net/gml',
+      );
+  }
+}
+
+/**
+ * @function
  * Return an array of RSS items for a location.
  */
 function _location_rss_item($location, $mode = 'simple') {

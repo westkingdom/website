@@ -36,6 +36,14 @@ class revisioning_handler_filter_revision_latest extends views_handler_filter_bo
   function query() {
     $revisions_table = $this->ensure_my_table();
     $node_table = $this->query->ensure_table('node');
+    // If we are using a relationship we need to try again because the alias
+    // is not going to be node!
+    if (!$node_table) {
+      $node_table = $this->query->ensure_table('node_' . $revisions_table);
+    }
+    if (!$node_table) { // final desperate guess ...
+      $node_table = 'node';
+    }
 
     // The subquery selects the maximum revision ID (vid) for a given node ID
     // (nid). This is guaranteed to be the latest revision, because vids are

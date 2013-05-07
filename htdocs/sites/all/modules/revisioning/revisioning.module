@@ -22,15 +22,15 @@ define('NEW_REVISION_EVERY_SAVE', 1);
 define('REVISIONS_BLOCK_OLDEST_AT_TOP', 0);
 define('REVISIONS_BLOCK_NEWEST_AT_TOP', 1);
 
-require_once drupal_get_path('module', 'revisioning') . '/revisioning_api.inc';
-require_once drupal_get_path('module', 'revisioning') . '/revisioning.pages.inc';
-require_once drupal_get_path('module', 'revisioning') . '/revisioning_theme.inc';
-require_once drupal_get_path('module', 'revisioning') . '/revisioning_tokens.inc';
-require_once drupal_get_path('module', 'revisioning') . '/revisioning_triggers_actions.inc';
-require_once drupal_get_path('module', 'revisioning') . '/revisioning.taxonomy.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning_api.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning.pages.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning_theme.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning_tokens.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning_triggers_actions.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning.taxonomy.inc';
 if (module_exists('rules')) {
   // This is not supposed to be necessary, but without it bad things happen
-  require_once drupal_get_path('module', 'revisioning') . '/revisioning.rules.inc';
+  require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'revisioning') . '/revisioning.rules.inc';
 }
 
 
@@ -78,7 +78,7 @@ function revisioning_permission() {
       'description' => ''))
     : array();
 
-  $edit_description = t('Also requires update permission from either the Node or other content access module(s).');
+  $edit_description = t('Also requires edit permission from either the Node or other content access module(s).');
 
   $moderated_content_types = implode(', ', revisioning_moderated_content_types(FALSE));
   $publish_description = empty($moderated_content_types)
@@ -86,7 +86,7 @@ function revisioning_permission() {
     : t('Applies to content types that are subject to moderation, i.e.: %moderated_content_types.',
         array('%moderated_content_types' => $moderated_content_types));
 
-  if (!empty($moderated_content_types) && variable_get('revisioning_require_update_to_publish', FALSE)) {
+  if (!empty($moderated_content_types) && variable_get('revisioning_require_update_to_publish', TRUE)) {
     $publish_description .= ' <br/>' . $edit_description;
   }
 
@@ -153,7 +153,7 @@ function revisioning_menu() {
   );
 
   // Plain link, not a tab, to allow users to unpublish a node.
-  $items['node/%node/unpublish'] = array(
+  $items['node/%node/unpublish-current'] = array(
   //'title' => t(Unpublish current revision'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('revisioning_unpublish_confirm', 1),
@@ -341,8 +341,8 @@ function revisioning_menu_alter(&$items) {
 
   if (module_exists('diff')) {
     // If Diff module is enabled, make sure it uses correct access callback
-    $items['node/%node/revisions/view/%/%']['access callback'] = '_revisioning_access_node_revision';
-    $items['node/%node/revisions/view/%/%']['access arguments'] = array('view revisions', 1);
+    $items['node/%node/revisions/view']['access callback'] = '_revisioning_access_node_revision';
+    $items['node/%node/revisions/view']['access arguments'] = array('view revisions', 1);
   }
 }
 
@@ -435,10 +435,17 @@ function revisioning_entity_prepare_view($entities, $entity_type, $langcode) {
     foreach($entities as $node) {
       if (!empty($node->dont_display)) {
         $node->title = FALSE;
-        $node->comment = FALSE;
+        $node->comment = COMMENT_NODE_HIDDEN;
         $node->link = FALSE;
         unset($node->body);
         unset($node->rss_elements);
+      }
+      else {
+        // Display, however suppress comment form when revision is not current.
+        if (isset($node->comment) && !empty($node->revision_moderation) && empty($node->is_current)) {
+          // Prevent comment_node_view() from adding the comment form.
+          $node->comment = COMMENT_NODE_HIDDEN;
+        }
       }
     }
   }
@@ -533,7 +540,19 @@ function revisioning_node_presave($node) {
     $node->auto_publish = TRUE;
   }
 
-  if (!isset($node->nid)) { // new node
+  if (!isset($node->nid)) {
+    // New node, if moderated without Auto-publish, ignore the default Publish tickbox
+    if (isset($node->revision_moderation) && $node->revision_moderation == TRUE) {
+      $node->status = NODE_NOT_PUBLISHED;
+    }
+    // Set these for Rules, see [#1627400]
+    $node->current_status  = $node->status;
+    $node->current_title   = $node->title;
+    $node->current_promote = $node->promote;
+    $node->current_sticky  = $node->sticky;
+    if (isset($node->comment)) { // Comment module enabled
+      $node->current_comment = $node->comment;
+    }
     return;
   }
 
@@ -559,9 +578,11 @@ function revisioning_node_presave($node) {
     // "sick" table denormalisation.
     $node->current_status  = $current_revision->status;
     $node->current_title   = $current_revision->title;
-    $node->current_comment = $current_revision->comment;
     $node->current_promote = $current_revision->promote;
     $node->current_sticky  = $current_revision->sticky;
+    if (isset($current_revision->comment)) { // Comment module enabled
+      $node->current_comment = $current_revision->comment;
+    }
   }
 }
 
@@ -600,7 +621,7 @@ function revisioning_node_update($node) {
         'vid'     => $node->current_revision_id,
         'status'  => $node->current_status,
         'title'   => $node->current_title,
-        'comment' => $node->current_comment,
+        'comment' => $node->current_comment, // in case Comment module enabled
         'promote' => $node->current_promote,
         'sticky'  => $node->current_sticky))
       ->condition('nid', $node->nid)
@@ -681,7 +702,7 @@ function revisioning_user_node_access($revision_op, $node, $account = NULL) {
       return user_access($revision_op, $account) ? 'update' : FALSE;
 
     case 'publish revisions':
-      $node_op = variable_get('revisioning_require_update_to_publish', FALSE) ? 'update' : 'view';
+      $node_op = variable_get('revisioning_require_update_to_publish', TRUE) ? 'update' : 'view';
       if (user_access('publish revisions', $account)) {
         return $node_op;
       }
@@ -694,7 +715,7 @@ function revisioning_user_node_access($revision_op, $node, $account = NULL) {
       return FALSE;
 
     case 'unpublish current revision':
-      $node_op = variable_get('revisioning_require_update_to_publish', FALSE) ? 'update' : 'view';
+      $node_op = variable_get('revisioning_require_update_to_publish', TRUE) ? 'update' : 'view';
       return user_access('unpublish current revision', $account) ? $node_op : FALSE;
 
     case 'delete revisions':
@@ -808,7 +829,10 @@ function _revisioning_access_node_revision($revision_op, $node) {
   // node_access will invoke hook_node_access(), i.e. revisioning_node_access().
   $access = $node_op && node_access($node_op, $node);
 
-  return $access;
+  // Let other modules override the outcome, if there are any.
+  // If any module denies access that is the final result, otherwise allow.
+  $overrides = module_invoke_all('revisioning_access_node_revision', $revision_op, $node);
+  return empty($overrides) ? $access : !in_array(NODE_ACCESS_DENY, $overrides, TRUE);
 }
 
 /**
@@ -830,6 +854,11 @@ function revisioning_node_access($node, $node_op, $account) {
     if ($node->status == NODE_PUBLISHED || (!empty($node->revision_moderation) && revisioning_user_node_access('view revisions', $node, $account))) {
       return NODE_ACCESS_ALLOW;
     }
+  }
+  // [#1492246]
+  // Deny access to unpublished, moderated content by anonymous users.
+  if (empty($node->status) && !empty($node->revision_moderation) && empty($account->uid)) {
+    return NODE_ACCESS_DENY;
   }
   return NODE_ACCESS_IGNORE;
 }
@@ -977,6 +1006,20 @@ function _revisioning_edit($node) {
  * Callback to view a particular revision.
  */
 function _revisioning_view_revision($node) {
+  if (isset($node->nid)) {
+    /* For Panels: @todo test this thoroughly. See [#1567880]
+    $router_item = menu_get_item('node/' . $node->nid);
+    if (!empty($router_item['file'])) {
+      $path = $_SERVER['DOCUMENT_ROOT'] . base_path();
+      require_once $path . $router_item['file'];
+    }
+    // Call whatever function is assigned to the main node path but pass the
+    // current node as an argument. This approach allows for the reuse of Panel
+    // definition acting on node/%node.
+    if (isset($router_item['page_callback'])) {
+      return $router_item['page_callback']($node);
+    }*/
+  }
   // This is the callback used by node.module for node/%node/revisions/%/view
   return node_show($node, TRUE);
 }
@@ -1003,6 +1046,7 @@ function _revisioning_title_for_tab($node, $tab) {
   if ($tab == 'revisions') {
     return is_numeric(arg(3)) ? t('Revision operations') : t('Revisions');
   }
+/*
   if (empty($node->revision_moderation) || $node->num_revisions <= 1) {
     return ($tab == 'edit' ? t('Edit') : t('View'));
   }
@@ -1010,6 +1054,16 @@ function _revisioning_title_for_tab($node, $tab) {
     return ($tab == 'edit' ? t('Edit latest') : t('View latest'));
   }
   return ($tab == 'edit' ? t('Edit current') : t('View current'));
+ */
+  if (!empty($node->revision_moderation) && $node->num_revisions > 1) {
+    if (_revisioning_load_op($node, $tab) == REVISIONING_LOAD_LATEST) {
+      return ($tab == 'edit' ? t('Edit latest') : t('View latest'));
+    }
+    if (_revisioning_access_node_revision('view revisions', $node)) {
+      return ($tab == 'edit' ? t('Edit current') : t('View current'));
+    }
+  }
+  return ($tab == 'edit' ? t('Edit') : t('View'));
 }
 
 function _revisioning_set_custom_theme_if_necessary() {
@@ -1033,5 +1087,17 @@ if (module_exists('diff')) {
       return diff_diffs_show($node, $node->current_revision_id, $node->vid);
     }
     return diff_diffs_show($node, $node->vid, $node->current_revision_id);
+  }
+}
+
+/**
+ * Implements hook_page_manager_override().
+ *
+ * See http://drupal.org/node/1509674#comment-6702798
+ */
+function revisioning_page_manager_override($task_name) {
+  switch ($task_name) {
+    case 'node_view':
+      return '_revisioning_view';
   }
 }

@@ -119,7 +119,7 @@ function earth_distance_sql($longitude, $latitude, $tbl_alias = '') {
   $coslat = cos($lat);
   $sinlong = sin($long);
   $sinlat = sin($lat);
-  return "(IFNULL(ACOS($coslat*COS(RADIANS({$tbl_alias}latitude))*($coslong*COS(RADIANS({$tbl_alias}longitude)) + $sinlong*SIN(RADIANS({$tbl_alias}longitude))) + $sinlat*SIN(RADIANS({$tbl_alias}latitude))), 0.00000)*$radius)";
+  return "(COALESCE(ACOS($coslat*COS(RADIANS({$tbl_alias}latitude))*($coslong*COS(RADIANS({$tbl_alias}longitude)) + $sinlong*SIN(RADIANS({$tbl_alias}longitude))) + $sinlat*SIN(RADIANS({$tbl_alias}latitude))), 0.00000)*$radius)";
 }
 
 /**
@@ -132,12 +132,16 @@ function earth_longitude_range($longitude, $latitude, $distance) {
   // Estimate the min and max longitudes within $distance of a given location.
   $long = deg2rad($longitude);
   $lat = deg2rad($latitude);
-  $radius = earth_radius($latitude);
+  $radius = earth_radius($latitude) * cos($lat);
 
-  $angle = $distance / $radius;
-  $diff = earth_asin_safe(sin($angle)/cos($lat));
-  $minlong = $long - $diff;
-  $maxlong = $long + $diff;
+  if($radius > 0) {
+    $angle = abs($distance / $radius );
+    $angle = min($angle, pi());
+  } else {
+    $angle = pi();
+  }
+  $minlong = $long - $angle;
+  $maxlong = $long + $angle;
   if ($minlong < -pi()) { $minlong = $minlong + pi()*2; }
   if ($maxlong > pi()) { $maxlong = $maxlong - pi()*2; }
   return array(rad2deg($minlong), rad2deg($maxlong));
