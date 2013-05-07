@@ -92,6 +92,10 @@ function wk_token_info() {
     'name' => t("Location Summary"),
     'description' => t('A parenthesized summary of the location (City, State).'),
   );
+  $node['field_location_address'] = array(
+    'name' => t("Location Summary"),
+    'description' => t('A parenthesized summary of the location address (Street, City, State Zip).'),
+  );
   return array(
     'tokens' => array('node' => $node),
   );
@@ -133,18 +137,29 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
         $location_field = $location_node->field_location['und'][0];
       }
     }
-    if (!empty($location_field)) {
+    if (isset($location_field['city']) && isset($location_field['province'])) {
       $location_field['summary'] = "(" . $location_field['city'] . ", " . $location_field['province'] . ")";
-      foreach ($tokens as $name => $original) {
-        if (substr($name,0,15) == 'field_location_') {
-          // $name is always 'field_location_xxx', so key is 'xxx'.
-          $key = substr($name, 15);
-          if (isset($location_field[$key])) {
-            $replacements[$original] = $location_field[$key];
-          }
-          else {
-            $replacements[$original] = '';
-          }
+    }
+    else {
+      $location_field['summary'] = '(TBD)';
+    }
+    $location_address = '';
+    if (isset($location_field['street'])) {
+      $location_address = str_replace(array_keys($location_field), array_values($location_field), "(street, city province postal_code)");
+    }
+    else {
+      $location_address = '(TBD)';
+    }
+    $location_field['address'] = $location_address;
+    foreach ($tokens as $name => $original) {
+      if (substr($name,0,15) == 'field_location_') {
+        // $name is always 'field_location_xxx', so key is 'xxx'.
+        $key = substr($name, 15);
+        if (isset($location_field[$key])) {
+          $replacements[$original] = $location_field[$key];
+        }
+        else {
+          $replacements[$original] = '';
         }
       }
     }
