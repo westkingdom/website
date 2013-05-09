@@ -217,3 +217,54 @@ function wk_node_view($node, $view_mode, $langcode) {
     }
   }
 }
+
+/**
+ * Hook pathauto_alias alter.
+ * See http://drupal.org/node/684132
+ */
+function wk_pathauto_alias_alter(&$alias, array &$context) {
+  if (($context['op'] != 'return') && ($context['module'] == 'taxonomy_term')) {
+    $term = $context['data']['term'];
+    // Make calendar path aliases for branch group taxonomy terms (vid == 2)
+    if ($term->vid == 2) {
+      $short_name = _wk_term_short_name($term);
+      $machine_name = _wk_to_machine_name($short_name);
+      $path_args = array("source" => 'calendar/' . $term->tid, "alias" => 'calendar/' . $machine_name);
+      $existing_path = path_load($path_args['source']);
+      if (!empty($existing_path)) {
+        path_delete($existing_path['pid']);
+      }
+      path_save($path_args);
+    }
+  }
+}
+
+function _wk_term_short_name($term) {
+  $short_name = '';
+
+  if (isset($term->field_short_name[LANGUAGE_NONE][0]['value'])) {
+    $short_name = $term->field_short_name[LANGUAGE_NONE][0]['value'];
+  }
+  if (empty($short_name)) {
+    $short_name = _wk_shorten_name($term->name);
+  }
+
+  return $short_name;
+}
+
+function _wk_shorten_name($name) {
+  $remove = array("Kingdom of ", "Principality of ", "Palatine Barony of ", "Barony of ", "Kingdom of ", "Shire of ", "Province of ", "Canton of ", "College of ", "Stronghold of ", "the ", " (incipiant)");
+
+  foreach ($remove as $string_to_remove) {
+    $name = str_replace($string_to_remove, '', $name);
+  }
+
+  return $name;
+}
+
+function _wk_to_machine_name($human_readable) {
+  $machine_readable = strtolower($human_readable);
+  $machine_readable = preg_replace("@['`]s@",'s',$machine_readable);
+  $machine_readable = preg_replace('@[^a-z0-9_]+@','-',$machine_readable);
+  return $machine_readable;
+}
