@@ -229,12 +229,28 @@ function wk_pathauto_alias_alter(&$alias, array &$context) {
     if ($term->vid == 2) {
       $short_name = _wk_term_short_name($term);
       $machine_name = _wk_to_machine_name($short_name);
-      $path_args = array("source" => 'calendar/' . $term->tid, "alias" => 'calendar/' . $machine_name);
-      $existing_path = path_load($path_args['source']);
-      if (!empty($existing_path)) {
-        path_delete($existing_path['pid']);
+      // Remap calendar/tid to calendar/term_name, etc.
+      // This is like pathauto for view arguments.  :)
+      $path_list = array(
+        "calendar/%",
+        "meetings/%",
+        "meetings/%/9" => "meetings/%/all",
+        "events/%",
+        "events/%/9" => "events/%/all",
+        "events/%/0/feed" => "events/%/feed",
+        "events/%/9/feed" => "events/%/all/feed",
+      );
+      foreach ($path_list as $src_path => $alias_path) {
+        if (is_numeric($src_path)) {
+          $src_path = $alias_path;
+        }
+        $path_args = array("source" => str_replace("%", $term->tid, $src_path), "alias" => str_replace("%", $machine_name, $alias_path));
+        $existing_path = path_load($path_args['source']);
+        if (!empty($existing_path)) {
+          path_delete($existing_path['pid']);
+        }
+        path_save($path_args);
       }
-      path_save($path_args);
     }
   }
 }
