@@ -27,15 +27,14 @@ function og_contact_page() {
 function og_contact_mail_page($form, &$form_state) {
   global $user;
   $nid = arg(1);
-  $group = og_get_group('node',$nid);
-  $gid = $group->gid;
+  $gid = $nid;
   $group = og_contact_group_load($gid);
 
   // use a different theme if the group has one
   //$theme_node = og_set_theme($gid);
   //og_set_group_context($theme_node);
 
-  $name = filter_xss($group['name']);
+  $name = filter_xss($group['title']);
 
   drupal_set_title(t('Contact %name', array('%name' => $name)), PASS_THROUGH);
   $groups[$gid] = $name;
@@ -115,7 +114,7 @@ function og_contact_mail_page_submit($form, &$form_state) {
   // Load group information
   $og_contact_group = og_contact_group_load($values['gid']);
   //Load group object
-  $group = og_get_group('group',$values['gid']);
+  $group = entity_load_single('node',$values['gid']);
 
   // drupal_mail('og-contact-page-mail', $recipients, $subject,
   drupal_mail('og_contact', 'page_mail', $recipients, language_default(), $values, $from);
@@ -134,13 +133,13 @@ function og_contact_mail_page_submit($form, &$form_state) {
 
   // Log the operation:
   flood_register_event('og_contact');
-  watchdog('mail', '%name-from sent an e-mail regarding %category.', array('%name-from' => $values['name'] . " [$from]", '%category' => $og_contact_group['name']));
+  watchdog('mail', '%name-from sent an e-mail regarding %category.', array('%name-from' => $values['name'] . " [$from]", '%category' => $og_contact_group['title']));
 
   // Update user:
   drupal_set_message(t('Your message has been sent.'));
 
   // Jump to group page rather than back to contact page to avoid contradictory messages if flood control has been activated.
-  $form_state['redirect'] = ('node/' . $group->etid);
+  $form_state['redirect'] = ('node/' . $group->nid);
 }
 
 
@@ -154,8 +153,6 @@ function og_contact_mail($key, &$message, $params) {
   switch ($key) {
     case 'page_mail':
     case 'page_copy':
-      $contact = $params['contact'];
-
       if (variable_get('og_contact_group_name_in_subject', 0)) {
         $message['subject'] = t('[!groupname] !subject', array('!groupname' => $group->name, '!subject' => $params['subject']), array('langcode' => $language->language));
       }
@@ -166,7 +163,6 @@ function og_contact_mail($key, &$message, $params) {
       $message['body'][] = $params['message'];
       break;
     case 'page_autoreply':
-      $contact = $params['contact'];
       if (variable_get('og_contact_group_name_in_subject', 0)) {
         $message['subject'] = t('[!groupname] !subject', array('!groupname' => $group->name, '!subject' => $params['subject']), array('langcode' => $language->language));
       }
@@ -184,20 +180,32 @@ function og_contact_mail($key, &$message, $params) {
  * Format contact form recipient addresses
  */
 function og_contact_get_recipients($gid) {
+  $admin_uids=array();
+  $group_uids=array();
+  $uids=array();
   // pull in recipients and recipient settings for the groups
-  $group_rules = db_query('SELECT noadmin,recipients,grouprecipients FROM {og_contact} WHERE gid = :gid', array(':gid' => $gid))->fetchAssoc();
+  $group_rules =db_select('og_contact','o')
+    ->fields('o',array('noadmin','recipients','grouprecipients'))
+    ->condition('gid',$gid)
+    ->execute()->fetchObject();
   // get group admins when enabled
   if ($group_rules->noadmin == 0) {
-    //$admin_query = db_query('SELECT uid FROM {og_uid} WHERE nid = :nid AND is_admin = :is_admin AND is_active = :is_active', array(':nid' => $gid, ':is_admin' => 1, ':is_active' => 1));
-    $admin_query = og_get_users_by_roles($gid, array(3));
-    $admin_uids = array();
-    foreach ($admin as $admin_query) {
+    $query = db_select('og_users_roles','ogur');
+    $query->leftJoin('users','u','u.uid = ogur.uid');
+    $query->leftJoin('og_membership','ogm',"ogm.gid = ogur.gid AND ogm.etid = u.uid AND ogm.entity_type = 'user'");
+    $query->leftJoin('og_role','ogr','ogr.rid = ogur.rid');
+    $admin_query = $query->fields('ogur',array('uid'))
+      ->condition('u.status','0','<>')
+      ->condition('ogm.state','0','<>')
+      ->condition('ogr.name','administrator member')
+      ->condition('ogur.gid',$gid)
+      ->execute()->fetch();
+    foreach ($admin_query as $admin) {
       $admin_uids[$admin] = $admin;
     }
   }
   // get group recipients when enabled
   if ($group_rules->grouprecipients == 1) {
-    $group_uids = array();
     $group_uids = og_contact_return_group_recipients($gid);
   }
 
@@ -211,7 +219,6 @@ function og_contact_get_recipients($gid) {
   elseif (count($group_uids)) {
     $uids = $group_uids;
   }
-
   // get each user recipients mail address
   if (count($uids)) {
     $i = 0;
@@ -243,14 +250,25 @@ function og_contact_get_recipients($gid) {
  * Rerturn an array of group recipients
  */
 function og_contact_return_group_recipients($gid) {
-  $query = db_query('SELECT uid FROM {og_uid} WHERE nid = :nid AND is_active = :is_active AND is_admin = :is_admin', array(':nid' => $gid, ':is_active' => 1, ':is_admin' => 0));
+  $query = db_select('og_users_roles','ogur');
+  $query->leftJoin('users','u','u.uid = ogur.uid');
+  $query->leftJoin('og_membership','ogm',"ogm.gid = ogur.gid AND ogm.etid = u.uid AND ogm.entity_type = 'user'");
+  $query->leftJoin('og_role','ogr','ogr.rid = ogur.rid');
+  $query = $query->fields('ogur',array('uid'))
+    ->condition('u.status','0','<>')
+    ->condition('ogm.state','0','<>')
+    ->condition('ogr.name','administrator member','<>')
+    ->condition('ogur.gid',$gid)
+    ->execute()->fetch();
   $users = array();
-  foreach ($query as $uid) {
-    // TODO Convert "user_load" to "user_load_multiple" if "$uid->uid" is other than a uid.
-    // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-    // Example: array_shift(user_load_multiple(array(), $uid->uid))
-    if (user_access('receive og contact submissions', user_load($uid->uid))) {
-      $users[$uid->uid] = $uid->uid;
+  if($query){
+    foreach ($query as $uid) {
+      // TODO Convert "user_load" to "user_load_multiple" if "$uid->uid" is other than a uid.
+      // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+      // Example: array_shift(user_load_multiple(array(), $uid->uid))
+      if (user_access('receive og contact submissions', user_load($uid->uid))) {
+        $users[$uid->uid] = $uid->uid;
+      }
     }
   }
   return $users;
