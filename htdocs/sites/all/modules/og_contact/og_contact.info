@@ -1,0 +1,8 @@
+; $Id:
+name = OG Contact
+description = "Create contact module style contact forms for Organic Groups."
+dependencies[] = og
+package = "Organic groups"
+project = "og_contact"
+
+core = 7.x
