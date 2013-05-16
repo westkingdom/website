@@ -12,10 +12,16 @@
  * A themed table of all groups with a contact form.
  */
 function og_contact_admin_groups() {
-  $result = db_query('SELECT ogc.gid,og.label FROM {og_contact} ogc INNER JOIN {og} og ON ogc.gid=og.gid WHERE og.state = :state', array(':state' => 1));
+  $query = db_select('og_contact','c');
+  $query->join('node','n','c.gid = n.nid');
+  $result = $query->fields('c',array('gid'))
+    ->fields('n',array('title'))
+    ->condition('n.status',1)
+    ->execute();
   $rows = array();
+
   foreach ($result as $group) {
-    $rows[] = array($group->label, l(t('edit'), 'admin/config/group/contact/edit/' . $group->gid), l(t('delete'), 'admin/config/group/contact/delete/' . $group->gid));
+    $rows[] = array($group->title, l(t('edit'), 'admin/config/group/contact/edit/' . $group->gid), l(t('delete'), 'admin/config/group/contact/delete/' . $group->gid));
   }
   $header = array(t('Group'), array(
       'data' => t('Operations'),
@@ -155,13 +161,13 @@ function og_contact_admin_add_validate($form, &$form_state) {
 function og_contact_admin_add_submit($form, &$form_state) {
   if (arg(4) == 'add') {
     $id = db_insert('og_contact')
-  ->fields(array(
-      'gid' => $form_state['values']['group'],
-      'reply' => $form_state['values']['reply'],
-      'recipients' => $form_state['values']['recipients'],
-      'noadmin' => $form_state['values']['no_admin'],
-    ))
-  ->execute();
+      ->fields(array(
+        'gid' => $form_state['values']['group'],
+        'reply' => $form_state['values']['reply'],
+        'recipients' => $form_state['values']['recipients'],
+        'noadmin' => $form_state['values']['no_admin'],
+      ))
+      ->execute();
 
     $name = og_contact_get_group_name($form_state['values']['group']);
     drupal_set_message(t('Contact form for %group added.', array('%group' => $name)));
@@ -180,12 +186,9 @@ function og_contact_admin_edit($form, &$form_state) {
   }
   elseif (arg(0) == 'group' && arg(1) == 'node' && is_numeric(arg(2)) && arg(2) > 0) {
     $nid = arg(2);
-    $group = og_get_group('node',$nid);
-    $entity_type = $group->entity_type;
-    $etid = $group->etid;
-    $gid = $group->gid;
+    $gid = $nid;
     $return = 'node';
-    og_set_breadcrumb($entity_type, $etid, array(l(t('Group'), "$entity_type/$etid/group")));
+    og_set_breadcrumb('node', $nid, array(l(t('Group'), "node/$nid/group")));
   }
   if ($gid) {
     drupal_set_title(t('Edit contact form for ') . og_contact_get_group_name($gid));
@@ -194,12 +197,10 @@ function og_contact_admin_edit($form, &$form_state) {
       '#type' => 'value',
       '#value' => $return,
     );
-    if ($nid) {
-      $form['nid'] = array(
-        '#type' => 'value',
-        '#value' => $nid,
-      );
-    }
+    $form['nid'] = array(
+      '#type' => 'value',
+      '#value' => $gid,
+    );
     return $form;
   }
   else {
@@ -237,14 +238,14 @@ function og_contact_admin_edit_submit($form, &$form_state) {
   $name = og_contact_get_group_name($form_state['values']['group']);
   drupal_set_title(t('Edit ') . $name . t('\'s Contact'));
   db_update('og_contact')
-  ->fields(array(
-    'reply' => $form_state['values']['reply'],
-    'noadmin' => $form_state['values']['no_admin'],
-    'grouprecipients' => empty($form_state['values']['group_recipients']) ? 0 : $form_state['values']['group_recipients'],
-    'recipients' => $form_state['values']['recipients'],
-  ))
-  ->condition('gid', $form_state['values']['group'])
-  ->execute();
+    ->fields(array(
+      'reply' => $form_state['values']['reply'],
+      'noadmin' => $form_state['values']['no_admin'],
+      'grouprecipients' => empty($form_state['values']['group_recipients']) ? 0 : $form_state['values']['group_recipients'],
+      'recipients' => $form_state['values']['recipients'],
+    ))
+    ->condition('gid', $form_state['values']['group'])
+    ->execute();
 
   drupal_set_message(t('Contact form for %group has been updated.', array('%group' => $name)));
   watchdog('mail', 'OG Contact: Form for %group updated.', array('%group' => $name), WATCHDOG_NOTICE, l(t('view'), 'admin/config/group/contact'));
@@ -282,8 +283,8 @@ function og_contact_admin_delete($form, &$form_state, $group = NULL) {
 function og_contact_admin_delete_submit($form, &$form_state) {
   $name = og_contact_get_group_name($form_state['values']['group']);
   db_delete('og_contact')
-  ->condition('gid', arg(5))
-  ->execute();
+    ->condition('gid', arg(5))
+    ->execute();
   drupal_set_message(t('The group contact form for %group has been deleted.', array('%group' => $name)));
   watchdog('mail', 'OG Contact: Form for %group was deleted.', array('%group' => $name), WATCHDOG_NOTICE);
 
@@ -332,7 +333,7 @@ function og_contact_admin_settings($form, &$form_state) {
  * Add all Groups page.
  */
 function og_contact_admin_add_all($form, &$form_state) {
-  $group_count = og_get_all_group(array(OG_STATE_ACTIVE), array('count' => TRUE));
+  $group_count = count(og_get_all_group());
   $form_count = og_contact_form_count();
   if ($group_count == $form_count && $group_count != 0) {
     $form['all_groups'] = array(
@@ -355,16 +356,15 @@ function og_contact_admin_add_all_submit($form, &$form_state) {
   $grpno = 0;
   $alteredno = 0;
   foreach ($groups as $gid) {
-    $group = og_load($gid);
     //Check if group doesn't already have a contact form
-    if (!og_contact_group_has_form($group->gid)) {
+    if (!og_contact_group_has_form($gid)) {
       //It doesn't, so add it to the og_contact table
       $id = db_insert('og_contact')
-  ->fields(array(
-        'gid' => $group->gid,
-        'reply' => "",
-      ))
-  ->execute();
+        ->fields(array(
+          'gid' => $gid,
+          'reply' => "",
+        ))
+        ->execute();
       $alteredno++;
     }
     $grpno++;
@@ -403,7 +403,7 @@ function og_contact_admin_delete_all($form, &$form_state) {
  */
 function og_contact_admin_delete_all_submit($form, &$form_state) {
   db_delete('og_contact')
-  ->execute();
+    ->execute();
   drupal_set_message(t('The group contact form for all groups have been deleted.'));
   watchdog('mail', 'OG Contact: Forms for all groups were deleted.', WATCHDOG_NOTICE);
 
@@ -422,10 +422,9 @@ function og_contact_admin_delete_all_submit($form, &$form_state) {
 function og_contact_group_select_form_options() {
   $groups = og_get_all_group();
   $options = array();
-  foreach ($groups as $gid => $name) {
+  foreach ($groups as $gid) {
     if (!og_contact_group_has_form($gid)) {
-      $group = og_get_group('group', $gid);
-      $options[$gid] = $group->label;
+      $options[$gid] = og_contact_get_group_name($gid);
     }
   }
   return $options;
@@ -444,8 +443,20 @@ function og_contact_group_select_form_options() {
  */
 function og_contact_check_group_recipients($gid) {
   // TODO: replace this query with a call to the OG API.
-  $query = db_query('SELECT uid FROM {og_uid} WHERE nid = :nid AND is_active = :is_active AND is_admin = :is_admin', array(':nid' => $gid, ':is_active' => 1, ':is_admin' => 0));
+  $query = db_select('og_users_roles','ogur');
+  $query->leftJoin('users','u','u.uid = ogur.uid');
+  $query->leftJoin('og_membership','ogm',"ogm.gid = ogur.gid AND ogm.etid = u.uid AND ogm.entity_type = 'user'");
+  $query->leftJoin('og_role','ogr','ogr.rid = ogur.rid');
+  $query = $query->fields('ogur',array('uid'))
+    ->condition('u.status','0','<>')
+    ->condition('ogm.state','0','<>')
+    ->condition('ogr.name','administrator member','<>')
+    ->condition('ogur.gid',$gid)
+    ->execute()->fetch();
   $recipient_count = 0;
+  if(!$query){
+    return FALSE;
+  }
   foreach ($query as $uid) {
     if (og_user_access($gid, 'receive og contact submissions', user_load($uid->uid))) {
       $recipient_count++;
@@ -478,7 +489,7 @@ function og_contact_form_count() {
  * The text string of the group name
  */
 function og_contact_get_group_name($gid) {
-  $group = og_get_group('group',$gid);
-  $name = $group->label;
+  $group = entity_load_single('node', $gid);
+  $name = $group->title;
   return $name;
 }

@@ -151,14 +151,12 @@ function og_contact_menu() {
  */
 function og_contact_node_insert($node) {
   if (og_is_group_type('node', $node->type) == 1 && variable_get('og_contact_enable_all', 0)) {
-    // TODO Please review the conversion of this statement to the D7 database API syntax.
-    /* db_query("INSERT INTO {og_contact} (gid, reply) VALUES ('%d','%s')", $node->nid, '') */
     $id = db_insert('og_contact')
-  ->fields(array(
-      'gid' => $node->nid,
-      'reply' => '',
-    ))
-  ->execute();
+      ->fields(array(
+        'gid' => $node->nid,
+        'reply' => '',
+      ))
+      ->execute();
     drupal_set_message(t('Contact form for %group added.', array('%group' => $node->title)));
     watchdog('mail', 'OG Contact: Form for %group added.', array('%group' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'admin/config/group/contact'));
   }
@@ -169,11 +167,9 @@ function og_contact_node_insert($node) {
  */
 function og_contact_node_delete($node) {
   if (og_is_group_type('node', $node->type) == 1) {
-    // TODO Please review the conversion of this statement to the D7 database API syntax.
-    /* db_query("DELETE FROM {og_contact} WHERE gid = %d", $node->nid) */
     db_delete('og_contact')
-  ->condition('gid', $node->nid)
-  ->execute();
+      ->condition('gid', $node->nid)
+      ->execute();
     drupal_set_message(t('The group contact form for %group has been deleted.', array('%group' => $node->title)));
     watchdog('mail', 'OG Contact: Form for %group was deleted.', array('%group' => $node->title), WATCHDOG_NOTICE);
   }
@@ -192,8 +188,9 @@ function og_contact_node_delete($node) {
  * Returns TRUE if the group has a form.
  */
 function og_contact_group_has_form($gid) {
-  $query = db_query('SELECT COUNT(*) FROM {og_contact} WHERE gid = :gid', array(':gid' => $gid));
-  if ($query->fetchField() > 0) {
+  $query = db_select('og_contact', 'c')
+    ->condition('c.gid', $gid);
+  if ($query->countQuery()->execute()->fetchField() > 0) {
     return TRUE;
   }
 }
@@ -212,9 +209,7 @@ function og_contact_group_has_form($gid) {
  * Returns TRUE if user can view the contact form.
 */
 function og_contact_can_view_contact($node) {
-  $group = og_get_group('node',$node->nid);
-  $gid = $group->gid;
-  if (og_user_access($gid, 'access og contact form')) {
+  if (og_user_access('node',$node->nid, 'access og contact form')) {
     return TRUE;
   }
 }
@@ -237,9 +232,14 @@ function og_contact_group_load($group) {
   else {
     $gid = array_pop(array_keys($group));
   }
-  $og_contact_group = db_query("SELECT * FROM {og_contact} WHERE gid = :gid", array(':gid' => $gid))->fetchAssoc();
-  $og_group = db_query("SELECT * FROM {og} WHERE gid = :gid", array(':gid' => $gid))->fetchAssoc();
-  $og_contact_group['name'] = $og_group['label'];
+  $query = db_select('og_contact','c');
+  $query->join('node','n','c.gid = n.nid');
+  $og_contact_group = $query->fields('c')
+    ->fields('n',array('title'))
+    ->condition('c.gid',$gid)
+    ->execute()
+    ->fetchAssoc();
+    $og_contact_group['name']=$og_contact_group['title'];
   return $og_contact_group;
 }
 
@@ -252,10 +252,9 @@ function og_contact_group_node_load($arg) {
   if (!is_numeric($arg)) {
     return FALSE;
   }
-  if ($node = node_load($arg)) {
+  if ($node = entity_load_single('node', $arg)) {
     if (og_is_group_type('node', $node->type)) {
-      $group = og_get_group('node', $node->nid);
-      if ($group && og_contact_group_has_form($group->gid)) {
+      if (og_contact_group_has_form($node->nid)) {
         return $node;
       }
     }
@@ -269,14 +268,7 @@ function og_contact_group_node_load($arg) {
  * Menu loader function that will return a group object.
  */
 function og_contact_group_gid_load($arg) {
-  if (!is_numeric($arg)) {
-    return FALSE;
-  }
-  $group = og_get_group('group', $arg);
-  if($group && og_contact_group_has_form($group->gid)) {
-    return $group;
-  }
-  return FALSE;
+  return og_contact_group_node_load($arg);
 }
 
 /**
@@ -286,9 +278,7 @@ function og_contact_can_edit_group_settings($node) {
   if (user_access('administer og contact form')) {
     return TRUE;
   }
-  $group = og_get_group('node', $node->nid);
-  $gid = $group->gid;
-  if ((og_user_access($gid, 'administer group contact form') == 1)) {
+  if ((og_user_access('node', $node->nid, 'administer group contact form') == 1)) {
     return TRUE;
   }
   return FALSE;
@@ -297,8 +287,8 @@ function og_contact_can_edit_group_settings($node) {
 /**
  * Implements hook_og_ui_get_group_admin().
  */
-function og_contact_og_ui_get_group_admin($gid) {
-  if ((og_user_access($gid, 'administer group contact form') == 1)) {
+function og_contact_og_ui_get_group_admin($group_type, $gid) {
+  if ((og_user_access($group_type, $gid, 'administer group contact form') == 1)) {
     $items = array();
     $items['contact'] = array(
       'title' => t('Contact form settings'),
