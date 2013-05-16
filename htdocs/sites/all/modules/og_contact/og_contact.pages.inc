@@ -154,7 +154,7 @@ function og_contact_mail($key, &$message, $params) {
     case 'page_mail':
     case 'page_copy':
       if (variable_get('og_contact_group_name_in_subject', 0)) {
-        $message['subject'] = t('[!groupname] !subject', array('!groupname' => $group->name, '!subject' => $params['subject']), array('langcode' => $language->language));
+        $message['subject'] = t('[!groupname] !subject', array('!groupname' => $group['name'], '!subject' => $params['subject']), array('langcode' => $language->language));
       }
       else {
         $message['subject'] = t('!subject', array('!subject' => $params['subject']), array('langcode' => $language->language));
@@ -164,12 +164,12 @@ function og_contact_mail($key, &$message, $params) {
       break;
     case 'page_autoreply':
       if (variable_get('og_contact_group_name_in_subject', 0)) {
-        $message['subject'] = t('[!groupname] !subject', array('!groupname' => $group->name, '!subject' => $params['subject']), array('langcode' => $language->language));
+        $message['subject'] = t('[!groupname] !subject', array('!groupname' => $group['name'], '!subject' => $params['subject']), array('langcode' => $language->language));
       }
       else {
         $message['subject'] = t('!subject', array('!subject' => $params['subject']), array('langcode' => $language->language));
       }
-      $message['body'][] = $group->reply;
+      $message['body'][] = $group['reply'];
       break;
   }
 }
