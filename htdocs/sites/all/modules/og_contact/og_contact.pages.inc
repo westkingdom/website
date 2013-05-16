@@ -40,7 +40,9 @@ function og_contact_mail_page($form, &$form_state) {
   $groups[$gid] = $name;
 
   if ($gid && og_contact_group_has_form($gid) == TRUE && arg(2) == 'contact') {
-    $form['#token'] = $user->uid ? $user->name . $user->mail : '';
+    if ($user->uid) {
+      $form['#token'] = $user->name . $user->mail;
+    }
     $form['name'] = array(
       '#type' => 'textfield',
       '#title' => t('Your name'),
