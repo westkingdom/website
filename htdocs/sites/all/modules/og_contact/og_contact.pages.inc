@@ -122,7 +122,7 @@ function og_contact_mail_page_submit($form, &$form_state) {
   drupal_mail('og_contact', 'page_mail', $recipients, language_default(), $values, $from);
 
   // If the user requests it, send a copy.
-  if ($values['copy']) {
+  if (isset($values['copy']) && $values['copy']) {
 //    drupal_mail('og-contact-page-copy', $from, $subject, $body, $from);
     drupal_mail('og_contact', 'page_copy', $from, $language, $values, $from);
   }
