@@ -1,0 +1,213 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the forms module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function forms_schema() {
+
+  $schema = array();
+
+  $schema['forms_submission'] = array(
+    'description' => 'The base table for forms submissions.',
+    'fields' => array(
+      'fssid' => array(
+        'description' => 'The primary identifier for a form submission.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'fsvid' => array(
+        'description' => 'The current {forms_submission_revision}.fsvid version identifier.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'form' => array(
+        'description' => 'The {forms}.form of this forms submission.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid that did this forms submission.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the submission was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the submission was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'forms_changed' => array('changed'),
+      'forms_created' => array('created'),
+      'forms_form' => array('form'),
+      'uid' => array('uid'),
+    ),
+    'unique keys' => array(
+      'fsvid' => array('fsvid'),
+    ),
+    'foreign keys' => array(
+      'forms_revision' => array(
+        'table' => 'forms_revision',
+        'columns' => array('fsvid' => 'fsvid'),
+      ),
+      'forms_user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+    'primary key' => array('fssid'),
+  );
+
+  $schema['forms_submission_revision'] = array(
+    'description' => 'Stores information about each saved version of a {forms_submission}.',
+    'fields' => array(
+      'fssid' => array(
+        'description' => 'The {forms_submission} this version belongs to.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'fsvid' => array(
+        'description' => 'The primary identifier for this version.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid that created this version.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'A Unix timestamp indicating when this version was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'remote_addr' => array(
+        'description' => 'The remote addr from where this submission was done.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'fssid' => array('fssid'),
+      'uid' => array('uid'),
+    ),
+    'primary key' => array('fsvid'),
+    'foreign keys' => array(
+      'versioned_forms' => array(
+        'table' => 'forms_submission',
+        'columns' => array('fssid' => 'fssid'),
+      ),
+      'version_user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
+  $schema['forms'] = array(
+    'description' => 'Stores information about all defined forms.',
+    'fields' => array(
+      'form' => array(
+        'description' => 'The machine-readable name of this form.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The human-readable name of this form.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'A brief description of this form.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'module' => array(
+        'description' => 'The module defining this form.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'page' => array(
+        'description' => 'Boolean indicating whether the form is available as page (and visible to non-administrators).',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'block' => array(
+        'description' => 'Boolean indicating whether the form is available as block.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'submissions' => array(
+        'description' => 'Boolean indicating whether the form accepts new submissions.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'settings' => array(
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+        'description' => 'Serialized settings containing the properties that we don\'t need to query on.',
+      ),
+    ),
+    'primary key' => array('form'),
+  );
+  return $schema;
+}
+
+
+/**
+ * Add block and settings field and change status to page in forms table.
+ */
+function forms_update_7000(&$sandbox) {
+  $forms = forms_info();
+  $schema = forms_schema();
+  db_change_field('forms', 'status', 'page', $schema['forms']['fields']['page']);
+  db_add_field('forms', 'block', $schema['forms']['fields']['block']);
+  db_add_field('forms', 'settings', $schema['forms']['fields']['settings']);
+  db_drop_field('forms', 'submit_label');
+  // Change data to reflect the db layout changes.
+  foreach ($forms as $form) {
+    $settings = array(
+      'submit_label' => $form->submit_label,
+    );
+    db_update('forms')
+      ->fields('settings', serialize($settings))
+      ->condition('form', $form->form)
+      ->execute();
+  }
+}

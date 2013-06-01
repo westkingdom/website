@@ -1,0 +1,16 @@
+name = Forms Attach Field
+description = Provides a Field, used to attach Forms to other Entities (e.g. attach a Form to a Node).
+core = 7.x
+package = Forms
+
+dependencies[] = forms
+dependencies[] = field_sql_storage
+
+files[] = views/forms_attach_field_handler_filter_entity_types.inc
+files[] = views/forms_attach_field_handler_filter_field_names.inc
+; Information added by drupal.org packaging script on 2012-03-18
+version = "7.x-1.0-beta1"
+core = "7.x"
+project = "fse"
+datestamp = "1332080442"
+

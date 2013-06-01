@@ -1,0 +1,503 @@
+<?php
+/**
+ * @file
+ * Provide a entity attach field for the forms.module.
+ *
+ * TODO: Add extra field to form_submission view with link to entity.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function forms_attach_field_menu() {
+  $items = array();
+
+  $usages = forms_attach_field_usage_forms_info();
+  $entities = entity_get_info();
+  foreach ($usages as $usage) {
+    $callback = (isset($entities[$usage['entity_type']]['uri callback'])?$entities[$usage['entity_type']]['uri callback']:FALSE);
+    if ($callback && function_exists($callback)) {
+      $entity = entity_load($usage['entity_type'], array($usage['entity_id']));
+      $path = $callback($entity[$usage['entity_id']]);
+
+      // Contruct the base_path out $usage['entity_type'].
+      // Maybe not always correct?
+      $path_base = str_replace($usage['entity_id'], '%' . $usage['entity_type'], $path['path']);
+
+      if (!isset($items[$path_base . '/submissions'])) {
+        // Calculate the position of the entity_id.
+        $p1 = explode('/', $path_base);
+        $p2 = explode('/', $path['path']);
+        list($entity_id_on_pos) = array_keys(array_diff($p2, $p1), $usage['entity_id']);
+
+        // Create default item.
+        $items[$path_base . '/submissions'] = array(
+          'page callback' => 'forms_submission_list_view_by_entity',
+          'page arguments' => array($usage['entity_type'], $entity_id_on_pos, array($usage['form_name'])),
+          'title' => 'Submissions',
+          'type' => MENU_LOCAL_TASK,
+          'weight' => 25,
+          'access callback' => 'forms_submission_list_view_by_entity_access',
+          'access arguments' => array($usage['entity_type'], $entity_id_on_pos, array($usage['form_name'])),
+        );
+      }
+      elseif(!in_array($usage['form_name'], $items[$path_base . '/submissions']['page arguments'][2])) {
+        // In this entity there are more possibilties.
+        $items[$path_base . '/submissions']['page arguments'][2][] = $usage['form_name'];
+        $items[$path_base . '/submissions']['access arguments'][2][] = $usage['form_name'];
+      }
+    }
+  }
+
+  return $items;
+}
+
+/**
+ * Menu callback.
+ *
+ * Used to present filtered submissions overview.
+ *
+ * TODO: Make the output more usefull.
+ * For now, it dumps all submissions on a page.
+ */
+function forms_submission_list_view_by_entity($entity_type, $entity, $possible_forms) {
+
+  $build = array();
+
+  // Find used forms in what field.
+  $ids = entity_extract_ids($entity_type, $entity);
+  $used_forms = array();
+  foreach ($possible_forms as $key => $forms) {
+    $usages = forms_attach_field_usage_forms_info($forms);
+    foreach ($usages as $usage) {
+      if ($usage['entity_type'] == $entity_type && $usage['entity_id'] == $ids[0]) {
+        $used_forms[$forms][] = $usage['field_name'];
+      }
+    }
+    if (isset($used_forms[$forms])) {
+      $used_forms[$forms] = array_unique($used_forms[$forms]);
+    }
+  }
+
+  // Prepare filters to pass to hook_query_alter.
+  $filters = array(
+    'forms_attach_field' => array(
+      'entity_type' => $entity_type,
+      'entity_id' => $ids[0],
+    ),
+  );
+
+  module_load_include('inc', 'forms', 'forms.admin');
+  foreach ($used_forms as $form_name => $fields) {
+    $forms = forms_info($form_name);
+    $build[$form_name]['title']['#markup'] = '<h2>' . check_plain($forms->name) . '</h2>';
+    $build[$form_name]['table'] = forms_submission_list_view($forms, $filters);
+  }
+  return $build;
+}
+
+/**
+ * Access call back for submission overview.
+ *
+ * TODO: implement better permissions.
+ */
+function forms_submission_list_view_by_entity_access($entity_type, $entity, $possible_forms) {
+  $ids = entity_extract_ids($entity_type, $entity);
+  $used_forms = array();
+  foreach ($possible_forms as $key => $forms) {
+    $usages = forms_attach_field_usage_forms_info($forms);
+    foreach ($usages as $usage) {
+      if ($usage['entity_type'] == $entity_type && $usage['entity_id'] == $ids[0]) {
+        return user_access('view all forms submissions');
+      }
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+function forms_attach_field_query_forms_submission_list_alter(QueryAlterableInterface $query) {
+  $filters = $query->getMetaData('filters');
+  // We don't know about other filters then our own.
+  if (isset($filters['forms_attach_field'])) {
+    $query->condition('forms_submission.entity_type', $filters['forms_attach_field']['entity_type']);
+    $query->condition('forms_submission.entity_id', $filters['forms_attach_field']['entity_id']);
+  }
+}
+
+/**
+ * Implements hook_form_TAG_alter().
+ *
+ * Filter out forms_attach_field in the forms_submission entity type ui page.
+ */
+function forms_attach_field_form_field_ui_field_overview_form_alter(&$form, $form_state) {
+  if ($form['#entity_type'] == 'forms_submission') {
+    if (isset($form['fields']['_add_new_field']['type']['#options']['forms_attach_field'])) {
+      unset($form['fields']['_add_new_field']['type']['#options']['forms_attach_field']);
+    }
+    if (isset($form['fields']['_add_existing_field']['field_name']['#options'])) {
+      $existing_fields = $form['fields']['_add_existing_field']['field_name']['#options'];
+      foreach ($existing_fields as $field_name => $label) {
+        $field = field_info_field($field_name);
+        if ($field['type'] == 'forms_attach_field') {
+          unset($existing_fields[$field_name]);
+        }
+      }
+      if (!count($existing_fields)) {
+        unset($form['fields']['_add_existing_field']);
+      }
+      else {
+        $form['fields']['_add_existing_field']['field_name']['#options'] = $existing_fields;
+      }
+    }
+  }
+}
+
+/**
+ * Helper function to find details about attached forms.
+ *
+ * TODO: what if storage is not SQL?
+ */
+function forms_attach_field_usage_forms_info($form_name = NULL, $reset_cache = FALSE) {
+
+  $info = cache_get('forms_attach_field_usage_forms_info');
+
+  if (!$reset_cache) {
+    $reset_cache = variable_get('usage_forms_info_rebuild_needed', FALSE);
+  }
+
+  if ($info === FALSE || $reset_cache) {
+    $info = array();
+    $fields = field_read_fields(array('type' => 'forms_attach_field'));
+    foreach ($fields as $field_name => $field) {
+      $field = field_info_field($field_name);
+      // TODO: what if storage is not SQL?
+      if (isset($field['storage']['details']['sql'][FIELD_LOAD_CURRENT])) {
+        $sql_info = $field['storage']['details']['sql'][FIELD_LOAD_CURRENT];
+        $table = array_pop(array_keys($sql_info));
+        $field_form_name = $sql_info[$table]['form_name'];
+        $query = db_select($table, 't')
+          ->fields('t', array('entity_type', 'entity_id', 'bundle', $field_form_name))
+          ->condition('deleted', 0, '=');
+        $query->addExpression("CONCAT(t.entity_type, '_', t.entity_id, '_' , t." . db_escape_field($field_form_name) . ")", 'gb');
+        $query->groupBy('gb');
+        $result = $query->execute();
+        while ($row = $result->fetchAssoc()) {
+          $row['field_name'] = $field_name;
+          unset($row['gb']);
+          $row['form_name'] = $row[$field_form_name];
+          unset($row[$field_form_name]);
+          $info[] = $row;
+        }
+      }
+    }
+    cache_set('forms_attach_field_usage_forms_info', $info);
+    if (!is_null(variable_get('usage_forms_info_rebuild_needed', NULL))) {
+      variable_del('usage_forms_info_rebuild_needed');
+    }
+  }
+  else {
+    $info = $info->data;
+  }
+  if (!empty($form_name)) {
+    foreach ($info as $key => $data) {
+      if ($data['form_name'] != $form_name) {
+        unset($info[$key]);
+      }
+      sort($info);
+    }
+  }
+  return $info;
+}
+
+/**
+ * Implements hook_field_info().
+ */
+function forms_attach_field_field_info() {
+  return array(
+    'forms_attach_field' => array(
+      'label' => t('Form'),
+      'description' => t('Attach a Form to accept Submissions'),
+      'default_widget' => 'forms_attach_field_widget',
+      'default_formatter' => 'forms_attach_field_view',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_validate().
+ */
+function forms_attach_field_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+  foreach ($items as $delta => $item) {
+    if (!empty($item['form_name'])) {
+      if (!forms_info($item['form_name'])) {
+        $errors[$field['field_name']][$langcode][$delta][] = array(
+          'error' => 'forms_attach_field_does_not_exist',
+          'message' => t('The form does not exist.'),
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_error().
+ */
+function forms_attach_field_field_widget_error($element, $error, $form, &$form_state) {
+  switch ($error['error']) {
+    case 'forms_attach_field_does_not_exist':
+      form_error($element, $error['message']);
+      break;
+  }
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function forms_attach_field_field_is_empty($item, $field) {
+  return empty($item['form_name']);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function forms_attach_field_field_formatter_info() {
+  return array(
+    'forms_attach_field_view' => array(
+      'label' => t('Display form'),
+      'field types' => array('forms_attach_field'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function forms_attach_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+
+  global $user;
+  list($entity_id) = entity_extract_ids($entity_type, $entity);
+
+  $element = array();
+
+  switch ($display['type']) {
+    case 'forms_attach_field_view':
+      foreach ($items as $delta => $item) {
+
+        $forms = forms_info($item['form_name']);
+        if (isset($forms) && is_object($forms)) {
+          $forms_submission = (object) array(
+            'uid' => $user->uid,
+            'form' => $forms->form,
+            'submit_label' => $forms->settings['submit_label'],
+            'entity_type' => $entity_type,
+            'entity_id' => $entity_id,
+            'field_name' => $field['field_name'],
+            'field_delta' => $delta,
+          );
+
+          module_load_include('inc', 'forms', 'forms_submission.pages');
+          $element[$delta] = drupal_get_form($field['field_name'] . '_' .  $delta . '_' . $forms->form . '_forms_submission_form', $forms, $forms_submission);
+        } else {
+          watchdog('forms', 'Unavailable referenced form (!form_name) for \'!entity_type\' with id !entity_id.', array('!form_name' => $item['form_name'], '!entity_type' => $entity_type, '!entity_id' => $entity_id));
+        }
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_forms().
+ *
+ * We need different form_ids when we have the same form on a page.
+ */
+function forms_attach_field_forms($form_id, $args) {
+  $forms = array();
+  if (substr($form_id, -22) == '_forms_submission_form' &&
+      isset($args[1]->form) &&
+      isset($args[1]->field_name) &&
+      isset($args[1]->field_delta) &&
+      $form_id == $args[1]->field_name . '_' . $args[1]->field_delta . '_' . $args[1]->form . '_forms_submission_form') {
+    $forms[$form_id]['callback'] = 'forms_submission_form';
+  }
+  return $forms;
+}
+
+/**
+ * Implements hook_process_hook().
+ *
+ * Due to a flaw in core all fields with the same name on the same page
+ * gets an error class, even when they are from another form.
+ * We remove the error class when no validation is done.
+ * TODO: investigate #needs_validation
+ * TODO: make the str_replace a preg_replace
+ */
+function forms_attach_field_process_form_element(&$variables) {
+  if (!isset($variables['element']['#validated']) || !$variables['element']['#validated']) {
+    $variables['element']['#children'] = str_replace('error" ', '" ', $variables['element']['#children']);
+  }
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function forms_attach_field_field_widget_info() {
+  return array(
+    'forms_attach_field_widget' => array(
+      'label' => t('Select a Form'),
+      'field types' => array('forms_attach_field'),
+      'settings' => array(
+        'allowed_forms' => array(),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_settings_form().
+ */
+function forms_attach_field_field_widget_settings_form($field, $instance) {
+
+  $options = array();
+  foreach (forms_info() as $form_machinename => $forms) {
+    $options[$form_machinename] = $forms->name;
+  }
+
+  $form['allowed_forms'] = array(
+    '#type' => 'select',
+    '#title' => t('Allowed Forms'),
+    '#default_value' => $instance['widget']['settings']['allowed_forms'],
+    '#options' => $options,
+    '#required' => TRUE,
+    '#multiple' => TRUE,
+    '#description' => t('The forms which can be used for this field.'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function forms_attach_field_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $value = isset($items[$delta]['form_name']) ? $items[$delta]['form_name'] : '';
+
+  $widget = $element;
+  $widget['#delta'] = $delta;
+
+  switch ($instance['widget']['type']) {
+
+    case 'forms_attach_field_widget':
+      $options = array(t('Select a Form'));
+      foreach (forms_info() as $form_machinename => $forms) {
+        if (!empty($instance['widget']['settings']['allowed_forms'][$form_machinename])) {
+          $options[$form_machinename] = $forms->name;
+        }
+      }
+      $widget += array(
+        '#type' => 'select',
+        '#default_value' => $value,
+        '#options' => $options,
+      );
+      break;
+  }
+
+  $element['form_name'] = $widget;
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_update().
+ */
+function forms_attach_field_field_update($entity_type, $entity, $field, $instance, $langcode, &$items) {
+  if ($field['type'] == 'forms_attach_field') {
+    _forms_attach_field_flush_cache($entity_type);
+  }
+}
+
+/**
+ * Implements hook_field_insert().
+ */
+function forms_attach_field_field_insert($entity_type, $entity, $field, $instance, $langcode, &$items) {
+  if ($field['type'] == 'forms_attach_field') {
+    _forms_attach_field_flush_cache($entity_type);
+  }
+}
+
+/**
+ * Checks if menu needs to be rebuild and flushes
+ * forms_attach_field_usage_forms_info.
+ */
+function _forms_attach_field_flush_cache($entity_type = NULL) {
+  if (!empty($entity_type)) {
+    $a_form_is_attached = FALSE;
+    $usage = forms_attach_field_usage_forms_info();
+    foreach ($usage as $item) {
+      if ($item['entity_type'] == $entity_type) {
+        $a_form_is_attached = TRUE;
+        break;
+      }
+    }
+    // We have a new enity_type, we need to rebuild the menu,
+    // to give the menu router a change to attach to this entity_type.
+    if (!$a_form_is_attached) {
+      variable_set('menu_rebuild_needed', TRUE);
+    }
+  }
+  // Reset forms_attach_field_usage_forms_info cache.
+  variable_set('usage_forms_info_rebuild_needed', TRUE);
+}
+
+/**
+ *  Implementation of hook_schema_alter().
+ */
+function forms_attach_field_schema_alter(&$schema) {
+  if (isset($schema['forms_submission'])) {
+    $schema['forms_submission']['fields']['entity_type'] = array(
+      'description' => 'The entity type this submission is made against',
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+      'default' => '',
+    );
+    $schema['forms_submission']['fields']['entity_id'] = array(
+      'description' => 'The entity id this submission is made against',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    );
+    $schema['forms_submission']['fields']['field_name'] = array(
+      'description' => 'The field delta this submission is made against',
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+      'default' => '',
+    );
+    $schema['forms_submission']['fields']['field_delta'] = array(
+      'description' => 'The field delta this submission is made against',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    );
+    $schema['forms_submission']['indexes']['entity_type'] = array('entity_type');
+    $schema['forms_submission']['indexes']['entity'] = array('entity_type', 'entity_id');
+    $schema['forms_submission']['indexes']['entity_form'] = array('entity_type', 'entity_id', 'form');
+  }
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function forms_attach_field_views_api() {
+  return array(
+    'api' => 3.0,
+    'path' => drupal_get_path('module', 'forms_attach_field') . '/views',
+  );
+}
