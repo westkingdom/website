@@ -29,6 +29,14 @@ function wk_module_implements_alter(&$implementations, $hook) {
  * Implements hook_form_alter
  */
 function wk_form_alter(&$form, &$form_state) {
+  if (($form['#form_id'] == 'contact_personal_form') || ($form['#form_id'] == 'og_contact_mail_page') || ($form['#form_id'] == 'contact_site_form')) {
+    if (!empty($form['mail']['#default_value'])) {
+      $form['mail']['#type'] = 'hidden';
+      $form['name']['#type'] = 'hidden';
+      $form['to']['#type'] = 'hidden';
+      $form['#validate'][] = '_wk_form_validate_email_not_changed';
+    }
+  }
   // 0 == Modify current revision, no moderation
   // 1 == Create new revision, no moderation
   // 2 == Create new revision and moderate
@@ -38,6 +46,19 @@ function wk_form_alter(&$form, &$form_state) {
   // has the ability to publish content.
   if (isset($form['revision_information']['revision_operation'])) {
     $form['revision_information']['revision_operation']['#default_value'] = 1;
+  }
+}
+
+/**
+ * Don't allow users to change their personal email address
+ * on contact forms.  This validate function will only be set
+ * if the user was logged in; anonymous users get to put whatever
+ * they want here.
+ */
+function _wk_form_validate_email_not_changed($form, &$form_state) {
+  global $user;
+  if ($form_state['values']['mail'] != $user->mail) {
+    form_error($form, t('You may not change your email address on the contact form.'));
   }
 }
 
