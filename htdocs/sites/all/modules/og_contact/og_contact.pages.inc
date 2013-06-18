@@ -202,8 +202,10 @@ function og_contact_get_recipients($gid) {
       ->condition('ogr.name','administrator member')
       ->condition('ogur.gid',$gid)
       ->execute()->fetch();
-    foreach ($admin_query as $admin) {
-      $admin_uids[$admin] = $admin;
+    if ($admin_query !== FALSE) {
+      foreach ($admin_query as $admin) {
+        $admin_uids[$admin] = $admin;
+      }
     }
   }
   // get group recipients when enabled
@@ -220,6 +222,12 @@ function og_contact_get_recipients($gid) {
   }
   elseif (count($group_uids)) {
     $uids = $group_uids;
+  }
+  // if there are no selected admins, and no group contact uids,
+  // then send to the group owner
+  else {
+    $group = entity_load_single('node',$gid);
+    $uids = array($group->uid);
   }
   // get each user recipients mail address
   if (count($uids)) {
