@@ -26,6 +26,31 @@ function wk_module_implements_alter(&$implementations, $hook) {
 }
 
 /**
+ * Implements hook_entity_info_alter().
+ *
+ * c.f. http://www.wunderkraut.com/blog/drupal-7-custom-node-view-modes/2010-12-20
+ */
+function wk_entity_info_alter(&$entity_info) {
+  $entity_info['node']['view modes']['toc_entry'] = array(
+    'label' => t('TOC entry'),
+    'custom settings' => TRUE,
+  );
+}
+
+/**
+ * Add a hook suggestion for embedded content for the "officers" content type.
+ *
+ * http://drupal.stackexchange.com/questions/27025/how-to-provide-template-for-particular-view-mode
+ */
+function wk_preprocess_node(&$vars) {
+  switch($vars['view_mode']) {
+    case 'toc_entry':
+      $vars['theme_hook_suggestions'][] = 'node__' . $vars['type'] . '__' . $vars['view_mode'];
+      break;
+  }
+}
+
+/**
  * Implements hook_form_alter
  */
 function wk_form_alter(&$form, &$form_state) {
