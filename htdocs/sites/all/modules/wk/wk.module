@@ -334,3 +334,145 @@ function _wk_to_machine_name($human_readable) {
   $machine_readable = preg_replace('@[^a-z0-9_]+@','-',$machine_readable);
   return $machine_readable;
 }
+
+/**
+ * wk_assign_officer
+ *
+ * This is called after a submitted regnum officer change request
+ * form is approved.
+ *
+ * Assigns the specified user to an office in some branch group.
+ * By default, the user will become the primary office holder;
+ * however, it is also possible to assign deputies by this
+ * method.
+ *
+ * If the specified user does not exist, a user record for the
+ * user will be created.  An officer node will also be created
+ * if one does not already exist.
+ *
+ * @param $user_officer_info
+ *   Information about the office and office holder.
+ *     'mail' (Required): email address for the officer
+ *     'name' (Required if new): sca name of the officer
+ *     todo: real name parameter
+ *     todo: phone number parameter
+ *     todo: 'deputy' parameter
+ *     todo: Officer / Deputy title parameter
+ * @param $branch_group_id
+ *   The taxonomy term id for the branch group for the office
+ * @param $office_id
+ *   The taxonomy term id for the office type
+ */
+function wk_assign_officer($user_officer_info, $branch_group_id, $office_id) {
+  $user = _wk_get_or_create_user($user_officer_info);
+  //var_export($user);
+  $officer_node = _wk_get_or_create_officer_node($branch_group_id, $office_id, $user);
+  //var_export($officer_node);
+
+
+  // TODO: Make the member an administrative member of the group
+  // TODO: Set the member's deputy / officer title
+  // TODO: If the user is the primary officer (not a deputy), then
+  // change the owner of the officer node to be the specified user.
+
+  // OPTIONAL: Should we keep the former officer listed as a deputy,
+  // or remove the record?
+}
+
+function _wk_get_or_create_officer_node($branch_group_id, $office_id, $user) {
+  $query = new EntityFieldQuery();
+  $entities = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array('officers'))
+    ->propertyCondition('status', 1) // it might actually cause a problem to include this
+    ->fieldCondition('field_office', 'tid', $office_id, '=')
+    ->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch_group_id, '=')
+    ->execute();
+  //var_export($nids);
+  if (empty($entities)) {
+    // TODO: If we create the node, it must be owned by the primary officer.
+    // We should probably fail here if the request is for a deputy officer.
+    return _wk_create_officer_node($branch_group_id, $office_id, $user);
+  }
+  // There should never be more than one officer node
+  $nids = array_keys($entities['node']);
+  $node = node_load($nids[0]);
+  return $node;
+}
+
+function _wk_create_officer_node($branch_group_id, $office_id, $user) {
+  $branch_term = taxonomy_term_load($branch_group_id);
+  $office_term = taxonomy_term_load($office_id);
+  $node = new stdClass();
+  $node->type = 'officers';
+  node_object_prepare($node);
+  $node->title    = $branch_term->name . ' ' . $office_term->name;
+  $node->language = LANGUAGE_NONE;
+  //$node->created = strtotime($item->created_on);
+  $node->uid = $user->uid;
+
+  $node->taxonomy_vocabulary_2[$node->language][] = array('tid' => $branch_group_id);
+  $node->field_office[$node->language][] = array('tid' => $office_id);
+
+  // TODO: We should add a field to $office_term that contains the
+  // template text for new officer nodes that we can use here.
+  $node->body[$node->language][0] = array(
+    'value' => 'Placeholde body',
+    'format' => '1',
+  );
+
+  // n.b. Pathauto hooks fire, so node will be given a standard-format url
+  node_save($node);
+
+  return $node;
+}
+
+function _wk_get_or_create_user($user_info) {
+  $user_info += array(
+    'name' => '',
+    'mail' => '',
+  );
+  $query = "SELECT uid FROM {users} WHERE name = :name OR mail = :mail";
+  if (!empty($user_info['mail'])) {
+    $query = "SELECT uid FROM {users} WHERE mail = :mail";
+    $parameters[':mail'] = $user_info['mail'];
+  }
+  elseif (!empty($user_info['name'])) {
+    $query = "SELECT uid FROM {users} WHERE name = :name";
+    $parameters[':name'] = $user_info['name'];
+  }
+
+  $result = db_query($query, $parameters);
+  $uid = drush_db_result($result);
+
+  // If the user record does not exist, then create it.
+  if (!$uid) {
+    $pass = _wk_random_password();
+    $new_user = array(
+      'name' => $user_info['name'],
+      'pass' => $pass,
+      'mail' => $user_info['mail'],
+      'access' => '0',
+      'status' => 1,
+    );
+    $new_user_object = user_save(NULL, $new_user, NULL);
+    $uid = $new_user_object->uid;
+  }
+  $user = user_load(array('uid' => $uid));
+  // TO DO:  has the user's name, email, real name or phone number changed?
+
+  return $user;
+}
+
+function _wk_random_password($length=16) {
+  $vowels = 'aeuyAEUY@#$*23456789';
+  $consonants = 'bdghjmnpqrstvzBDGHJLMNPQRSTVWXZ';
+  $password = '';
+  for ($i = 0; $i < $length; $i++) {
+    if ($i % 2) {
+      $password .= $consonants[(rand() % strlen($consonants))];
+    } else {
+      $password .= $vowels[(rand() % strlen($vowels))];
+    }
+  }
+  return $password;
+}
