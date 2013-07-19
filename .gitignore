@@ -9,6 +9,8 @@ htdocs/sites/*/settings*.php
 # Ignore paths that contain user-generated content.
 htdocs/sites/*/files
 htdocs/sites/*/private
+htdocs/files
+private-files
 
 # Ignore temp directories
 htdocs/temp
