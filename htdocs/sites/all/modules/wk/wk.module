@@ -354,32 +354,318 @@ function _wk_to_machine_name($human_readable) {
  *   Information about the office and office holder.
  *     'mail' (Required): email address for the officer
  *     'name' (Required if new): sca name of the officer
- *     todo: real name parameter
- *     todo: phone number parameter
- *     todo: 'deputy' parameter
- *     todo: Officer / Deputy title parameter
+ *     'realname': Legal name of the officer
+ *     'phone': Primary phone number of the officer
+ *     'alternate-phone': Alternate phone number of the officer
+ *     'deputy': TRUE if the user is a deputy; FALSE for the
+ *        primary office holder.  Defaults to FALSE if not specified.
+ *     'title': The title for the officer. Will be given a default
+ *        title if none specified.
  * @param $branch_group_id
  *   The taxonomy term id for the branch group for the office
  * @param $office_id
  *   The taxonomy term id for the office type
  */
 function wk_assign_officer($user_officer_info, $branch_group_id, $office_id) {
+  // Get a reference to the user and the office being assigned to.
   $user = _wk_get_or_create_user($user_officer_info);
   //var_export($user);
-  $officer_node = _wk_get_or_create_officer_node($branch_group_id, $office_id, $user);
+
+  // If we create the node, we make it owned by the specified user;
+  // by convention, group nodes are owned by the primary officer.
+  // In the odd event that a deputy is assigned to an office that
+  // does not exist (and therefore has no primary officer), then we
+  // will create the node owned by anonymous (vacant).
+  $owner_uid = $user_officer_info['deputy'] ? 0 : $user->uid;
+
+  $officer_node = _wk_get_or_create_officer_node($branch_group_id, $office_id, $owner_uid);
   //var_export($officer_node);
 
+  // If the user's email address has been changed, then
+  // update it in the user record.
+  if (!empty($user_officer_info['mail'])) {
+    $user->mail = $user_officer_info['mail'];
+  }
+  // Similarly, update the user's name if it has
+  // changed.
+  if (!empty($user_officer_info['name'])) {
+    $user->name = $user_officer_info['name'];
+  }
+  // Update the user's field-based information
+  $field_map = _wk_user_info_update_field_map();
+  $user_wrapper = entity_metadata_wrapper('user', $user);
+  foreach ($field_map as $key => $variable) {
+    if (!empty($user_officer_info[$key])) {
+      $user_wrapper->$variable->set($user_officer_info[$key]);
+    }
+  }
+  $user_wrapper->save();
 
-  // TODO: Make the member an administrative member of the group
-  // TODO: Set the member's deputy / officer title
-  // TODO: If the user is the primary officer (not a deputy), then
+  // If the user is the primary officer (not a deputy), then
   // change the owner of the officer node to be the specified user.
+  $former_officer = FALSE;
+  $retain_former_officer = TRUE;
+  $former_officers_new_title = '';
+  if ((!$user_officer_info['deputy']) && ($officer_node->uid != $user->uid)) {
+    $former_officer = $officer_node->uid;
+    $officer_node->uid = $user->uid;
+  }
+  // Odd situation: if the current officer is approved as a deputy,
+  // then set the owner to the anonymous user (vacant office).
+  if (($user_officer_info['deputy']) && ($officer_node->uid == $user->uid)) {
+    $officer_node->uid = 0;
+  }
+  $officer_page_wrapper = entity_metadata_wrapper('node', $officer_node);
+  $officer_page_wrapper->save();
+  // Determine if the user already is a member of the group.
+  // If not, add the user to the group.
+  // TODO: maybe subscribe via:
+  //   $ogm = og_group('node', $officer_node->nid, array('entity' => $user->uid));
+  // This is the sanctioned API.  Simplify this later.
+  $ogm = og_get_membership('node', $officer_node->nid, 'user', $user->uid);
+  if (!$ogm) {
+    $ogm = og_membership_create('node', $officer_node->nid, 'user', $user->uid, 'og_user_node');
+  }
+  // TODO: Make the member an administrative member of the group
+  /*
+  $rid = 0; // find role of administrative user
+  og_role_grant('node', $officer_node->nid, $user->uid, $rid);
+  */
 
-  // OPTIONAL: Should we keep the former officer listed as a deputy,
-  // or remove the record?
+  // Set the member's deputy / officer title
+  $ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm);
+  $ogm_wrapper->field_type_of_deputy->set($user_officer_info['title']);
+  $ogm_wrapper->field_weight->set($user_officer_info['deputy'] ? 0 : -10);
+  $ogm_wrapper->save();
+
+  // Should we keep the former officer listed as a deputy,
+  // or remove the record?  For now, we retain the officer
+  // as a 'Transitional Deputy ...' until manually deleted.
+  if ($former_officer) {
+    $ogm_former = og_get_membership('node', $officer_node->nid, 'user', $former_officer);
+    if ($ogm_former) {
+      if ($retain_former_officer) {
+        $former_ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm_former);
+        if (empty($former_officers_new_title)) {
+          $former_officers_new_title = "Transitional Deputy " . $former_ogm_wrapper->field_type_of_deputy->value();
+        }
+        $former_ogm_wrapper->field_type_of_deputy->set($former_officers_new_title);
+        $former_ogm_wrapper->field_weight->set(10);
+        $former_ogm_wrapper->save();
+      }
+      else {
+        og_membership_delete($ogm_former->id);
+      }
+    }
+  }
 }
 
-function _wk_get_or_create_officer_node($branch_group_id, $office_id, $user) {
+/**
+ * Given a Regnum change submission, process the
+ * request, assigning the specified user to the
+ * desired office.
+ *
+ * @param $submission
+ *   An EntityDrupalWrapper for the regnum_change entityform.
+ *
+ * To approve all submissions:
+ *
+ *   $toc = entityform_get_submissions('regnum_change');
+ *   foreach ($toc as $id => $info) {
+ *     $submission = new EntityDrupalWrapper('entityform', $id);
+ *     wk_approve_officer($submission);
+ *   }
+ */
+function wk_approve_officer($submission) {
+  $field_map = _wk_regnum_change_field_map();
+  $user_info = _wk_entity_to_data_array($submission, $field_map);
+  $user_info = _wk_fix_up_submission_data($user_info);
+  $branch_group_term = $submission->taxonomy_vocabulary_2->value();
+  $branch_group_id = $branch_group_term[0]->tid;
+  $office_term = $submission->field_office->value();
+  $office_id = $office_term[0]->tid;
+  wk_assign_officer($user_info, $branch_group_id, $office_id);
+  // TODO: mark $submission as processed?
+}
+
+// If we need to find the groups that a user belongs to:
+// $ drush ev '$u = user_load(4); return og_get_entity_groups("user", $u);'
+// array(
+//   'node' => array(
+//     2 => '851',
+//     22 => '889',
+//     23 => '890',
+//     25 => '892',
+//   ),
+// )
+
+/**
+ * Given a user ID or user record, return a list of submissions
+ * that can be approved by the user.
+ *
+ * TODO:  Use this on the user's user page to show a list
+ * of submissions he can approve.
+ */
+function wk_submissions_user_can_approve($user) {
+  $result = array();
+
+  // If a user id was passed in, load the user record
+  if (!is_array($user)) {
+    $user = user_load($user);
+  }
+  // Get the groups that the user is in.  It comes to us like this:
+  // array(
+  //   'node' => array(
+  //     2 => '851',
+  //     22 => '889',
+  //     23 => '890',
+  //     25 => '892',
+  //   ),
+  // )
+  // We'll look at only the groups of type 'node', and will flip
+  // the array around so that the group IDs are the key, and the
+  // og_membership id is the value.
+  $users_groups = og_get_entity_groups("user", $user);
+  if (array_key_exists('node', $users_groups)) {
+    $users_groups = array_flip($users_groups['node']);
+
+    // Now iterate over all of the submissions.
+    // TODO:  Filter out any submission that has been approved
+    // or denied -- once we add code to indicate processed submissions.
+    $toc = entityform_get_submissions('regnum_change');
+    foreach ($toc as $id => $info) {
+      $submission = new EntityDrupalWrapper('entityform', $id);
+      $approval_offices = wk_approval_offices_for_submission($submission);
+      $users_approval_offices = array_intersect_key($approval_offices, $users_groups);
+      if (!empty($users_approval_offices)) {
+        $approval_office_gids = array_keys($approval_offices);
+        $primary_approver_gid = array_shift($approval_office_gids);
+        // This user is the primary approver only if the
+        // primary approver group is one of his groups, AND
+        // he is the primary officer of that group.  Otherwise, he
+        // is a secondary approver.
+        $is_primary = array_key_exists($primary_approver_gid, $users_groups) && ($approval_offices[$primary_approver_gid]->uid = $user->uid);
+
+        // Compose a result array that contains the submissions
+        // the user can approve, along with information about
+        // who else can approve the submission.
+        $result[$id] = array(
+          'submission' => $submission,
+          'is-primary' => $is_primary,
+          'approval-offices' => array_keys($approval_offices),
+        );
+      }
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * Given a Regnum change submission, return a list
+ * of all of the offices ('offices' og group nodes)
+ * that have the right to approve the submission.
+ *
+ * The first office in the returned array is always
+ * the "primary approver".  The other offices in the
+ * list also have the ability to approve the submission,
+ * but by convention should only do so if they know
+ * that the primary approver approves of this action.
+ *
+ * TODO:  Use this to validate Regnum change requests.
+ * If they are entered by someone who can approve the
+ * submission, then offer to immediately approve it.
+ */
+function wk_approval_offices_for_submission($submission) {
+  $approval_offices = array();
+
+  // To start with, look up the branch group
+  // and office that this submission is for.
+  $branch_group_term = $submission->taxonomy_vocabulary_2->value();
+  $branch_group_id = $branch_group_term[0]->tid;
+  $office_term = $submission->field_office->value();
+  $office_id = $office_term[0]->tid;
+
+  // Constants defining the taxononmy terms
+  // we are interested in.
+  $seneschal_term = taxonomy_get_term_by_name('Seneschal', 'offices');
+  $seneschal_tid = reset(array_keys($seneschal_term));
+  $web_minister_term = taxonomy_get_term_by_name('Web Minister', 'offices');
+  $web_minister_tid = reset(array_keys($web_minister_term));
+
+  // First, find the primary approver.
+  // The primary approver for any deputy position
+  // is always the primary officer for the office
+  $approver_branch_id = $branch_group_id;
+  $approver_office_id = $office_id;
+  if (!$submission->field_deputy->value()) {
+    // If the submission is not for a deputy position,
+    // then the primary approver is the seneschal of
+    // the same branch group -- UNLESS the submission
+    // is for the seneschal of the branch group, in
+    // which case the primary approver is the seneschal
+    // of the parent branch group.  The Kingdom Seneschal
+    // must also approve the incoming Kingdom Seneschal.
+    if ($approver_office_id != $seneschal_tid) {
+      $approver_office_id = $seneschal_tid;
+    }
+    else {
+      $parents = taxonomy_get_parents($approver_branch_id);
+      if ($parents) {
+        $parent = reset($parents);
+        $approver_branch_id = $parent->tid;
+      }
+    }
+  }
+  _wk_add_approval_offices($approval_offices, $approver_branch_id, array($approver_office_id));
+
+  // We will allow the Seneschal and Web Minister of
+  // the same branch group to be alternate approvers
+  // for the Regnum change.
+  _wk_add_approval_offices($approval_offices, $approver_branch_id, array($seneschal_tid, $web_minister_tid));
+
+  // Next, we'll walk up the branch group hierarchy
+  // until we get to the top.  Note that the top is
+  // Corporate, which we do not process.  Note also
+  // that we do not bother anyone other than the officers
+  // of the immediate group with approval requests
+  // of deputies.
+  if (!$submission->field_deputy->value()) {
+    // We will only admit to at most one parent per branch group.
+    $parents = taxonomy_get_parents($approver_branch_id);
+    while ($parents) {
+      $parent = reset($parents);
+      $approver_branch_id = $parent->tid;
+      _wk_add_approval_offices($approval_offices, $approver_branch_id, array($seneschal_tid, $web_minister_tid, $office_id));
+      // For each branch group above the first, we allow,
+      // as an alternate approver, the Seneschal, the Web
+      // Minister, and the officer above the office
+      $parents = taxonomy_get_parents($approver_branch_id);
+    }
+  }
+
+  return $approval_offices;
+}
+
+function _wk_add_approval_offices(&$approval_offices, $approver_branch_id, $approver_officer_list) {
+  foreach ($approver_officer_list as $tid) {
+    $approver = _wk_find_officer_node($approver_branch_id, $tid);
+    if ($approver) {
+      $approval_offices[$approver->nid] = $approver;
+    }
+  }
+}
+
+function _wk_get_or_create_officer_node($branch_group_id, $office_id, $owner_uid) {
+  $node = _wk_find_officer_node();
+  if (!$node) {
+    $node = _wk_create_officer_node($branch_group_id, $office_id);
+  }
+  return $node;
+}
+
+function _wk_find_officer_node($branch_group_id, $office_id) {
+  $node = FALSE;
   $query = new EntityFieldQuery();
   $entities = $query->entityCondition('entity_type','node')
     ->entityCondition('bundle', array('officers'))
@@ -387,19 +673,15 @@ function _wk_get_or_create_officer_node($branch_group_id, $office_id, $user) {
     ->fieldCondition('field_office', 'tid', $office_id, '=')
     ->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch_group_id, '=')
     ->execute();
-  //var_export($nids);
-  if (empty($entities)) {
-    // TODO: If we create the node, it must be owned by the primary officer.
-    // We should probably fail here if the request is for a deputy officer.
-    return _wk_create_officer_node($branch_group_id, $office_id, $user);
+  if (!empty($entities)) {
+    // There should never be more than one officer node
+    $nids = array_keys($entities['node']);
+    $node = node_load($nids[0]);
   }
-  // There should never be more than one officer node
-  $nids = array_keys($entities['node']);
-  $node = node_load($nids[0]);
   return $node;
 }
 
-function _wk_create_officer_node($branch_group_id, $office_id, $user) {
+function _wk_create_officer_node($branch_group_id, $office_id, $owner_uid) {
   $branch_term = taxonomy_term_load($branch_group_id);
   $office_term = taxonomy_term_load($office_id);
   $node = new stdClass();
@@ -408,7 +690,7 @@ function _wk_create_officer_node($branch_group_id, $office_id, $user) {
   $node->title    = $branch_term->name . ' ' . $office_term->name;
   $node->language = LANGUAGE_NONE;
   //$node->created = strtotime($item->created_on);
-  $node->uid = $user->uid;
+  $node->uid = $owner_uid;
 
   $node->taxonomy_vocabulary_2[$node->language][] = array('tid' => $branch_group_id);
   $node->field_office[$node->language][] = array('tid' => $office_id);
@@ -432,13 +714,15 @@ function _wk_get_or_create_user($user_info) {
     'mail' => '',
   );
   $query = "SELECT uid FROM {users} WHERE name = :name OR mail = :mail";
-  if (!empty($user_info['mail'])) {
+  $parameters[':mail'] = $user_info['mail'];
+  $parameters[':name'] = $user_info['name'];
+  if (empty($user_info['name'])) {
     $query = "SELECT uid FROM {users} WHERE mail = :mail";
-    $parameters[':mail'] = $user_info['mail'];
+    unset($parameters[':name']);
   }
-  elseif (!empty($user_info['name'])) {
+  elseif (empty($user_info['mail'])) {
     $query = "SELECT uid FROM {users} WHERE name = :name";
-    $parameters[':name'] = $user_info['name'];
+    unset($parameters[':mail']);
   }
 
   $result = db_query($query, $parameters);
@@ -458,9 +742,68 @@ function _wk_get_or_create_user($user_info) {
     $uid = $new_user_object->uid;
   }
   $user = user_load(array('uid' => $uid));
-  // TO DO:  has the user's name, email, real name or phone number changed?
 
   return $user;
+}
+
+function _wk_regnum_change_field_map() {
+  return array(
+    'name' => 'field_society_name',
+    'realname' => 'field_real_name',
+    'branch' => 'taxonomy_vocabulary_2',
+    'office' => 'field_office',
+    'deputy' => 'field_deputy',
+    'title' => 'field_type_of_deputy',
+    'mail' => 'field_email_address',
+    'phone' => 'field_phone_number',
+    'alternate-phone' => 'field_alternate_phone',
+    'membership-id' => 'field_membership_number',
+    'info' => 'field_additional_information',
+  );
+}
+
+function _wk_user_info_update_field_map() {
+  return array(
+    'realname' => 'field_real_name',
+    'phone' => 'field_phone_number',
+    'alternate-phone' => 'field_alternate_phone',
+    'membership-id' => 'field_membership_number',
+  );
+}
+
+function _wk_fix_up_submission_data($data) {
+  if (empty($data['title'])) {
+    if ($data['deputy']) {
+      $data['office'] = "Deputy " . $data['office'];
+    }
+    $data['title'] = str_replace(array_keys($data), array_values($data), "branch office");
+  }
+  return $data;
+}
+
+function _wk_map_to_dt_data($map) {
+  $dt_data = array();
+  foreach ($map as $key => $value) {
+    $dt_data['!' . $key] = $value;
+  }
+  return $dt_data;
+}
+
+function _wk_entity_to_data_array($e, $field_map) {
+  $data = array();
+  foreach ($field_map as $key => $variable) {
+    $data[$key] = $e->$variable->value();
+    if (!is_string($data[$key]) && !is_bool($data[$key])) {
+      $a = (array)$data[$key];
+      if (is_array($a) && !empty($a) && is_object($a[0]) && isset($a[0]->tid)) {
+        $data[$key] = $a[0]->name;
+      }
+      else {
+        $data[$key] = '';
+      }
+    }
+  }
+  return $data;
 }
 
 function _wk_random_password($length=16) {
