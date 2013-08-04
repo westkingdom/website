@@ -1,0 +1,942 @@
+<?php
+
+/**
+ * @file
+ * Manage officers in a large, multi-branch organization
+ */
+
+// TODO:  Add admin page to edit this, and load it from configuration
+//
+// To find all available roles for default role selection:
+//   og_roles('node', $bundle, 0, FALSE, FALSE);
+// To look up a tid from a taxonomy term name:
+//   $term = taxonomy_get_term_by_name('Seneschal', 'offices');
+//   $tid = reset(array_keys($term));
+function _regnum_configured_entityforms() {
+  return array(
+    'regnum_change' => array(
+      'group-bundle' => 'officers',
+      'user-identification-fields' => array(
+        'name' => 'field_society_name',
+        'mail' => 'field_email_address',
+      ),
+      'group-configuration' => array(
+        'title-template' => '!branch !office',
+        // 6 == 'administrator user' for 'officers' bundle; give to all officers by default
+        'default-roles-for-all-members' => array(6),
+        // We don't have any roles that we give to the owner, but not other admins (at the moment)
+        'default-roles-for-owner' => array(),
+        // Seneschal, followed by Web Minister
+        'approver-offices' => array(84, 93),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implement hook_permission
+ *
+ * We define an override permission that allows selected roles
+ * to approve any submission of the specified type, even if
+ * the approver is not a member of any group in the approval workflow.
+ */
+function regnum_permission() {
+  $perms = array();
+
+  foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+    $perms['approve all submissions for ' . $entityform_bundle] = array(
+      'title' => t('Approve all submissions for !bundle', array('!bundle' => $entityform_bundle)),
+      'description' => t('Users with this permission will be able to approve all !bundle submissions, regardless of group membership roles.', array('!bundle' => $entityform_bundle)),
+    );
+  }
+
+  return $perms;
+}
+
+/**
+ * Convenience wrapper around user_access
+ */
+function regnum_user_access($entityform_bundle, $user = NULL) {
+  return user_access('approve all submissions for ' . $entityform_bundle, $user);
+}
+
+/**
+ * regnum_assign_officer
+ *
+ * This is called after a submitted regnum officer change request
+ * form is approved.
+ *
+ * Assigns the specified user to an office in some branch group.
+ * By default, the user will become the primary office holder;
+ * however, it is also possible to assign deputies by this
+ * method.
+ *
+ * If the specified user does not exist, a user record for the
+ * user will be created.  An officer node will also be created
+ * if one does not already exist.
+ *
+ * @param $user_officer_info
+ *   Information about the office and office holder.
+ *     'mail' (Required): email address for the officer
+ *     'name' (Required if new): sca name of the officer
+ *     'real-name': Legal name of the officer
+ *     'phone-number': Primary phone number of the officer
+ *     'alternate-phone': Alternate phone number of the officer
+ *     'deputy': TRUE if the user is a deputy; FALSE for the
+ *        primary office holder.  Defaults to FALSE if not specified.
+ *     'title': The title for the officer. Will be given a default
+ *        title if none specified.
+ * @param $group_info
+ *   Information about the group node that represents the
+ *   office.  Identifies the field names of the taxonomy
+ *   fields that control the branch group and officer identification
+ *   for the group node.
+ */
+function regnum_assign_officer($user_officer_info, $group_info) {
+  // Get a reference to the user and the office being assigned to.
+  $user = _regnum_get_or_create_user($user_officer_info);
+  //var_export($user);
+
+  // If we create the node, we make it owned by the specified user;
+  // by convention, group nodes are owned by the primary officer.
+  // In the odd event that a deputy is assigned to an office that
+  // does not exist (and therefore has no primary officer), then we
+  // will create the node owned by anonymous (vacant).
+  $owner_uid = $user_officer_info['deputy'] ? 0 : $user->uid;
+
+  $officer_node = _regnum_get_or_create_officer_node($group_info, $owner_uid);
+  //var_export($officer_node);
+
+  // If the user's email address has been changed, then
+  // update it in the user record.
+  if (!empty($user_officer_info['mail'])) {
+    $user->mail = $user_officer_info['mail'];
+  }
+  // Similarly, update the user's name if it has
+  // changed.
+  if (!empty($user_officer_info['name'])) {
+    $user->name = $user_officer_info['name'];
+  }
+  // Update the user's field-based information
+  $field_map = _regnum_user_info_update_field_map($group_info['form-bundle']);
+  $user_wrapper = entity_metadata_wrapper('user', $user);
+  foreach ($field_map as $key => $variable) {
+    if (!empty($user_officer_info[$key])) {
+      $user_wrapper->$variable->set($user_officer_info[$key]);
+    }
+  }
+  $user_wrapper->save();
+
+  // If the user is the primary officer (not a deputy), then
+  // change the owner of the officer node to be the specified user.
+  $former_officer = FALSE;
+  $retain_former_officer = TRUE;
+  $former_officers_new_title = '';
+  if ((!$user_officer_info['deputy']) && ($officer_node->uid != $user->uid)) {
+    $former_officer = $officer_node->uid;
+    $officer_node->uid = $user->uid;
+  }
+  // Odd situation: if the current officer is approved as a deputy,
+  // then set the owner to the anonymous user (vacant office).
+  if (($user_officer_info['deputy']) && ($officer_node->uid == $user->uid)) {
+    $officer_node->uid = 0;
+    // Also revoke owner-default roles when the current owner is replaced with 'anonymous'
+    foreach ($group_info['default-roles-for-owner'] as $rid) {
+      og_role_revoke('node', $officer_node->nid, $user->uid, $rid);
+    }
+  }
+  $officer_page_wrapper = entity_metadata_wrapper('node', $officer_node);
+  $officer_page_wrapper->save();
+  // Determine if the user already is a member of the group.
+  // If not, add the user to the group.
+  // TODO: maybe subscribe via:
+  //   $ogm = og_group('node', $officer_node->nid, array('entity' => $user->uid));
+  // This is the sanctioned API.  Simplify this later.
+  $ogm = og_get_membership('node', $officer_node->nid, 'user', $user->uid);
+  if (!$ogm) {
+    $ogm = og_membership_create('node', $officer_node->nid, 'user', $user->uid, 'og_user_node');
+  }
+  // Add default roles to the user
+  $default_roles = $group_info['default-roles-for-all-members'];
+  if (!$user_officer_info['deputy']) {
+    $default_roles += $group_info['default-roles-for-owner'];
+  }
+  foreach ($default_roles as $rid) {
+    og_role_grant('node', $officer_node->nid, $user->uid, $rid);
+  }
+
+  // Set the member's deputy / officer title
+  $ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm);
+  $ogm_wrapper->field_type_of_deputy->set($user_officer_info['title']);
+  $ogm_wrapper->field_weight->set($user_officer_info['deputy'] ? 0 : -10);
+  $ogm_wrapper->save();
+
+  // Should we keep the former officer listed as a deputy,
+  // or remove the record?  For now, we retain the officer
+  // as a 'Transitional Deputy ...' until manually deleted.
+  if ($former_officer) {
+    $ogm_former = og_get_membership('node', $officer_node->nid, 'user', $former_officer);
+    if ($ogm_former) {
+      if ($retain_former_officer) {
+        $former_ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm_former);
+        // CONFIGURATION: How do we deal with re-titling former officers who are kept on as deputies?
+        if (empty($former_officers_new_title)) {
+          $former_officers_new_title = "Transitional Deputy " . $former_ogm_wrapper->field_type_of_deputy->value();
+        }
+        $former_ogm_wrapper->field_type_of_deputy->set($former_officers_new_title);
+        $former_ogm_wrapper->field_weight->set(10);
+        $former_ogm_wrapper->save();
+        // Remove owner-only default roles whenever the owner becomes a deputy.
+        foreach ($group_info['default-roles-for-owner'] as $rid) {
+          og_role_revoke('node', $officer_node->nid, $former_officer, $rid);
+        }
+      }
+      else {
+        og_membership_delete($ogm_former->id);
+      }
+    }
+  }
+}
+
+/**
+ * Given a Regnum change submission, process the
+ * request, assigning the specified user to the
+ * desired office.
+ *
+ * @param $submission
+ *   An EntityDrupalWrapper for the regnum_change entityform.
+ *
+ * To approve all submissions:
+ *
+ *   $toc = entityform_get_submissions('regnum_change');
+ *   foreach ($toc as $id => $info) {
+ *     $submission = new EntityDrupalWrapper('entityform', $id);
+ *     regnum_approve_officer($submission);
+ *   }
+ */
+function regnum_approve_officer($submission) {
+  $regnum_form_bundle = $submission->getBundle();
+  $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+  $user_info = _regnum_entity_to_data_array($submission, $field_map);
+  $user_info = _regnum_fix_up_submission_data($user_info);
+  $group_info = _regnum_group_info($submission);
+  regnum_assign_officer($user_info, $group_info);
+  // TODO: mark $submission as processed
+  // TODO: notify the user in the Regnum change, and all officers who can approve
+  // this submission that the change was processed.
+}
+
+function regnum_deny_request($submission) {
+  // TODO: mark $submission as denied
+  // TODO: notify the user in the Regnum change, and all officers who can approve
+  // this submission that the change was denied.
+}
+
+// If we need to find the groups that a user belongs to:
+// $ drush ev '$u = user_load(4); return og_get_entity_groups("user", $u);'
+// array(
+//   'node' => array(
+//     2 => '851',
+//     22 => '889',
+//     23 => '890',
+//     25 => '892',
+//   ),
+// )
+
+/**
+ * Check if the provided user can approve the specified submission.
+ *
+ * TODO:  Use this to validate Regnum change requests.
+ * If they are entered by someone who can approve the
+ * submission, then offer to immediately approve it.
+ */
+function regnum_submission_is_approvable($submission, $the_user) {
+  $approvable = FALSE;
+  $regnum_form_bundle = $submission->getBundle();
+  if (regnum_user_access($regnum_form_bundle, $the_user)) {
+    return TRUE;
+  }
+  $users_groups = og_get_entity_groups("user", $the_user);
+  if (array_key_exists('node', $users_groups)) {
+    $users_groups = array_flip($users_groups['node']);
+    $approval_offices = regnum_approval_offices_for_submission($submission);
+    $users_approval_offices = array_intersect_key($approval_offices, $users_groups);
+    if (!empty($users_approval_offices)) {
+      $approvable = TRUE;
+    }
+  }
+  return $approvable;
+}
+
+/**
+ * Given a user ID or user record, return a list of submissions
+ * that can be approved by the user.
+ */
+function regnum_submissions_user_can_approve($the_user) {
+  $result = array();
+
+  // If a user id was passed in, load the user record
+  if (!is_object($the_user)) {
+    $the_user = user_load($the_user);
+  }
+  // Get the groups that the user is in.  It comes to us like this:
+  // array(
+  //   'node' => array(
+  //     2 => '851',
+  //     22 => '889',
+  //     23 => '890',
+  //     25 => '892',
+  //   ),
+  // )
+  // We'll look at only the groups of type 'node', and will flip
+  // the array around so that the group IDs are the key, and the
+  // og_membership id is the value.
+  //
+  // We look this up now so that we do not need to get it
+  $users_groups = og_get_entity_groups("user", $the_user);
+  if (array_key_exists('node', $users_groups)) {
+    $users_groups = array_flip($users_groups['node']);
+  }
+  foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+    // Now iterate over all of the submissions.
+    // TODO:  Filter out any submission that has been approved
+    // or denied -- once we add code to indicate processed submissions.
+    $toc = entityform_get_submissions($entityform_bundle);
+    foreach ($toc as $id => $info) {
+      $submission = new EntityDrupalWrapper('entityform', $id);
+      $approval_offices = regnum_approval_offices_for_submission($submission);
+      // Check to see if the user can approve all submissions of this type
+      $approvable = regnum_user_access($id, $the_user);
+      // If the user cannot approve all submissions, it might still be possible
+      // that the user can approve this submission based on group membership.
+      if (!empty($users_groups)) {
+        $users_approval_offices = array_intersect_key($approval_offices, $users_groups);
+        $approvable = !empty($users_approval_offices);
+      }
+      if ($approvable) {
+        $approval_office_gids = array_keys($approval_offices);
+        $primary_approver_gid = array_shift($approval_office_gids);
+        // This user is the primary approver only if the
+        // primary approver group is one of his groups, AND
+        // he is the primary officer of that group.  Otherwise, he
+        // is a secondary approver.
+        $is_primary = array_key_exists($primary_approver_gid, $users_groups) && ($approval_offices[$primary_approver_gid]->uid = $the_user->uid);
+
+        // Compose a result array that contains the submissions
+        // the user can approve, along with information about
+        // who else can approve the submission.
+        $result[$id] = array(
+          'submission' => $submission,
+          'is-primary' => $is_primary,
+          'approval-offices' => $approval_office_gids,
+        );
+      }
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * Given a Regnum change submission, return a list
+ * of all of the offices ('offices' og group nodes)
+ * that have the right to approve the submission.
+ *
+ * The first office in the returned array is always
+ * the "primary approver".  The other offices in the
+ * list also have the ability to approve the submission,
+ * but by convention should only do so if they know
+ * that the primary approver approves of this action.
+ */
+function regnum_approval_offices_for_submission($submission) {
+  $approval_offices = array();
+  $approval_name = FALSE;
+  $heirarchy_name = FALSE;
+
+  $group_info = _regnum_group_info($submission);
+
+  if (!empty($group_info['approver-offices'])) {
+    // Load the vocabulary machine name for the first taxonomy term
+    // in the listed approver offices (e.g. Seneschal, Web Minister, etc.).
+    // Regardless of the configuration, these should all be in the same
+    // vocabulary.
+    $primary_approver_tid = reset($group_info['approver-offices']);
+    $term = taxonomy_term_load($primary_approver_tid);
+    $approval_vocabulary = $term->vocabulary_machine_name;
+
+    // Get a reference to the taxonomy term ids that will be
+    // used later to identify group nodes
+    $tids = $group_info['tids'];
+
+    // Now find the name (label) of the approval term -- which is
+    // used to determine which taxononmy term indicates the group
+    // node that approves submissions -- and the heirarchy term --
+    // which is used to determine which taxonomy term indicates the
+    // group node that is in charge of subordinate groups.
+    foreach ($tids as $name => $tid) {
+      $term = taxonomy_term_load($tid);
+      if ($term->vocabulary_machine_name == $approval_vocabulary) {
+        $approval_name = $name;
+      }
+      else {
+        $heirarchy_name = $name;
+      }
+    }
+
+    if ($approval_name) {
+      // First, find the "primary approver".  The primary
+      // approver is the first officer indicated in 'approver-offices',
+      // for the same branch in the heirarchy (if any)
+      // UNLESS the primary approver is the same office that the
+      // applicant is applying for, in which case the primary
+      // approver is the same office from the parent group (if any).
+      // For applications for deputy positions, the "primary approver"
+      // is simply the office that is being applied for.
+      $primary_approver_tids = $tids;
+      if (!$submission->field_deputy->value()) {
+        if ($primary_approver_tids[$approval_name] != $primary_approver_tid) {
+          $primary_approver_tids[$approval_name] != $primary_approver_tid;
+        }
+        elseif($heirarchy_name) {
+          $parents = taxonomy_get_parents($primary_approver_tids[$heirarchy_name]);
+          if ($parents) {
+            $parent = reset($parents);
+            $primary_approver_tids[$heirarchy_name] = $parent->tid;
+          }
+        }
+      }
+      // Add the primary approver to the approval offices.
+      _regnum_add_approval_office($approval_offices, $group_info, $primary_approver_tids);
+
+      // We will allow the Seneschal and Web Minister of
+      // the same branch group to be alternate approvers
+      // for the Regnum change.
+      $tids = $primary_approver_tids;
+      _regnum_add_approval_offices($approval_offices, $group_info, $tids, $approval_name, $group_info['approver-offices']);
+
+      // Next, we'll walk up the branch group hierarchy
+      // until we get to the top.  Note that the top is
+      // Corporate, which we do not process.  Note also
+      // that we do not bother anyone other than the officers
+      // of the immediate group with approval requests
+      // of deputies.
+      if (!$submission->field_deputy->value() && $heirarchy_name) {
+        // We will only admit to at most one parent per branch group.
+        $parents = taxonomy_get_parents($tids[$heirarchy_name]);
+        while ($parents) {
+          $parent = reset($parents);
+          $tids[$heirarchy_name] = $parent->tid;
+          _regnum_add_approval_offices($approval_offices, $group_info, $tids, $approval_name, $group_info['approver-offices']);
+          // For each branch group above the first, we allow,
+          // as an alternate approver, the Seneschal, the Web
+          // Minister, and the officer above the office
+          $parents = taxonomy_get_parents( $tids[$heirarchy_name]);
+        }
+      }
+    }
+  }
+  return $approval_offices;
+}
+
+function _regnum_add_approval_office(&$approval_offices, $group_info, $tids) {
+  $approver = _regnum_get_officer_node($group_info['group-bundle'], $group_info['field-map'], $tids);
+  if (($approver) && !array_key_exists($approver->nid, $approval_offices)) {
+    $approval_offices[$approver->nid] = $approver;
+  }
+}
+
+function _regnum_add_approval_offices(&$approval_offices, $group_info, $tids, $approval_name, $approver_officer_list) {
+  foreach ($approver_officer_list as $tid) {
+    $tids[$approval_name] = $tid;
+    _regnum_add_approval_office($approval_offices, $group_info, $tids);
+  }
+}
+
+function _regnum_get_or_create_officer_node($group_info, $owner_uid) {
+  $node = _regnum_find_officer_node($group_info);
+  if (!$node) {
+    $node = _regnum_create_officer_node($group_info, $owner_uid);
+  }
+  return $node;
+}
+
+function _regnum_find_officer_node($group_info) {
+  return _regnum_get_officer_node($group_info['group-bundle'], $group_info['field-map'], $group_info['tids']);
+}
+
+function _regnum_get_officer_node($group_bundle, $field_map, $tids) {
+  $node = FALSE;
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array($group_bundle))
+    ->propertyCondition('status', 1); // it might actually cause a problem to include this
+  foreach ($tids as $name => $value) {
+    $field = $field_map[$name];
+    $query = $query->fieldCondition($field, 'tid', $value, '=');
+  }
+  $entities = $query->execute();
+  if (!empty($entities)) {
+    // There should never be more than one officer node
+    $nids = array_keys($entities['node']);
+    $node = node_load($nids[0]);
+  }
+  return $node;
+}
+
+function _regnum_create_officer_node($group_info, $owner_uid) {
+  $replacements = _regnum_map_to_dt_data($group_info['data']);
+  $node = new stdClass();
+  $node->type = 'officers';
+  node_object_prepare($node);
+  $node->title = t($group_info['title-template'], $replacements);
+  $node->language = LANGUAGE_NONE;
+  //$node->created = strtotime($item->created_on);
+  $node->uid = $owner_uid;
+
+  foreach ($group_info['tids'] as $term_name => $tid) {
+    $field_name = $group_info['field-map'][$term_name];
+    //$term = taxonomy_term_load($tid);
+    $node->{$field_name}[$node->language][] = array('tid' => $tid);
+  }
+
+  // TODO: We should add a field to $office_term that contains the
+  // template text for new officer nodes that we can use here.
+  $node->body[$node->language][0] = array(
+    'value' => 'Placeholde body',
+    'format' => '1',
+  );
+
+  // n.b. Pathauto hooks fire, so node will be given a standard-format url
+  node_save($node);
+
+  return $node;
+}
+
+function _regnum_get_or_create_user($user_info) {
+  $user_info += array(
+    'name' => '',
+    'mail' => '',
+  );
+  $query = "SELECT uid FROM {users} WHERE name = :name OR mail = :mail";
+  $parameters[':mail'] = $user_info['mail'];
+  $parameters[':name'] = $user_info['name'];
+  if (empty($user_info['name'])) {
+    $query = "SELECT uid FROM {users} WHERE mail = :mail";
+    unset($parameters[':name']);
+  }
+  elseif (empty($user_info['mail'])) {
+    $query = "SELECT uid FROM {users} WHERE name = :name";
+    unset($parameters[':mail']);
+  }
+
+  $result = db_query($query, $parameters);
+  $uid = $result->fetchField();
+
+  // If the user record does not exist, then create it.
+  if (!$uid) {
+    $pass = _regnum_random_password();
+    $new_user = array(
+      'name' => $user_info['name'],
+      'pass' => $pass,
+      'mail' => $user_info['mail'],
+      'access' => '0',
+      'status' => 1,
+    );
+    $new_user_object = user_save(NULL, $new_user, NULL);
+    $uid = $new_user_object->uid;
+  }
+  $user = user_load($uid);
+
+  return $user;
+}
+
+/**
+ * Given the bundle name of an entityform that feeds into
+ * the Regnum change process, return the configuration information
+ * about that bundle.  In particular, this provides the name
+ * of the bundle that should be used as the group node for
+ * this entityform.
+ */
+function _regnum_configured_entityform($regnum_form_bundle) {
+  $configured_forms = _regnum_configured_entityforms();
+  $result = isset($configured_forms[$regnum_form_bundle]) ? $configured_forms[$regnum_form_bundle] : array();
+  $result['form-bundle'] = $regnum_form_bundle;
+  return $result;
+}
+
+/**
+ * Return a mapping of all of the field names that appear in
+ * the given entityform that are relevant for processing a
+ * Regnum Change submission.
+ *
+ * The 'key' of the result is the simple name of the field
+ * (i.e. the flag that you would use to identify it via a
+ * drush option); in particular, 'name' and 'mail' are significant,
+ * as these map to the user's name and email address in the
+ * user object.
+ *
+ * The 'value' of the result is the field name that maps to
+ * the corresponding key.
+ */
+function _regnum_regnum_change_field_map($regnum_form_bundle) {
+  $form_info = _regnum_configured_entityform($regnum_form_bundle);
+  $form_field_instances = field_info_instances('entityform', $regnum_form_bundle);
+
+  $result = array();
+
+  // Get the field name for the user 'name' and 'mail' fields.
+  // The admin should indicate these on the configuration page,
+  // but at the moment they are hardcoded into _regnum_configured_entityform().
+  $special_fields = array_flip($form_info['user-identification-fields']);
+  foreach (array_keys($form_field_instances) as $field) {
+    if (array_key_exists($field, $special_fields)) {
+      $name = $special_fields[$field];
+      $result[$name] = $field;
+    }
+  }
+
+  return $result + _regnum_user_info_update_field_map($regnum_form_bundle) + _regnum_group_field_map($regnum_form_bundle, $form_info['group-bundle']) +
+  array(  // CONFIGURATION: here are some extra fields that we need to account for somehow
+    'deputy' => 'field_deputy',
+    'title' => 'field_type_of_deputy',
+    'info' => 'field_additional_information',
+  );
+/*
+  return array(
+    'name' => 'field_society_name',
+    'real-name' => 'field_real_name',
+    'branch' => 'taxonomy_vocabulary_2',
+    'office' => 'field_office',
+    'deputy' => 'field_deputy',
+    'title' => 'field_type_of_deputy',
+    'mail' => 'field_email_address',
+    'phone-number' => 'field_phone_number',
+    'alternate-phone' => 'field_alternate_phone',
+    'membership-id' => 'field_membership_number',
+    'info' => 'field_additional_information',
+  );
+*/
+}
+
+/**
+ * This function returns the name and field name of every
+ * field in the Regnum Change submission form that also appears
+ * in a user object.
+ */
+function _regnum_user_info_update_field_map($regnum_form_bundle) {
+  $user_field_instances = field_info_instances('user', 'user');
+  return _regnum_entity_field_map($regnum_form_bundle, $user_field_instances);
+}
+
+/**
+ * This function returns the name and field name of every field
+ * in the Regnum Change submission form that also appears in
+ * the group node for the office.
+ */
+function _regnum_group_field_map($regnum_form_bundle, $group_bundle) {
+  $group_field_instances = field_info_instances('node', $group_bundle);
+  return _regnum_entity_field_map($regnum_form_bundle, $group_field_instances);
+}
+
+/**
+ * Return the info about the group that is / will be associated
+ * with the specified Regnum change submission.
+ *
+ * Example:
+ *
+ * array(
+ *   'form-bundle' => 'regnum_change',
+ *   'group-bundle' => 'officers',
+ *   'title-template' => '!branch !office',
+ *   'field-map' => array(
+ *     'office' => 'field_office',
+ *     'branch' => 'taxonomy_vocabulary_2',
+ *   ),
+ *   'data' => array(
+ *     'office' => 'Web Minister',
+ *     'branch' => 'Kingdom of the West',
+ *   ),
+ *   'tids' => array(
+ *     'office' => '93',
+ *     'branch' => '2',
+ *   ),
+ * )
+ */
+function _regnum_group_info($submission) {
+  $regnum_form_bundle = $submission->getBundle();
+  $form_info = _regnum_configured_entityform($regnum_form_bundle);
+  $field_map = _regnum_group_field_map($regnum_form_bundle, $form_info['group-bundle']);
+  $data = _regnum_entity_to_data_array($submission, $field_map);
+  // TODO: only returns the first value of multi-value taxonomy term fields.
+  $tids = _regnum_entity_to_tids($submission, $field_map);
+  $group_info = array(
+    'form-bundle' => $regnum_form_bundle,
+    'group-bundle' => $form_info['group-bundle'],
+    'field-map' => $field_map,
+    'data' => $data,
+    'tids' => $tids,
+  ) + $form_info['group-configuration'];
+  return $group_info;
+}
+
+/**
+ * Examine the fields of two entity types, and return a list
+ * of all of the fields that appear in common between the two.
+ */
+function _regnum_entity_field_map($regnum_form_bundle, $entity_field_instances) {
+  $form_field_instances = field_info_instances('entityform', $regnum_form_bundle);
+  $result = array();
+
+  // Find every field in the regnum form that also exist
+  // in the user object.
+  foreach (array_keys($form_field_instances) as $key) {
+    $name = FALSE;
+    if (array_key_exists($key, $entity_field_instances)) {
+      if (substr($key,0,6) == 'field_') {
+        $name = strtr(substr($key, 6), '_', '-');
+      }
+      if (substr($key,0,9) == 'taxonomy_') {
+        $name = strtr(substr($key, 9), '_', '-');
+        // CONFIGURATION: rename 'vocabulary-2' to 'branch'
+        if ($name == 'vocabulary-2') {
+          $name = 'branch';
+        }
+      }
+    }
+    if ($name) {
+      $result[$name] = $key;
+    }
+  }
+  return $result;
+/*
+  return array(
+    'real-name' => 'field_real_name',
+    'phone-number' => 'field_phone_number',
+    'alternate-phone' => 'field_alternate_phone',
+    'membership-id' => 'field_membership_number',
+  );
+*/
+}
+
+// TODO: This should probably call through to a Drupal hook,
+// so that customizations can be done in an external module.
+function _regnum_fix_up_submission_data($data) {
+  if (empty($data['title'])) {
+    if ($data['deputy']) {
+      $data['office'] = "Deputy " . $data['office'];
+    }
+    $data['title'] = str_replace(array_keys($data), array_values($data), "branch office");
+  }
+  return $data;
+}
+
+function _regnum_map_to_dt_data($map) {
+  $dt_data = array();
+  foreach ($map as $key => $value) {
+    $dt_data['!' . $key] = $value;
+  }
+  return $dt_data;
+}
+
+function _regnum_entity_to_data_array($e, $field_map) {
+  $data = array();
+  foreach ($field_map as $key => $variable) {
+    $data[$key] = $e->$variable->value();
+    if (!is_string($data[$key]) && !is_bool($data[$key])) {
+      $a = (array)$data[$key];
+      if (is_array($a) && !empty($a) && is_object($a[0]) && isset($a[0]->tid)) {
+        $data[$key] = $a[0]->name;
+      }
+      else {
+        $data[$key] = '';
+      }
+    }
+  }
+  return $data;
+}
+
+function _regnum_entity_to_tids($e, $field_map) {
+  $tids = array();
+  foreach ($field_map as $key => $variable) {
+    // TODO: This is for multi-value fields. Single-value fields will just be an object.
+    $a = (array)$e->$variable->value();
+    if (is_array($a) && !empty($a) && is_object($a[0]) && isset($a[0]->tid)) {
+      $tids[$key] = $a[0]->tid;
+    }
+  }
+  return $tids;
+}
+
+function _regnum_random_password($length=16) {
+  $vowels = 'aeuyAEUY@#$*23456789';
+  $consonants = 'bdghjmnpqrstvzBDGHJLMNPQRSTVWXZ';
+  $password = '';
+  for ($i = 0; $i < $length; $i++) {
+    if ($i % 2) {
+      $password .= $consonants[(rand() % strlen($consonants))];
+    } else {
+      $password .= $vowels[(rand() % strlen($vowels))];
+    }
+  }
+  return $password;
+}
+
+/**
+ * Implementation of hook_block_info().
+ */
+function regnum_block_info() {
+  // This example comes from node.module.
+  $blocks['regnum_approvals'] = array(
+    'info' => t('Regnum Change Approval List'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implementation of hook_block_view().
+ */
+function regnum_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    // This block shows up only on a user's home page.
+    case 'regnum_approvals':
+      $content = '';
+      global $user;
+      $user_page = menu_get_object('user', 1);
+      if (($user_page != NULL) && ($user != NULL) && ($user->uid == $user_page->uid)) {
+        $result = regnum_submissions_user_can_approve($user_page);
+        foreach ($result as $id => $info) {
+          $submission = $info['submission'];
+          $regnum_form_bundle = $submission->getBundle();
+          $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+          $user_info = _regnum_entity_to_data_array($submission, $field_map);
+          $user_info = _regnum_fix_up_submission_data($user_info);
+          $content .= l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm") . '</br>';
+        }
+      }
+      if (!empty($content)) {
+        $block['subject'] = t('Approval List for ' . $user->name);
+        $block['content'] = t($content);
+      }
+      break;
+  }
+  return $block;
+}
+
+function regnum_menu() {
+  $items = array();
+
+  $items['regnum/%/confirm'] = array(
+    'title' => 'Confirm Regnum Change Submission',
+    'description' => 'Approve or deny a submitted Regnum change submission.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_submission_confirm_form', 1),
+    'access callback' => TRUE
+  );
+
+  return $items;
+}
+
+function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
+  $submission_entity = entityform_load($submission_id);
+  $submission = new EntityDrupalWrapper('entityform', $submission_entity);
+  $regnum_form_bundle = $submission->getBundle();
+
+  $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+  $user_info = _regnum_entity_to_data_array($submission, $field_map);
+  $user_info = _regnum_fix_up_submission_data($user_info);
+  $content = t("!name has applied for !title.", _regnum_map_to_dt_data($user_info)) . '<br>';
+
+  $submission_render_array = entityform_page_view($submission_entity);
+
+  $form['info'] = $submission_render_array;
+  $form['submission-id'] = array(
+    '#type' => 'hidden',
+    '#value' => $submission_id,
+    '#attributes' => array('id' => 'submission')
+  );
+  $form['approve_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Approve'),
+    '#submit' => array('regnum_submission_confirm_form_approve'),
+  );
+  $form['deny_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Deny'),
+    '#submit' => array('regnum_submission_confirm_form_deny'),
+  );
+  $form['edit_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Edit'),
+    '#submit' => array('regnum_submission_confirm_form_edit'),
+  );
+  $form['cancel_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Cancel'),
+    '#submit' => array('regnum_submission_confirm_form_cancel'),
+  );
+
+  return $form;
+}
+
+function regnum_submission_confirm_form_validate($form, &$form_state) {
+}
+
+function regnum_submission_confirm_form_approve($form, &$form_state) {
+  global $user;
+  $submission_id = $form['submission-id']['#value'];
+  $submission = new EntityDrupalWrapper('entityform', $submission_id);
+  $approvable = regnum_submission_is_approvable($submission, $user);
+  if ($approvable) {
+    regnum_approve_officer($submission);
+    drupal_set_message(t("Submission approved."), 'ok');
+  }
+  else {
+    drupal_set_message(t("You do not have access rights to approve this Regnum change submission."), 'error');
+  }
+  drupal_goto("user");
+}
+
+function regnum_submission_confirm_form_deny($form, &$form_state) {
+  global $user;
+  $submission_id = $form['submission-id']['#value'];
+  $submission = new EntityDrupalWrapper('entityform', $submission_id);
+  $approvable = regnum_submission_is_approvable($submission, $user);
+  if ($approvable) {
+    regnum_deny_request($submission);
+    drupal_set_message(t("Submission denied."), 'ok');
+  }
+  else {
+    drupal_set_message(t("You do not have access rights to deny this Regnum change submission."), 'error');
+  }
+  drupal_goto("user");
+}
+
+function regnum_submission_confirm_form_edit($form, &$form_state) {
+  $submission_id = $form['submission-id']['#value'];
+  drupal_goto("entityform/$submission_id/edit", array('query' => array('destination' => 'regnum/' . $submission_id . '/confirm')));
+}
+
+function regnum_submission_confirm_form_cancel($form, &$form_state) {
+  drupal_goto("user");
+}
+
+/*
+  not needed - setting 'destination' works
+
+function regnum_form_alter(&$form, &$form_state, $form_id) {
+  //dpm($form);
+  if ($form_id == 'regnum_change_entityform_edit_form') {
+     $form['#submit'][] = 'regnum_edit_submission_submit_handler';
+  }
+}
+
+function regnum_edit_submission_submit_handler(&$form, &$form_state) {
+  $form_state['redirect'] = 'regnum/' . $form['#entity']['entityform_id'] . '/change';
+  $form_state['redirect'] = 'regnum/1/change';
+}
+
+*/
