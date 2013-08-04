@@ -88,6 +88,33 @@ function _wk_form_validate_email_not_changed($form, &$form_state) {
 }
 
 /**
+ * Implements hook_block_view_alter
+ */
+function wk_block_view_alter(&$data, $block) {
+  // The officers list block 1 is a view that shows
+  // the list of officers in a given office.  The view
+  // is configured to show on nodes in a group; however,
+  // we only want it to display on the top-level group
+  // node.  Therefore, we test explicitly for node type
+  // of 'officers', and remove the block for all other
+  // node types.
+  if ($block->delta == "officers_list-block_1") {
+    $node = menu_get_object();
+    if ($node && $node->type != 'officers') {
+      $data['content'] = FALSE;
+    }
+  }
+  /*
+  // Example from drupal.org documentation:
+  // Add a theme wrapper function defined by the current module to all blocks
+  // provided by the "somemodule" module.
+  if (is_array($data['content']) && $block->module == 'somemodule') {
+    $data['content']['#theme_wrappers'][] = 'mymodule_special_block';
+  }
+  */
+}
+
+/**
  * Hook token_info
  *
  * Declare tokens as_year and event_month.
