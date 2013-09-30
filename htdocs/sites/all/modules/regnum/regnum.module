@@ -222,7 +222,7 @@ function regnum_approve_officer($submission, $approver = null) {
   $group_info = _regnum_group_info($submission);
   regnum_assign_officer($user_info, $group_info);
   // Mark $submission as approved, so that we do not show it again
-  $submission->field_submission_status->set("Approved");
+  $submission->field_submission_status->set("approved");
   // If we were given an approver, then record it for posterity.
   if (isset($approver)) {
     $submission->field_submission_approver->set($approver->uid);
@@ -838,7 +838,7 @@ function regnum_remove_approved_forms($submission_list) {
   $result = array();
   foreach($submission_list as $id => $info) {
     $submission = $info['submission'];
-    if ($submission->field_submission_status->value() != "Approved") {
+    if ($submission->field_submission_status->value() != "approved") {
       $result[$id] = $info;
     }
   }
