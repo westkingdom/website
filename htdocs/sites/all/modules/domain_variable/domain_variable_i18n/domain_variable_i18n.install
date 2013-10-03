@@ -1,0 +1,13 @@
+<?php
+/**
+ * @file
+ * Installation file for I18n + Domain Variables Integration module
+ */
+
+/**
+ * Implements hook_install().
+ */
+function domain_variable_i18n_install() {
+  // Set module weight for it to run before most modules, but after variable_realm
+  db_query("UPDATE {system} SET weight = -800 WHERE name = 'domain_variable_i18n' AND type = 'module'");
+}
