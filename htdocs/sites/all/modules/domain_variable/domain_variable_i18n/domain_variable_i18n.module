@@ -1,0 +1,34 @@
+<?php
+/**
+ * @file
+ * I18n + Domain Variables Integration module
+ */
+
+/**
+ * Implements hook_variable_realm_info().
+ */
+function domain_variable_i18n_variable_realm_info() {
+  $realm['domain_language'] = array(
+    'title' => t('Domain+Language'),
+    'weight' => 200,
+    'controller class' => 'VariableRealmUnionController',
+    'store class' => 'VariableStoreRealmStore',
+    // This realm is the union of two other realms.
+    'union' => array('domain', 'language'),
+    // Display on settings forms but without form switcher.
+    'form settings' => TRUE,
+    'form switcher' => FALSE,
+    'variable name' => t('multilingual domain'),
+  );
+  return $realm;
+}
+
+/**
+ * Implements hook_language_init().
+ *
+ * Create realm during bootstrap but let it there until it will get the key set
+ * after domain and language are initialized using hook_variable_realm_switch().
+ */
+function domain_variable_i18n_language_init() {
+  variable_realm_initialize('domain_language');
+}

@@ -1,0 +1,175 @@
+<?php
+
+/**
+ * @defgroup domain_variable Domain Variable: configuration extension
+ * Functions for the Domain Variable module.
+ */
+
+/**
+ * @file
+ * Domain manager configuration options.
+ *
+ * @ingroup domain_variable
+ */
+
+/**
+ * Implements hook_language_init().
+ *
+ * Make sure that the javascript hash on the language_default value is up to
+ * date. The language_default variable stores the complete language object and
+ * therefore it can happen that the realm specific value becomes out-of-sync
+ * with the original language object.
+ *
+ * Instead of trying to monitor updates of the javascript hash we check that the
+ * has is up to date on every page request. The overhead for doing so should be
+ * neglegible because both the language_default variable and the list of enabled
+ * languages are loaded and cached by core anyway.
+ *
+ * @see https://drupal.org/node/1271810 (original issue in domain_conf)
+ * @see https://drupal.org/node/1593494 (issue for domain_variable)
+ *
+ * Note: this hook is also required to ensure that the module is loaded at boot.
+ */
+function domain_variable_language_init() {
+  $realm = variable_realm_controller('domain');
+  // Only proceed if 'language_default' is configured as a domain variable.
+  if (in_array('language_default', $realm->getEnabledVariables())) {
+    $languages = language_list('language');
+    $language_default = language_default();
+    // If the javascript hash has been changed in the language list, then we
+    // update the runtime realm value with the new hash.
+    if ($language_default->javascript != $languages[$language_default->language]->javascript) {
+      // Update stored value, then refresh runtime value.
+      $language_default->javascript = $languages[$language_default->language]->javascript;
+      $realm->getCurrentStore()->variable_set('language_default', $language_default);
+      variable_realm_refresh('domain', $realm->getKey(), 'language_default');
+    }
+  }
+}
+
+/**
+ * Implements hook_variable_realm_info().
+ */
+function domain_variable_variable_realm_info() {
+  $realm['domain'] = array(
+    'title' => t('Domain'),
+    'weight' => 110,
+    'controller class' => 'DomainVariableRealmController',
+    'store class' => 'VariableStoreRealmStore',
+    // Variables for this realm can be selected from a list.
+    'select' => TRUE,
+    'select path' => 'admin/structure/domain/variables',
+    // Automatically handle these variables in system settings forms.
+    // If this option is enabled we'll need the rest of the values
+    'form settings' => TRUE,
+    'form switcher' => TRUE,
+    // Name for variables that belong to this realm: 'domain' variable/s
+    'variable name' => t('domain'),
+    // Class for variables that belong to this realm in settings forms
+    'variable class' => 'domain-variable',
+  );
+  return $realm;
+}
+
+/**
+ * Implements hook_domain_bootstrap_full().
+ */
+function domain_variable_domain_bootstrap_full($domain) {
+  // Avoid loading this for drush and update.php
+  if (function_exists('drush_verify_cli') || function_exists('update_prepare_d7_bootstrap')) return;
+  module_invoke('variable_realm', 'initialize', 'domain');
+}
+
+/**
+ * Implements hook_menu()
+ */
+function domain_variable_menu() {
+  $items = array();
+  // Embed variable select form in domains sections
+  $items['admin/structure/domain/variables'] = array(
+    'title' => 'Variables',
+    'type' => MENU_LOCAL_TASK,
+    'access arguments' => array('administer domains'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('variable_realm_select_variables_form', 'domain'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'variable_realm.form.inc',
+    'file path' => drupal_get_path('module', 'variable_realm'),
+  );
+  // Page for editing all variables
+  $items['admin/structure/domain/view/%domain/variables'] = array(
+    'title' => 'Settings',
+    'description' => 'Edit all domain-specific variables',
+    'type' => MENU_LOCAL_TASK,
+    'access arguments' => array('administer domains'),
+    'page callback' => 'domain_variable_admin_variables',
+    'page arguments' => array(4),
+    'file' => 'domain_variable.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Load a variable specific to a domain.
+ *
+ * @param $domain_id
+ *   The unique domain ID that is being edited.
+ * @param $variable
+ *   The name of the variable you wish to get.
+ * @param $all
+ *   A boolean flag indicating whether to return the entire variable array.
+ * @param $reset
+ *   A boolean flag to reset the static variable array for the domain. Useful
+ *   if you are changing variables during a page request.
+ * @return
+ *   The value of the variable for that domain, or NULL if not set,
+ *   or an array of variables, in the case of $all.
+ */
+function domain_variable_get($domain_id, $variable = '', $all = FALSE, $reset = FALSE) {
+  $realm_key = _domain_variable_realm_key($domain_id);
+  if ($reset) {
+    // Reinitialize the variable realm from stored values.
+    $variables = variable_store('domain', $realm_key);
+    variable_realm_add('domain', $realm_key, $variables);
+  }
+  if ($all) {
+    return variable_store('domain', $realm_key);
+  }
+  else {
+    return variable_store_get('domain', $realm_key, $variable);
+  }
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function domain_variable_requirements($phase) {
+  $requirements = array();
+  if ($phase == 'runtime' && variable_get('domain_sitename_override', 1)) {
+    $requirements[] = array(
+      'title' => t('Override site name with name of domain.'),
+      'value' => l(t('Enabled'), 'admin/structure/domain/settings'),
+      'severity' => REQUIREMENT_WARNING,
+      'description' => t('The domain module is configured to override site names with the names of domains. For multilingual site names this override needs to be disabled. Note that you may have to manually update site names for all existing domains after disabling the override.'),
+    );
+  }
+  return $requirements;
+}
+
+/**
+ * Get realm key from domain array, machine_name or domain_id.
+ */
+function _domain_variable_realm_key($domain) {
+  if (is_string($domain)) {
+    return $domain;
+  }
+  elseif (is_numeric($domain)) {
+    return domain_load_machine_name($domain);
+  }
+  elseif (is_array($domain)) {
+    return isset($domain['machine_name']) ? $domain['machine_name'] : domain_load_machine_name($domain['domain_id']);
+  }
+  else {
+    throw new InvalidArgumentException('Invalid argument value for $domain in function _domain_variable_realm_key(): ' . $domain);
+  }
+}

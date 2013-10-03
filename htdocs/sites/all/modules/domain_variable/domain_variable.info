@@ -1,0 +1,16 @@
+name = Domain Variable
+description = Advanced site configuration options for Domain Access using Variable
+package = Domain Access
+dependencies[] = domain
+dependencies[] = variable_store (7.x-2.x)
+dependencies[] = variable_realm (7.x-2.x)
+core = 7.x
+
+files[] = domain_variable.class.inc
+
+; Information added by drupal.org packaging script on 2012-09-04
+version = "7.x-1.0"
+core = "7.x"
+project = "domain_variable"
+datestamp = "1346762518"
+
