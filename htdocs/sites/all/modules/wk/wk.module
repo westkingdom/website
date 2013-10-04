@@ -54,6 +54,10 @@ function wk_preprocess_node(&$vars) {
  * Implements hook_form_alter
  */
 function wk_form_alter(&$form, &$form_state) {
+  //dpm($form);
+  //dpm($form_state);
+  //dpm($form_state['node']);
+  //dpm(current_path());
   if (($form['#form_id'] == 'contact_personal_form') || ($form['#form_id'] == 'og_contact_mail_page') || ($form['#form_id'] == 'contact_site_form')) {
     if (!empty($form['mail']['#default_value'])) {
       $form['mail']['#type'] = 'hidden';
@@ -114,6 +118,17 @@ function wk_block_view_alter(&$data, $block) {
   */
 }
 
+/*
+// not working; leaving here to try again later
+function wk_admin_menu_output_alter(&$content) {
+  $node = menu_get_object();
+  if ($node) {
+    $content['menu']['node/add']['node/add/page']['#options']['query'] = array('og_group_ref' => $node->nid);
+  }
+  //var_export($content);
+}
+*/
+
 /**
  * Hook token_info
  *
@@ -169,8 +184,25 @@ function wk_token_info() {
     'name' => t("Location Summary"),
     'description' => t('A parenthesized summary of the location address (Street, City, State Zip).'),
   );
+  // Contact information for our primary officers
+  $site['contact_seneschal'] = array(
+    'name' => t("Contact Seneschal"),
+    'description' => t("A link to the Seneschal's contact page."),
+  );
+  $site['contact_webminister'] = array(
+    'name' => t("Contact Web Minister"),
+    'description' => t("A link to the Web Minister's contact page."),
+  );
+  $site['contact_chatalain'] = array(
+    'name' => t("Contact Chatalain"),
+    'description' => t("A link to the Chatalain's contact page."),
+  );
+  $site['copyright'] = array(
+    'name' => t("Copyright"),
+    'description' => t("A range of years starting in 2010 and continuing to the current year."),
+  );
   return array(
-    'tokens' => array('node' => $node),
+    'tokens' => array('node' => $node, 'site' => $site),
   );
 }
 
@@ -181,6 +213,24 @@ function wk_token_info() {
  */
 function wk_tokens($type, $tokens, array $data = array(), array $options = array()) {
   $replacements = array();
+  if ($type == 'site') {
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'contact_seneschal':
+          $replacements[$original] = l('Seneschal', 'node/851/contact');
+          break;
+        case 'contact_webminister':
+          $replacements[$original] = l('Web Minister', 'node/851/contact');
+          break;
+        case 'contact_chatalain':
+          $replacements[$original] = l('Chatalain', 'node/899/contact');
+          break;
+        case 'copyright':
+          $replacements[$original] = t('2010 - 2013');
+          break;
+      }
+    }
+  }
   if ($type == 'node' && !empty($data['node'])) {
     $node = $data['node'];
     if ($node->type == 'cal_event') {
