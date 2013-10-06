@@ -34,6 +34,23 @@ function _regnum_configured_entityforms() {
 }
 
 /**
+ * Implement hook_entity_insert
+ *
+ * When a new regnum submission is saved, send a notification email
+ * to concerned officers.
+ */
+function regnum_entity_insert($entity, $type) {
+  // We only care about EntityForms.
+  if ($type == 'entityform') {
+    $configured_forms = _regnum_configured_entityforms();
+    if (array_key_exists($entity->type, $configured_forms)) {
+      $submission = new EntityDrupalWrapper('entityform', $entity);
+      _regnum_mail_notify('regnum_form_submitted', $submission);
+    }
+  }
+}
+
+/**
  * Implement hook_permission
  *
  * We define an override permission that allows selected roles
@@ -229,8 +246,9 @@ function regnum_approve_officer($submission, $approver = null) {
   }
   $submission->save();
 
-  // TODO: notify the user in the Regnum change, and all officers who can approve
+  // Notify the user in the Regnum change, and all officers who can approve
   // this submission that the change was processed.
+  _regnum_mail_notify('regnum_submission_approved', $submission);
 }
 
 function regnum_deny_request($submission) {
@@ -344,6 +362,18 @@ function regnum_submissions_user_can_approve($the_user) {
   return $result;
 }
 
+function regnum_test_approval_offices($submission) {
+  if (is_numeric($submission)) {
+    $submission = new EntityDrupalWrapper('entityform', $submission);
+  }
+  $approval_offices = regnum_approval_offices_for_submission($submission);
+  $approvers = array();
+  foreach ($approval_offices as $nid => $node) {
+    $approvers[] = regnum_primary_officer($node, TRUE);
+  }
+  return $approvers;
+}
+
 /**
  * Given a Regnum change submission, return a list
  * of all of the offices ('offices' og group nodes)
@@ -367,12 +397,25 @@ function regnum_approval_offices_for_submission($submission) {
     // in the listed approver offices (e.g. Seneschal, Web Minister, etc.).
     // Regardless of the configuration, these should all be in the same
     // vocabulary.
+    // For example, in the Kingdom of the West, the approver offices
+    // are array(84, 93), which are the taxonomy term ids for
+    // "Seneschal" and "Web Minister", respectively (primary and backup).
     $primary_approver_tid = reset($group_info['approver-offices']);
     $term = taxonomy_term_load($primary_approver_tid);
     $approval_vocabulary = $term->vocabulary_machine_name;
 
     // Get a reference to the taxonomy term ids that will be
-    // used later to identify group nodes
+    // used later to identify group nodes.  This will return
+    // something like:
+    //  array(
+    //    'office' => 84
+    //    'branch' => 2
+    //  )
+    // In other words, the name of the vocabulary, and the id
+    // of a taxonomy term in that vocabulary.  In the example above,
+    // 84 is "Seneschal" and 2 is "The Kingdom of the West".  This
+    // indicates that this submission is an application for the
+    // position of Kingdom Seneschal.
     $tids = $group_info['tids'];
 
     // Now find the name (label) of the approval term -- which is
@@ -380,6 +423,8 @@ function regnum_approval_offices_for_submission($submission) {
     // node that approves submissions -- and the heirarchy term --
     // which is used to determine which taxonomy term indicates the
     // group node that is in charge of subordinate groups.
+    // For the Kingdom of the West, the approval name will therefore
+    // be 'office' and the heirarchy name will be 'branch'.
     foreach ($tids as $name => $tid) {
       $term = taxonomy_term_load($tid);
       if ($term->vocabulary_machine_name == $approval_vocabulary) {
@@ -402,13 +447,13 @@ function regnum_approval_offices_for_submission($submission) {
       $primary_approver_tids = $tids;
       if (!$submission->field_deputy->value()) {
         if ($primary_approver_tids[$approval_name] != $primary_approver_tid) {
-          $primary_approver_tids[$approval_name] != $primary_approver_tid;
+          $primary_approver_tids = array($approval_name => $primary_approver_tid);
         }
         elseif($heirarchy_name) {
           $parents = taxonomy_get_parents($primary_approver_tids[$heirarchy_name]);
           if ($parents) {
             $parent = reset($parents);
-            $primary_approver_tids[$heirarchy_name] = $parent->tid;
+            $primary_approver_tids = array($heirarchy_name => $parent->tid);
           }
         }
       }
@@ -427,7 +472,7 @@ function regnum_approval_offices_for_submission($submission) {
       // that we do not bother anyone other than the officers
       // of the immediate group with approval requests
       // of deputies.
-      if (!$submission->field_deputy->value() && $heirarchy_name) {
+      if (!$submission->field_deputy->value() && $heirarchy_name && array_key_exists($heirarchy_name, $tids)) {
         // We will only admit to at most one parent per branch group.
         $parents = taxonomy_get_parents($tids[$heirarchy_name]);
         while ($parents) {
@@ -519,7 +564,7 @@ function _regnum_create_officer_node($group_info, $owner_uid) {
   return $node;
 }
 
-function _regnum_get_or_create_user($user_info) {
+function _regnum_get_user($user_info) {
   $user_info += array(
     'name' => '',
     'mail' => '',
@@ -538,9 +583,19 @@ function _regnum_get_or_create_user($user_info) {
 
   $result = db_query($query, $parameters);
   $uid = $result->fetchField();
+  $user = $uid ? user_load($uid) : NULL;
 
+  return $user;
+}
+
+function _regnum_get_or_create_user($user_info) {
+  $user_info += array(
+    'name' => '',
+    'mail' => '',
+  );
+  $user = _regnum_get_user($user_info);
   // If the user record does not exist, then create it.
-  if (!$uid) {
+  if (!isset($user)) {
     $pass = _regnum_random_password();
     $new_user = array(
       'name' => $user_info['name'],
@@ -551,8 +606,8 @@ function _regnum_get_or_create_user($user_info) {
     );
     $new_user_object = user_save(NULL, $new_user, NULL);
     $uid = $new_user_object->uid;
+    $user = user_load($uid);
   }
-  $user = user_load($uid);
 
   return $user;
 }
@@ -856,6 +911,16 @@ function regnum_menu() {
     'access callback' => TRUE
   );
 
+  $items['admin/config/regnum'] = array(
+    'title' => 'Regnum change submission settings',
+    'description' => 'Configure default behavior of Regnum change submissions, particularly the email confirmation templates.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_admin_settings'),
+    'access arguments' => array('administer users'),
+    'file' => 'regnum.admin.inc',
+    'weight' => -10,
+  );
+
   return $items;
 }
 
@@ -943,19 +1008,423 @@ function regnum_submission_confirm_form_cancel($form, &$form_state) {
   drupal_goto("user");
 }
 
-/*
-  not needed - setting 'destination' works
-
-function regnum_form_alter(&$form, &$form_state, $form_id) {
-  //dpm($form);
-  if ($form_id == 'regnum_change_entityform_edit_form') {
-     $form['#submit'][] = 'regnum_edit_submission_submit_handler';
+function regnum_test() {
+  $field_info_bundles = field_info_bundles('entityform');
+  foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+    $field_map = _regnum_group_field_map($entityform_bundle, $info['group-bundle']);
+    $field_map = _regnum_user_info_update_field_map($entityform_bundle);
+    return $field_map;
   }
 }
 
-function regnum_edit_submission_submit_handler(&$form, &$form_state) {
-  $form_state['redirect'] = 'regnum/' . $form['#entity']['entityform_id'] . '/change';
-  $form_state['redirect'] = 'regnum/1/change';
+/**
+ * Hook token_info
+ *
+ * Declare tokens for fields on the submission form
+ */
+function regnum_token_info() {
+  // First, the tokens for all regnum forms
+  $submission['url'] = array(
+    'name' => t("Submission URL"),
+    'description' => t('URL to the submission.'),
+  );
+  $submission['name'] = array(
+    'name' => t("Submitter Name"),
+    'description' => t('Name of the submitter, as entered on the form.'),
+  );
+  $submission['mail'] = array(
+    'name' => t("Submitter email"),
+    'description' => t('Email address of the submitter, as entered on the form.'),
+  );
+  $submission['deputy'] = array(
+    'name' => t("Deputy"),
+    'description' => t('Either "deputy" or "officer", depending on whether the submitter requested a deputy position or not.'),
+  );
+  $submission['title'] = array(
+    'name' => t("Title"),
+    'description' => t('Office title requested by the submitter.'),
+  );
+  $submission['additional_information'] = array(
+    'name' => t("Additional information"),
+    'description' => t('Any additional information provided by the submitter.'),
+  );
+  $submission['approver'] = array(
+    'name' => t("Approver"),
+    'description' => t('The officer who approved the submission.'),
+  );
+  $submission['primary_approver'] = array(
+    'name' => t("Approver"),
+    'description' => t('The primary approver responsible for this submission.'),
+  );
+  $submission['alternate_approvers'] = array(
+    'name' => t("Alternate approvers"),
+    'description' => t('Other officers who may also approve this submission.'),
+  );
+  $submission['approver_summary'] = array(
+    'name' => t("Approver Summary"),
+    'description' => t('Summary of who can approve the Regnum change request.'),
+  );
+
+  // Next, include the dynamic fields
+  $field_info_bundles = field_info_bundles('entityform');
+  foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+    $field_map = _regnum_group_field_map($entityform_bundle, $info['group-bundle']);
+    $field_map += _regnum_user_info_update_field_map($entityform_bundle);
+    foreach ($field_map as $field => $value) {
+      $key = strtr($field, '-', '_');
+      $submission[$key] = array(
+        'name' => t("Field '!key'", array('!key' => $key)),
+        'description' => t("User-supplied value for the field '!field'", array('!field' => $field)),
+      );
+    }
+  }
+
+  return array( 'submission' => $submission );
 }
 
-*/
+function regnum_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  if ($type == 'submission' && !empty($data['submission'])) {
+    $submission = $data['submission'];
+    $recipient = isset($data['recipient']) ? $data['recipient'] : NULL;
+    $entityform_bundle = $submission->getBundle();
+
+    $field_map = _regnum_regnum_change_field_map($entityform_bundle);
+    $user_info = _regnum_entity_to_data_array($submission, $field_map);
+    $user_info = _regnum_fix_up_submission_data($user_info);
+    $group_info = _regnum_group_info($submission);
+
+    $user = _regnum_get_user($user_info);
+    $approval_offices = FALSE;
+    foreach ($tokens as $name => $original) {
+      $key = strtr($name, '_', '-');
+      switch ($name) {
+        case 'url':
+          $replacements[$original] = 'http://' . $_SERVER['SERVER_NAME'] . '/entityform/' . $submission->entityform_id->value();
+          break;
+        case 'name':
+          $replacements[$original] = $user_info['name'];
+          break;
+        case 'mail':
+          $replacements[$original] = $user_info['mail'];
+          break;
+        case 'deputy':
+          $replacements[$original] = $user_info['deputy'] ? t("Deputy") : t("Primary officer");
+          break;
+        case 'title':
+          $replacements[$original] = $user_info['title'];
+          break;
+        case 'additional_information':
+          $replacements[$original] = $user_info['info'];
+          break;
+        case 'approver':
+          $replacements[$original] = 'tbd';
+          break;
+        case 'primary_approver':
+        case 'alternate_approvers':
+        case 'approver_summary':
+          $lines = array();
+          if (!$approval_offices) {
+            $approval_offices = regnum_approval_offices_for_submission($submission);
+          }
+          if (empty($approval_offices)) {
+            $lines[] = t("No approvers.");
+          }
+          else {
+            // Make two lists: a single-item list
+            // with the office of the primary approver,
+            // and another list with all of the offices
+            // of the alternate approvers.
+            $alternate_approvers = $approval_offices;
+            $primary_approver = array_shift($alternate_approvers);
+            $list = array();
+            $is_secondary = FALSE;
+            if ($name == 'approver_summary') {
+              if (isset($recipient) && ($primary_approver->uid == $recipient->uid)) {
+                $lines[] = t("You are the primary officer responsible for approving this Regnum change request.");
+                $lines[] = "";
+                $list = $alternate_approvers;
+              }
+              else {
+                $lines[] = t("The primary officer responsible for approving this request is:");
+                $lines[] = "";
+                $lines[] = regnum_primary_officer($primary_approver);
+                $lines[] = "";
+                foreach ($alternate_approvers as $nid => $node) {
+                  if (isset($recipient) && ($node->uid == $recipient->uid)) {
+                    $is_secondary = TRUE;
+                  }
+                  else {
+                    $list[$nid] = $node;
+                  }
+                }
+              }
+              if ($is_secondary) {
+                $lines[] = t("You are an alternate approver for this Regnum change request.");
+                $lines[] = "";
+              }
+              if (!empty($list)) {
+                $lines[] = t("Other officers who may serve as alternate approvers for this request include:");
+                $lines[] = "";
+              }
+            }
+            else {
+              // Pick the list to render based on our token
+              $list = ($name == 'primary_approver') ? array($primary_approver) : $alternate_approvers;
+            }
+            // If there is a list of officer nodes, then convert it
+            // to a list of primary officers, and add it to the result.
+            foreach ($list as $nid => $node) {
+              $officer_name_and_title = regnum_primary_officer($node);
+              if ($officer_name_and_title) {
+                $lines[] = $officer_name_and_title;
+              }
+            }
+          }
+          //$lines[] = var_export($user_info, TRUE);
+          //$lines[] = var_export($group_info, TRUE);
+          $replacements[$original] = implode("\n", $lines);
+          break;
+        default:
+          if (array_key_exists($key, $user_info)) {
+            $replacements[$original] = $user_info[$key];
+          }
+          break;
+      }
+    }
+  }
+  return $replacements;
+}
+
+/**
+ * Return the name and title of the primary officer for the
+ * given office node.
+ *
+ * Ex:
+ *   Gregor Eilburg, West Kingdom Web Minister
+ */
+function regnum_primary_officer($node, $vacant_ok = FALSE) {
+  if (!is_object($node)) {
+    return var_export($node, TRUE);
+  }
+  $office_title = $node->title;
+  $office_holder_uid = $node->uid;
+  if ($office_holder_uid > 0) {
+    $office_holder = user_load($office_holder_uid);
+    return $office_holder->name . ', ' . $office_title;
+  }
+  elseif ($vacant_ok) {
+    return $office_title . t(" (vacant)");
+  }
+  return NULL;
+}
+
+/**
+ * Send a notification email when a certain Regnum operation happens.
+ *
+ * @see regnum_mail_tokens()
+ * @see drupal_mail()
+ *
+ * @param $op
+ *   The operation being performed. Possible values:
+ *   - 'regnum_form_submitted': A Regnum change request was submitted.
+ *   - 'regnum_submission_approved': A Regnum change was approved.
+ *
+ * @param $submission
+ *   The entity form of the Regnum form.
+ * @param $language
+ *   Optional language to use for the notification, overriding account language.
+ *
+ * @return
+ *   The return value from drupal_mail_system()->mail(), if ends up being
+ *   called.
+ */
+function _regnum_mail_notify($op, $submission, $language = NULL) {
+  // By default, we always notify.
+  $notify = variable_get('regnum_mail_' . $op . '_notify', TRUE);
+  if ($notify) {
+    $params['submission'] = $submission;
+
+    // Pull out user and group info from the submission
+    $regnum_form_bundle = $submission->getBundle();
+    $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+    $user_info = _regnum_entity_to_data_array($submission, $field_map);
+    $user_info = _regnum_fix_up_submission_data($user_info);
+    $group_info = _regnum_group_info($submission);
+
+    $account = _regnum_get_user($user_info);
+    if ($account) {
+      $params['account'] = $account;
+    }
+
+    // First, notify regnum@westkingdom.org
+    // TODO: Add a preference where people can configure the notification address.
+    $mail = drupal_mail('regnum', $op, 'regnum@westkingdom.org', $language, $params);
+    if (module_exists("og_contact")) {
+      $approval_offices = regnum_approval_offices_for_submission($submission);
+      $additional_recipients = array();
+      foreach ($approval_offices as $nid => $node) {
+        if (og_contact_group_has_form($nid)) {
+          // Load og_contact.pages.inc, which contains og_contact_get_recipients().
+          module_load_include('inc', 'og_contact', 'og_contact.pages');
+          $group_recipients = og_contact_get_recipients($nid);
+          // We do not need to break up $group_recipients; we could pass it
+          // to drupal_mail as-is.  However, we want to vary our tokens based
+          // on the recipient of the email, and for that we'll need to call
+          // drupal_mail once per message.  Additionally, should some user
+          // happen to appear in the recipients list more than once, then we'd
+          // like to insure that they only recieve ONE email.  To do that, we
+          // put all of the recipients into an associative array, so that duplicates
+          // are automatically combined.
+          foreach (explode(',', $group_recipients) as $recipient) {
+            $additional_recipients[$recipient] = $recipient;
+          }
+        }
+      }
+      foreach ($additional_recipients as $recipient) {
+        $recipient_user = _regnum_get_user(array('mail' => $recipient));
+        $params['recipient'] = $recipient_user;
+        $mail = drupal_mail('regnum', $op, $recipient, $language, $params);
+      }
+    }
+  }
+  return empty($mail) ? NULL : $mail['result'];
+}
+
+/**
+ * Implements hook_mail().
+ */
+function regnum_mail($key, &$message, $params) {
+  $language = $message['language'];
+
+  $variables['user'] = $params['account'];
+  $variables['submission'] = $params['submission'];
+  if (isset($params['recipient'])) {
+    $variables['recipient'] = $params['recipient'];
+  }
+
+  $message['subject'] .= _regnum_mail_text($key . '_subject', $language, $variables);
+  $message['body'][] = _regnum_mail_text($key . '_body', $language, $variables);
+}
+
+/**
+ * Returns a mail string for a variable name.
+ */
+function _regnum_mail_text($key, $language = NULL, $variables = array(), $replace = TRUE) {
+  $langcode = isset($language) ? $language->language : NULL;
+
+  if ($admin_setting = variable_get('regnum_mail_' . $key, FALSE)) {
+    // An admin setting overrides the default string.
+    $text = $admin_setting;
+  }
+  else {
+    // No override, return default string.
+    switch ($key) {
+      case 'regnum_form_submitted_subject':
+        $text = t('Regnum change request made by [submission:name] at [site:name]', array(), array('langcode' => $langcode));
+        break;
+      case 'regnum_form_submitted_body':
+        $text = t("[submission:name] submitted a Regnum change request.
+
+Name                      : [submission:name]
+Real name                 : [submission:real_name]
+Email address             : [submission:mail]
+Phone number              : [submission:phone_number]
+Alternate phone           : [submission:alternate_phone]
+Membership number         : [submission:membership_number]
+
+Branch group              : [submission:branch]
+Office                    : [submission:office]
+Deputy or Primary officer : [submission:deputy]
+Requested title           : [submission:title]
+
+Additional information provided by the submitter:
+
+[submission:additional_information]
+
+[submission:approver_summary]
+
+Deputies of the above-named officers may also serve as alternate approvers.
+Alternate approvers should insure that the requested change is acceptable
+to the primary approver before processing the approval on the web site.
+The primary approver should insure that the change is acceptable to the
+Crown or Coronet before proceding, if such approval is necessary.
+
+Please insure that applicant provided a personal email address in the change
+request.  Any request that uses an 'officer@westkingdom.org' or any sort of
+shared or \"institutional memory\" account should be rejected.
+
+You can view the request here:
+
+[submission:url]
+
+--  [site:name] team", array(), array('langcode' => $langcode));
+        break;
+
+      case 'regnum_submission_approved_subject':
+        $text = t('Regnum change approved for [submission:name] at [site:name]', array(), array('langcode' => $langcode));
+        break;
+      case 'regnum_submission_approved_body':
+        $text = t("The Regnum change request made by [submission:name] was approved.
+
+Name                      : [submission:name]
+Real name                 : [submission:real_name]
+Email address             : [submission:mail]
+Phone number              : [submission:phone_number]
+Alternate phone           : [submission:alternate_phone]
+Membership number         : [submission:membership_number]
+
+Branch group              : [submission:branch]
+Office                    : [submission:office]
+Deputy or Primary officer : [submission:deputy]
+Requested title           : [submission:title]
+
+--  [site:name] team", array(), array('langcode' => $langcode));
+        break;
+
+      default:
+        $text = '';
+        break;
+    }
+  }
+
+  /*
+  // Debug
+  if (strstr($key, 'body') !== FALSE) {
+    foreach (array('submission:office', 'submission:branch', 'submission:real_name', 'submission:phone_number', 'submission:alternate_phone', 'submission:membership_number', 'submission:name', 'submission:mail', 'submission:deputy', 'submission:approver', 'submission:alternate_approvers') as $id) {
+    $text .= "$id : [$id]\n";
+   }
+  */
+
+  if ($replace) {
+    // We do not sanitize the token replacement, since the output of this
+    // replacement is intended for an e-mail message, not a web browser.
+    $text = token_replace($text, $variables, array('language' => $language, 'callback' => 'regnum_mail_tokens', 'sanitize' => FALSE, 'clear' => TRUE));
+  }
+
+  return $text;
+}
+
+/**
+ * Token callback to add tokens for regnum mails.
+ *
+ * This function is used by the token_replace() call at the end of
+ * _regnum_mail_text() to set up some additional tokens that can be
+ * used in email messages generated by regnum_mail().
+ *
+ * @param $replacements
+ *   An associative array variable containing mappings from token names to
+ *   values (for use with strtr()).
+ * @param $data
+ *   An associative array of token replacement values.
+ * @param $options
+ *   Unused parameter required by the token_replace() function.
+ */
+function regnum_mail_tokens(&$replacements, $data, $options) {
+  /*
+  $e = $data['submission'];
+  $c = entity_view("entityform", $e, "full");
+  $t = drupal_html_to_text(drupal_render($c));
+  replacements['[submission:summary]'] = $t;
+  */
+}
