@@ -45,6 +45,9 @@ function regnum_entity_insert($entity, $type) {
     $configured_forms = _regnum_configured_entityforms();
     if (array_key_exists($entity->type, $configured_forms)) {
       $submission = new EntityDrupalWrapper('entityform', $entity);
+      // Send a confirmation to the submitter, then notify the
+      // approvers that there is a Regnum request to process.
+      _regnum_mail_notify('regnum_submission_confirmation', $submission);
       _regnum_mail_notify('regnum_form_submitted', $submission);
     }
   }
@@ -251,10 +254,17 @@ function regnum_approve_officer($submission, $approver = null) {
   _regnum_mail_notify('regnum_submission_approved', $submission);
 }
 
-function regnum_deny_request($submission) {
-  // TODO: mark $submission as denied
-  // TODO: notify the user in the Regnum change, and all officers who can approve
+function regnum_deny_request($submission, $approver = null) {
+  // Mark $submission as denied
+  $submission->field_submission_status->set("approved");
+  // In this case, the approver is really the denier.
+  if (isset($approver)) {
+    $submission->field_submission_approver->set($approver->uid);
+  }
+  $submission->save();
+  // Notify all officers who can approve
   // this submission that the change was denied.
+  _regnum_mail_notify('regnum_submission_denied', $submission);
 }
 
 // If we need to find the groups that a user belongs to:
@@ -296,6 +306,10 @@ function regnum_submission_is_approvable($submission, $the_user) {
 /**
  * Given a user ID or user record, return a list of submissions
  * that can be approved by the user.
+ *
+ * Note: This returns all submissions, including those that have
+ * already been approved or denied.  This list must be post-processed
+ * to remove undesired entries.
  */
 function regnum_submissions_user_can_approve($the_user) {
   $result = array();
@@ -324,8 +338,6 @@ function regnum_submissions_user_can_approve($the_user) {
   }
   foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
     // Now iterate over all of the submissions.
-    // TODO:  Filter out any submission that has been approved
-    // or denied -- once we add code to indicate processed submissions.
     $toc = entityform_get_submissions($entityform_bundle);
     foreach ($toc as $id => $info) {
       $submission = new EntityDrupalWrapper('entityform', $id);
@@ -561,6 +573,9 @@ function _regnum_create_officer_node($group_info, $owner_uid) {
   // n.b. Pathauto hooks fire, so node will be given a standard-format url
   node_save($node);
 
+  // TODO: make sure that the 'institutional-email' address (if specified)
+  // is saved in the og_contact "Additional Recipients" field.
+
   return $node;
 }
 
@@ -662,6 +677,7 @@ function _regnum_regnum_change_field_map($regnum_form_bundle) {
     'deputy' => 'field_deputy',
     'title' => 'field_type_of_deputy',
     'info' => 'field_additional_information',
+    'institutional-email' => 'field_institutional_memory_email',
   );
 /*
   return array(
@@ -990,7 +1006,7 @@ function regnum_submission_confirm_form_deny($form, &$form_state) {
   $submission = new EntityDrupalWrapper('entityform', $submission_id);
   $approvable = regnum_submission_is_approvable($submission, $user);
   if ($approvable) {
-    regnum_deny_request($submission);
+    regnum_deny_request($submission, $user);
     drupal_set_message(t("Submission denied."), 'ok');
   }
   else {
@@ -1100,7 +1116,7 @@ function regnum_tokens($type, $tokens, array $data = array(), array $options = a
       $key = strtr($name, '_', '-');
       switch ($name) {
         case 'url':
-          $replacements[$original] = 'http://' . $_SERVER['SERVER_NAME'] . '/entityform/' . $submission->entityform_id->value();
+          $replacements[$original] = 'http://' . $_SERVER['SERVER_NAME'] . '/regnum/' . $submission->entityform_id->value() . '/confirm';
           break;
         case 'name':
           $replacements[$original] = $user_info['name'];
@@ -1240,7 +1256,7 @@ function regnum_primary_officer($node, $vacant_ok = FALSE) {
  *   called.
  */
 function _regnum_mail_notify($op, $submission, $language = NULL) {
-  // By default, we always notify.
+  // By default, we notify.
   $notify = variable_get('regnum_mail_' . $op . '_notify', TRUE);
   if ($notify) {
     $params['submission'] = $submission;
@@ -1257,34 +1273,55 @@ function _regnum_mail_notify($op, $submission, $language = NULL) {
       $params['account'] = $account;
     }
 
-    // First, notify regnum@westkingdom.org
-    // TODO: Add a preference where people can configure the notification address.
-    $mail = drupal_mail('regnum', $op, 'regnum@westkingdom.org', $language, $params);
-    if (module_exists("og_contact")) {
-      $approval_offices = regnum_approval_offices_for_submission($submission);
-      $additional_recipients = array();
-      foreach ($approval_offices as $nid => $node) {
-        if (og_contact_group_has_form($nid)) {
-          // Load og_contact.pages.inc, which contains og_contact_get_recipients().
-          module_load_include('inc', 'og_contact', 'og_contact.pages');
-          $group_recipients = og_contact_get_recipients($nid);
-          // We do not need to break up $group_recipients; we could pass it
-          // to drupal_mail as-is.  However, we want to vary our tokens based
-          // on the recipient of the email, and for that we'll need to call
-          // drupal_mail once per message.  Additionally, should some user
-          // happen to appear in the recipients list more than once, then we'd
-          // like to insure that they only recieve ONE email.  To do that, we
-          // put all of the recipients into an associative array, so that duplicates
-          // are automatically combined.
-          foreach (explode(',', $group_recipients) as $recipient) {
-            $additional_recipients[$recipient] = $recipient;
+    // Determine who to send this email message to.
+    $send_to = explode(',', _regnum_mail_text($op . '_send_to'));
+
+    foreach ($send_to as $destination) {
+      switch ($destination) {
+        case 'configured':
+          // First, notify regnum@westkingdom.org
+          // TODO: Add a preference where people can configure the notification address.
+          $mail = drupal_mail('regnum', $op, 'regnum@westkingdom.org', $language, $params);
+          break;
+
+        case 'officers':
+          if (module_exists("og_contact")) {
+            $approval_offices = regnum_approval_offices_for_submission($submission);
+            $additional_recipients = array();
+            foreach ($approval_offices as $nid => $node) {
+              if (og_contact_group_has_form($nid)) {
+                // Load og_contact.pages.inc, which contains og_contact_get_recipients().
+                module_load_include('inc', 'og_contact', 'og_contact.pages');
+                $group_recipients = og_contact_get_recipients($nid);
+                // We do not need to break up $group_recipients; we could pass it
+                // to drupal_mail as-is.  However, we want to vary our tokens based
+                // on the recipient of the email, and for that we'll need to call
+                // drupal_mail once per message.  Additionally, should some user
+                // happen to appear in the recipients list more than once, then we'd
+                // like to insure that they only recieve ONE email.  To do that, we
+                // put all of the recipients into an associative array, so that duplicates
+                // are automatically combined.
+                foreach (explode(',', $group_recipients) as $recipient) {
+                  $additional_recipients[$recipient] = $recipient;
+                }
+              }
+            }
+            foreach ($additional_recipients as $recipient) {
+              $recipient_user = _regnum_get_user(array('mail' => $recipient));
+              $params_copy = $params;
+              $params_copy['recipient'] = $recipient_user;
+              $mail = drupal_mail('regnum', $op, $recipient, $language, $params_copy);
+            }
           }
-        }
-      }
-      foreach ($additional_recipients as $recipient) {
-        $recipient_user = _regnum_get_user(array('mail' => $recipient));
-        $params['recipient'] = $recipient_user;
-        $mail = drupal_mail('regnum', $op, $recipient, $language, $params);
+          break;
+
+        case 'submitter':
+          $recipient = $user_info['mail'];
+          $recipient_user = _regnum_get_user(array('mail' => $recipient));
+          $params_copy = $params;
+          $params_copy['recipient'] = $recipient_user;
+          $mail = drupal_mail('regnum', $op, $recipient, $language, $params_copy);
+          break;
       }
     }
   }
@@ -1320,6 +1357,28 @@ function _regnum_mail_text($key, $language = NULL, $variables = array(), $replac
   else {
     // No override, return default string.
     switch ($key) {
+      case 'regnum_submission_confirmation_send_to':
+        $text = "submitter";
+        break;
+      case 'regnum_submission_confirmation_subject':
+        $text = t('Thank you for your Regnum submission for [submission:title]', array(), array('langcode' => $langcode));
+        break;
+      case 'regnum_submission_confirmation_body':
+        $text = t("Your submission was sent to the following Officers:
+
+[submission:primary_approver]
+[submission:alternate_approvers]
+
+You will be notified once your submission is processed.
+
+Thank you for your patience.
+
+--  [site:name] team", array(), array('langcode' => $langcode));
+        break;
+
+      case 'regnum_form_submitted_send_to':
+        $text = "configured,officers";
+        break;
       case 'regnum_form_submitted_subject':
         $text = t('Regnum change request made by [submission:name] at [site:name]', array(), array('langcode' => $langcode));
         break;
@@ -1361,6 +1420,9 @@ You can view the request here:
 --  [site:name] team", array(), array('langcode' => $langcode));
         break;
 
+      case 'regnum_submission_approved_send_to':
+        $text = "submitter,configured,officers";
+        break;
       case 'regnum_submission_approved_subject':
         $text = t('Regnum change approved for [submission:name] at [site:name]', array(), array('langcode' => $langcode));
         break;
@@ -1378,6 +1440,34 @@ Branch group              : [submission:branch]
 Office                    : [submission:office]
 Deputy or Primary officer : [submission:deputy]
 Requested title           : [submission:title]
+
+Thank you,
+
+--  [site:name] team", array(), array('langcode' => $langcode));
+        break;
+
+      case 'regnum_submission_denied_send_to':
+        $text = "configured,officers";
+        break;
+      case 'regnum_submission_denied_subject':
+        $text = t('Regnum change denied for [submission:name] at [site:name]', array(), array('langcode' => $langcode));
+        break;
+      case 'regnum_submission_denied_body':
+        $text = t("The Regnum change request made by [submission:name] was denied.
+
+Name                      : [submission:name]
+Real name                 : [submission:real_name]
+Email address             : [submission:mail]
+Phone number              : [submission:phone_number]
+Alternate phone           : [submission:alternate_phone]
+Membership number         : [submission:membership_number]
+
+Branch group              : [submission:branch]
+Office                    : [submission:office]
+Deputy or Primary officer : [submission:deputy]
+Requested title           : [submission:title]
+
+Thank you,
 
 --  [site:name] team", array(), array('langcode' => $langcode));
         break;
