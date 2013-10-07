@@ -38,6 +38,9 @@ function _regnum_configured_entityforms() {
  *
  * When a new regnum submission is saved, send a notification email
  * to concerned officers.
+ *
+ * TODO:  We should also add a validate method that rejects entries
+ * that do not have a valid email address for the recipient.
  */
 function regnum_entity_insert($entity, $type) {
   // We only care about EntityForms.
@@ -459,13 +462,16 @@ function regnum_approval_offices_for_submission($submission) {
       $primary_approver_tids = $tids;
       if (!$submission->field_deputy->value()) {
         if ($primary_approver_tids[$approval_name] != $primary_approver_tid) {
-          $primary_approver_tids = array($approval_name => $primary_approver_tid);
+          $primary_approver_tids[$approval_name] = $primary_approver_tid;
         }
         elseif($heirarchy_name) {
           $parents = taxonomy_get_parents($primary_approver_tids[$heirarchy_name]);
           if ($parents) {
             $parent = reset($parents);
-            $primary_approver_tids = array($heirarchy_name => $parent->tid);
+            // HACK: Do not go upt to Corpora here.
+            if ($parent->name != "Society for Creative Anachronism Corpora") {
+              $primary_approver_tids[$heirarchy_name] = $parent->tid;
+            }
           }
         }
       }
@@ -1276,6 +1282,10 @@ function _regnum_mail_notify($op, $submission, $language = NULL) {
     // Determine who to send this email message to.
     $send_to = explode(',', _regnum_mail_text($op . '_send_to'));
 
+    // TODO: We should add a field to the submission, and use it to store
+    // which notifications have been sent.  That way, we could also add tokens
+    // that say "The submitter has [or has not] been notified that this request
+    // was received".
     foreach ($send_to as $destination) {
       switch ($destination) {
         case 'configured':
@@ -1360,9 +1370,15 @@ function _regnum_mail_text($key, $language = NULL, $variables = array(), $replac
       case 'regnum_submission_confirmation_send_to':
         $text = "submitter";
         break;
+      // IMPORTANT: No tokens containing user-supplied values should be used here.
       case 'regnum_submission_confirmation_subject':
-        $text = t('Thank you for your Regnum submission for [submission:title]', array(), array('langcode' => $langcode));
+        $text = t('Thank you for your Regnum submission for [submission:branch] [submission:office]', array(), array('langcode' => $langcode));
         break;
+      // IMPORTANT: The submission confirmation email is sent back to whatever
+      // email address the submitter provides.  Therefore, no tokens containing
+      // user-supplied values should be used here; otherwise, a spammer might
+      // attempt to use this form as an open relay to deliver content to arbitrary
+      // email addresses.
       case 'regnum_submission_confirmation_body':
         $text = t("Your submission was sent to the following Officers:
 
