@@ -257,9 +257,21 @@ function regnum_approve_officer($submission, $approver = null) {
   _regnum_mail_notify('regnum_submission_approved', $submission);
 }
 
+function regnum_approve_officer_later($submission, $approver = null) {
+  // Mark $submission as denied
+  $submission->field_submission_status->set("auto");
+  if (isset($approver)) {
+    $submission->field_submission_approver->set($approver->uid);
+  }
+  $submission->save();
+  // Notify all officers who can approve
+  // this submission that the change was denied.
+  _regnum_mail_notify('regnum_submission_approved_later', $submission);
+}
+
 function regnum_deny_request($submission, $approver = null) {
   // Mark $submission as denied
-  $submission->field_submission_status->set("approved");
+  $submission->field_submission_status->set("denied");
   // In this case, the approver is really the denier.
   if (isset($approver)) {
     $submission->field_submission_approver->set($approver->uid);
@@ -268,6 +280,33 @@ function regnum_deny_request($submission, $approver = null) {
   // Notify all officers who can approve
   // this submission that the change was denied.
   _regnum_mail_notify('regnum_submission_denied', $submission);
+}
+
+/**
+ * Implement hook_cron()
+ */
+function regnum_cron() {
+  foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+    // Now iterate over all of the submissions.
+    $toc = entityform_get_submissions($entityform_bundle);
+    foreach ($toc as $id => $info) {
+      $submission = new EntityDrupalWrapper('entityform', $id);
+
+      // Look for all of the submissions that are in the 'auto'
+      // approval state (make approval active on effective date)
+      if ($submission->field_submission_status->value() == 'auto') {
+
+        // TODO (Again): This presumes $dv['date_type'] == 'datetime'. Is there a Drupal API to do this?
+        $dv = $submission->field_effective_date->value();
+        $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+        $unixtime = $d->format('U');
+        $effective_now = ($unixtime < time());
+        if ($effective_now) {
+          regnum_approve_officer($submission);
+        }
+      }
+    }
+  }
 }
 
 // If we need to find the groups that a user belongs to:
@@ -956,6 +995,19 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
   $user_info = _regnum_fix_up_submission_data($user_info);
   $content = t("!name has applied for !title.", _regnum_map_to_dt_data($user_info)) . '<br>';
 
+  // TODO: This presumes $dv['date_type'] == 'datetime'. Is there a Drupal API to do this?
+  $dv = $submission->field_effective_date->value();
+  $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+  $unixtime = $d->format('U');
+  $effective_now = ($unixtime < time());
+
+/*
+  dpm($submission->field_effective_date->value());
+  dpm();
+  //dpm(dateapi_convert_datetime_to_timestamp($submission->field_effective_date));
+  dpm(time());
+*/
+
   $submission_render_array = entityform_page_view($submission_entity);
 
   $form['info'] = $submission_render_array;
@@ -964,11 +1016,25 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
     '#value' => $submission_id,
     '#attributes' => array('id' => 'submission')
   );
-  $form['approve_button'] = array(
-    '#type' => 'submit',
-    '#value' => t('Approve'),
-    '#submit' => array('regnum_submission_confirm_form_approve'),
-  );
+  if ($effective_now) {
+    $form['approve_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Approve'),
+      '#submit' => array('regnum_submission_confirm_form_approve'),
+    );
+  }
+  else {
+    $form['approve_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Approve Now'),
+      '#submit' => array('regnum_submission_confirm_form_approve'),
+    );
+    $form['approve_later_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Approve on Effective Date'),
+      '#submit' => array('regnum_submission_confirm_form_approve_later'),
+    );
+  }
   $form['deny_button'] = array(
     '#type' => 'submit',
     '#value' => t('Deny'),
@@ -999,6 +1065,21 @@ function regnum_submission_confirm_form_approve($form, &$form_state) {
   if ($approvable) {
     regnum_approve_officer($submission, $user);
     drupal_set_message(t("Submission approved."), 'ok');
+  }
+  else {
+    drupal_set_message(t("You do not have access rights to approve this Regnum change submission."), 'error');
+  }
+  drupal_goto("user");
+}
+
+function regnum_submission_confirm_form_approve_later($form, &$form_state) {
+  global $user;
+  $submission_id = $form['submission-id']['#value'];
+  $submission = new EntityDrupalWrapper('entityform', $submission_id);
+  $approvable = regnum_submission_is_approvable($submission, $user);
+  if ($approvable) {
+    regnum_approve_officer_later($submission, $user);
+    drupal_set_message(t("Submission approved, and will become active on the effective date."), 'ok');
   }
   else {
     drupal_set_message(t("You do not have access rights to approve this Regnum change submission."), 'error');
@@ -1444,6 +1525,32 @@ You can view the request here:
         break;
       case 'regnum_submission_approved_body':
         $text = t("The Regnum change request made by [submission:name] was approved.
+
+Name                      : [submission:name]
+Real name                 : [submission:real_name]
+Email address             : [submission:mail]
+Phone number              : [submission:phone_number]
+Alternate phone           : [submission:alternate_phone]
+Membership number         : [submission:membership_number]
+
+Branch group              : [submission:branch]
+Office                    : [submission:office]
+Deputy or Primary officer : [submission:deputy]
+Requested title           : [submission:title]
+
+Thank you,
+
+--  [site:name] team", array(), array('langcode' => $langcode));
+        break;
+
+      case 'regnum_submission_approved_later_send_to':
+        $text = "submitter,configured,officers";
+        break;
+      case 'regnum_submission_approved_later_subject':
+        $text = t('Regnum change approved for [submission:name] at [site:name]', array(), array('langcode' => $langcode));
+        break;
+      case 'regnum_submission_approved_later_body':
+        $text = t("The Regnum change request made by [submission:name] was approved, and will become active on the effective date.
 
 Name                      : [submission:name]
 Real name                 : [submission:real_name]
