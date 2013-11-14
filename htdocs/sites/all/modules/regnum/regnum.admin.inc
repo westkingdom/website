@@ -101,6 +101,30 @@ function regnum_admin_settings() {
   );
 
   //
+  // Regnum submission approved later
+  //
+  $form['email_regnum_submission_approved_later'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Notification of deferred approval'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#description' => t('Edit the notification e-mail messages sent to approvers when a Regnum form is approved, to be activated later (on the effective date).') . ' ' . $email_token_help,
+    '#group' => 'email',
+  );
+  $form['email_regnum_submission_approved_later']['regnum_mail_regnum_submission_approved_later_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subject'),
+    '#default_value' => _regnum_mail_text('regnum_submission_approved_later_subject', NULL, array(), FALSE),
+    '#maxlength' => 180,
+  );
+  $form['email_regnum_submission_approved_later']['regnum_mail_regnum_submission_approved_later_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Body'),
+    '#default_value' => _regnum_mail_text('regnum_submission_approved_later_body', NULL, array(), FALSE),
+    '#rows' => 15,
+  );
+
+  //
   // Regnum submission denied
   //
   $form['email_regnum_submission_denied'] = array(
