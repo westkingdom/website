@@ -1784,6 +1784,12 @@ function _regnum_filter_officer_process($text, $filter, $format) {
   //          ([^\]:/~]*)       #     any number of characters except ], :, ~ or /
   //          (~[^\]:/~]*|)     #     a tilde followed by some characters, or nothing
   //    :\]                     # :]
+  //    (
+  //       \(                   #  (
+  //           [^)]*            #     any number of characters except )
+  //       \)                   #  )
+  //       |                    #     or nothing
+  //    )
   //
   // We use PREG_SET_ORDER, so that $matches is returned as an array of
   // match sets, where, for the string "[:branch/office:]" the corresponding
@@ -1795,8 +1801,7 @@ function _regnum_filter_officer_process($text, $filter, $format) {
   //
   //    array('[:office:]', 'office', '')
   //
-  if (preg_match_all('#\[:([^\]:/~]*)/*([^\]:/~]*)(~[^\]:/~]*|):\]#', $text, $matches, PREG_SET_ORDER)) {
-    $template = '!name!comma!title';
+  if (preg_match_all('#\[:([^\]:/~]*)/*([^\]:/~]*)(~[^\]:/~]*|):\](\([^)]*\)|)#', $text, $matches, PREG_SET_ORDER)) {
     // For each configured entity form, get the set of taxonomy terms
     // that we can potentially look up in.
     $taxonomy_sets = array();
@@ -1812,6 +1817,7 @@ function _regnum_filter_officer_process($text, $filter, $format) {
     // Process all of the matches, looking for suitable entries
     // in the taxonomy term sets for the branch and office that was specified.
     foreach ($matches as $match_set) {
+      $template = '!name!comma!title';
       if (empty($match_set[2])) {
         $branch = '';
         $office = $match_set[1];
@@ -1821,6 +1827,9 @@ function _regnum_filter_officer_process($text, $filter, $format) {
         $office = $match_set[2];
       }
       $deputy = $match_set[3];
+      if (!empty($match_set[4])) {
+        $template = substr($match_set[4], 1, -1);
+      }
       // If we cannot find a matching taxonomy term, then we will replace
       // the token with an empty string.
       $replacement = '';
