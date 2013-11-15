@@ -762,6 +762,59 @@ function _regnum_group_field_map($regnum_form_bundle, $group_bundle) {
 }
 
 /**
+ * This function returns the vocabulary name and default value (key
+ * and value, respectively) of every taxonomy field in the specified
+ * group bundle.
+ */
+function _regnum_group_taxonomy_fields($group_bundle) {
+  $result = array();
+  $group_field_instances = field_info_instances('node', $group_bundle);
+  foreach ($group_field_instances as $key => $info) {
+    // If the field in question is a taxonomy term field, and
+    // if it has a default value, then the default value should
+    // be stored as a tid.  If we do have a tid default value,
+    // then we know this is a taxonomy term field.
+    $is_taxonomy_field = FALSE;
+    $default_value = NULL;
+    if (  isset($info['default_value']) &&
+          is_array($info['default_value']) &&
+          isset($info['default_value'][0]) &&
+          is_array($info['default_value'][0]) &&
+          isset($info['default_value'][0]['tid'])) {
+      $default_value = $info['default_value'][0]['tid'];
+      $is_taxonomy_field = TRUE;
+    }
+    // If there is no default value, then how can we tell if this
+    // is a taxonomy field?  I'm not sure.  We'll check to see
+    // if there are any display modes that use taxonomy formatters.
+    // Maybe there is a better way?
+    elseif (array_key_exists('display', $info)) {
+      foreach ($info['display'] as $mode => $mode_info) {
+        if (strstr($mode_info['type'], 'taxonomy') !== FALSE) {
+          $is_taxonomy_field = TRUE;
+        }
+      }
+    }
+    if ($is_taxonomy_field) {
+      // TODO: "$key" is not actually the vocabulary for the
+      // taxonomy term field.  For our branch taxonomy field,
+      // it happens to be the same, but for our officer taxonomy
+      // field, the key is "field_office", whereas the vocabulary
+      // is "offices".  There must be some way to map from the
+      // field info to the taxonomy vocabulary that it uses, as
+      // the UI needs this information.  For now, just hack it
+      // in.
+      $vocabulary = $key;
+      if ($key == 'field_office') {
+        $vocabulary = 'offices';
+      }
+      $result[] = array('field-name' => $key, 'vocabulary' => $vocabulary, 'default' => $default_value);
+    }
+  }
+  return $result;
+}
+
+/**
  * Return the info about the group that is / will be associated
  * with the specified Regnum change submission.
  *
@@ -1121,6 +1174,11 @@ function regnum_test() {
 }
 
 /**
+ * @defgroup tokens Token replacement
+ * @{
+ */
+
+/**
  * Hook token_info
  *
  * Declare tokens for fields on the submission form
@@ -1308,7 +1366,7 @@ function regnum_tokens($type, $tokens, array $data = array(), array $options = a
  */
 function regnum_primary_officer($node, $vacant_ok = FALSE) {
   if (!is_object($node)) {
-    return var_export($node, TRUE);
+    return NULL;
   }
   $office_title = $node->title;
   $office_holder_uid = $node->uid;
@@ -1321,6 +1379,36 @@ function regnum_primary_officer($node, $vacant_ok = FALSE) {
   }
   return NULL;
 }
+
+function regnum_officer_name_replacements($node) {
+  if (!is_object($node)) {
+    return NULL;
+  }
+  $replacements = array();
+  $replacements['!title'] = $node->title;
+  $office_holder_uid = $node->uid;
+  if ($office_holder_uid > 0) {
+    $office_holder = user_load($office_holder_uid);
+    $replacements['!name'] = $office_holder->name;
+    $replacements['!comma'] = ', ';
+    $replacements['!vacant'] = '';
+  }
+  else {
+    $replacements['!name'] = '';
+    $replacements['!comma'] = '';
+    $replacements['!vacant'] = t("(vacant)");
+  }
+  return $replacements;
+}
+
+/**
+ * @} End of "Token replacement".
+ */
+
+/**
+ * @defgroup email Email notification
+ * @{
+ */
 
 /**
  * Send a notification email when a certain Regnum operation happens.
@@ -1641,3 +1729,172 @@ function regnum_mail_tokens(&$replacements, $data, $options) {
   replacements['[submission:summary]'] = $t;
   */
 }
+
+/**
+ * @} End of "Email notification".
+ */
+
+/**
+ * @defgroup filters Text input filters
+ * @{
+ */
+
+/**
+ * Implements hook_filter_info().
+ */
+function regnum_filter_info() {
+  $filters['filter_officer'] = array(
+    'title' => t('Officer Filter (regnum)'),
+    'description' => t('Every instance of "[:Office:]" will be replaced with the current office holder in the current branch group.  If an officer in another group is desired, "[:Branch/Office:]" may be used.  Alternately, "[:^/Office:]" is shorthand for the specified office in the group immediately above the current group.'),
+    'process callback'  => '_regnum_filter_officer_process',
+    'default settings' => array(
+      '[:West Kingdom/Web Minister:]' => 'Gregor Eilburg',
+    ),
+    'settings callback' => '_regnum_filter_officer_settings',
+    'tips callback' => '_regnum_filter_officer_tips',
+  );
+  return $filters;
+}
+
+/**
+ * Settings callback for regnum officer filter
+ *
+ * The settings defined in this form are stored in database by the filter
+ * module, and they will be available in the $filter argument.
+ */
+function _regnum_filter_officer_settings($form, $form_state, $filter, $format, $defaults) {
+  $settings['group_shorten_function'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Function name of routine that will shorten branch group names.'),
+    '#default_value' => isset($filter->settings['group_shorten_function']) ? $filter->settings['group_shorten_function'] : '', // $defaults['group_shorten_function'],
+    '#description' => t('This function is called for each branch group taxononmy term to return the shorthand form for that group.')
+  );
+  return $settings;
+}
+
+function _regnum_filter_officer_process($text, $filter, $format) {
+  $shorten_function = isset($filter->settings['group_shorten_function']) ? $filter->settings['group_shorten_function'] : 'bar';
+  $replacements = array();
+  //
+  // Regular expresion is:
+  //
+  //    \[:                     # [:
+  //          ([^\]:/~]*)       #     any number of characters except ], :, ~ or /
+  //          /*                #     an optional /
+  //          ([^\]:/~]*)       #     any number of characters except ], :, ~ or /
+  //          (~[^\]:/~]*|)     #     a tilde followed by some characters, or nothing
+  //    :\]                     # :]
+  //
+  // We use PREG_SET_ORDER, so that $matches is returned as an array of
+  // match sets, where, for the string "[:branch/office:]" the corresponding
+  // match set will contain:
+  //
+  //    array('[:branch/office:]', 'branch', 'office')
+  //
+  // And, for the string "[:office:]", the match set will contain:
+  //
+  //    array('[:office:]', 'office', '')
+  //
+  if (preg_match_all('#\[:([^\]:/~]*)/*([^\]:/~]*)(~[^\]:/~]*|):\]#', $text, $matches, PREG_SET_ORDER)) {
+    $template = '!name!comma!title';
+    // For each configured entity form, get the set of taxonomy terms
+    // that we can potentially look up in.
+    $taxonomy_sets = array();
+    $configured_forms = _regnum_configured_entityforms();
+    foreach ($configured_forms as $entityform_bundle => $info) {
+      $taxonomy_fields = _regnum_group_taxonomy_fields($info['group-bundle']);
+      // Ignore any set that does not have at least two taxonomy tern fields
+      // (branch and office).
+      if (count($taxonomy_fields) >= 2) {
+        $taxonomy_sets[$entityform_bundle] = $taxonomy_fields;
+      }
+    }
+    // Process all of the matches, looking for suitable entries
+    // in the taxonomy term sets for the branch and office that was specified.
+    foreach ($matches as $match_set) {
+      if (empty($match_set[2])) {
+        $branch = '';
+        $office = $match_set[1];
+      }
+      else {
+        $branch = $match_set[1];
+        $office = $match_set[2];
+      }
+      $deputy = $match_set[3];
+      // If we cannot find a matching taxonomy term, then we will replace
+      // the token with an empty string.
+      $replacement = '';
+      foreach ($taxonomy_sets as $entityform_bundle => $taxonomy_set) {
+        // We will presume that the taxonomy set that was built for
+        // us was constructed such that the first entry is the branch,
+        // and the second entry is the office.  If we can find a tid for
+        // both the branch and the office, then we have a match; otherwise,
+        // we will go on to the next taxonomy set (there will be only
+        // one for the West Kingdom).
+        // TODO: Should we also allow the user to specify a short name
+        // for their term?  This would require a slower search.  Maybe
+        // we could build a cache of name => tid for each entityform bundle.
+        $branch_vocabulary = $taxonomy_set[0]['vocabulary'];
+        $branch_term = taxonomy_get_term_by_name($branch, $branch_vocabulary);
+        $office_vocabulary = $taxonomy_set[1]['vocabulary'];
+        $office_term = taxonomy_get_term_by_name($office, $office_vocabulary);
+        if (!empty($office_term)) {
+          $term_info = reset($office_term);
+          $office_tid = $term_info->tid;
+          if (!empty($branch_term)) {
+            $term_info = reset($branch_term);
+            $branch_tid = $term_info->tid;
+          }
+          else {
+            // TODO: In this instance, we should look up the branch that goes with the
+            // current domain (HOW?), or default to the top-level branch
+            // (e.g. West Kingdom).
+            // For now, if the branch is not empty, we will always use the top-level
+            // branch, but we need to be smarter if we are in a domain.
+            $branch_tid = $taxonomy_set[0]['default'];
+          }
+          // Found!  If we have a branch and an office, then look up the
+          // officer node.
+          if (isset($branch_tid)) {
+            $officer_node = FALSE;
+            $group_bundle = $configured_forms[$entityform_bundle]['group-bundle'];
+            $field_map = _regnum_group_field_map($entityform_bundle, $group_bundle);
+            $tid_map[$taxonomy_set[0]['field-name']] = $branch_tid;
+            $tid_map[$taxonomy_set[1]['field-name']] = $office_tid;
+            $tids = array();
+            foreach ($field_map as $name => $field_name) {
+              $tids[$name] = $tid_map[$field_name];
+            }
+            $officer_node = _regnum_get_officer_node($group_bundle, $field_map, $tids);
+            if ($officer_node) {
+              $link_replacements = regnum_officer_name_replacements($officer_node);
+              $url = 'node/' . $officer_node->nid . '/contact';
+              $replacement = l(t($template, $link_replacements), $url);
+            }
+          }
+        }
+      }
+      // What do we do if the replacement is not found at all?
+      // Currently, we erase it ($replacement will be empty).
+      $replacements[$match_set[0]] = $replacement;
+    }
+  }
+  return str_replace(array_keys($replacements), array_values($replacements), $text);
+}
+
+/**
+ * Filter tips callback for regnum officer filter.
+ */
+function _regnum_filter_officer_tips($filter, $format, $long = FALSE) {
+  if (!$long) {
+    // This string will be shown in the content add/edit form
+    return t('<em>[:Office:]</em> replaced with the name of the officer currently holding the office.', array());
+  }
+  else {
+    return t('Every instance of "[:Office:]" will be replaced with the current office holder in the current branch group.  If an officer in another group is desired, "[:Branch/Office:]" may be used.', array());
+  }
+}
+
+/**
+ * @} End of "Text input filters".
+ */
