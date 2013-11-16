@@ -808,6 +808,9 @@ function _regnum_group_taxonomy_fields($group_bundle) {
       if ($key == 'field_office') {
         $vocabulary = 'offices';
       }
+      if ($key == 'taxonomy_vocabulary_2') {
+        $vocabulary = 'vocabulary_2';
+      }
       $result[] = array('field-name' => $key, 'vocabulary' => $vocabulary, 'default' => $default_value);
     }
   }
@@ -1821,6 +1824,13 @@ function _regnum_filter_officer_process($text, $filter, $format) {
       if (empty($match_set[2])) {
         $branch = '';
         $office = $match_set[1];
+        // If there is no branch specified, then we presume that the
+        // branch is set by the name of the current domain.
+        // TODO: Should we just require domain access, so we don't need to test?
+        if (module_exists('domain')) {
+          $domain_info = domain_initial_domain();
+          $branch = $domain_info['sitename'];
+        }
       }
       else {
         $branch = $match_set[1];
@@ -1853,14 +1863,6 @@ function _regnum_filter_officer_process($text, $filter, $format) {
           if (!empty($branch_term)) {
             $term_info = reset($branch_term);
             $branch_tid = $term_info->tid;
-          }
-          else {
-            // TODO: In this instance, we should look up the branch that goes with the
-            // current domain (HOW?), or default to the top-level branch
-            // (e.g. West Kingdom).
-            // For now, if the branch is not empty, we will always use the top-level
-            // branch, but we need to be smarter if we are in a domain.
-            $branch_tid = $taxonomy_set[0]['default'];
           }
           // Found!  If we have a branch and an office, then look up the
           // officer node.
