@@ -130,6 +130,27 @@ function wk_admin_menu_output_alter(&$content) {
 */
 
 /**
+ * Implement hook_domain_conf()
+ */
+function wk_domain_conf() {
+  $form['wk'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Copyright'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $form['wk']['wk_copyright_base_year'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Site copyright base year'),
+    '#default_value' => variable_get('wk_copyright_base_year', ''),
+    '#size' => 30,
+    '#maxlength' => 255,
+    '#description' => t('The first year that material was placed on this site. The token [site:copyright] will result in a range of years spanning from the base year to the current year (e.g. 2010-2013).')
+  );
+  return $form;
+}
+
+/**
  * Hook token_info
  *
  * Declare tokens as_year and event_month.
@@ -184,22 +205,9 @@ function wk_token_info() {
     'name' => t("Location Summary"),
     'description' => t('A parenthesized summary of the location address (Street, City, State Zip).'),
   );
-  // Contact information for our primary officers
-  $site['contact_seneschal'] = array(
-    'name' => t("Contact Seneschal"),
-    'description' => t("A link to the Seneschal's contact page."),
-  );
-  $site['contact_webminister'] = array(
-    'name' => t("Contact Web Minister"),
-    'description' => t("A link to the Web Minister's contact page."),
-  );
-  $site['contact_chatalain'] = array(
-    'name' => t("Contact Chatalain"),
-    'description' => t("A link to the Chatalain's contact page."),
-  );
   $site['copyright'] = array(
     'name' => t("Copyright"),
-    'description' => t("A range of years starting in 2010 and continuing to the current year."),
+    'description' => t("A range of years starting at the specified base year (as set in domain access settings) and continuing to the current year."),
   );
   return array(
     'tokens' => array('node' => $node, 'site' => $site),
@@ -216,17 +224,17 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
   if ($type == 'site') {
     foreach ($tokens as $name => $original) {
       switch ($name) {
-        case 'contact_seneschal':
-          $replacements[$original] = l('Seneschal', 'node/851/contact');
-          break;
-        case 'contact_webminister':
-          $replacements[$original] = l('Web Minister', 'node/851/contact');
-          break;
-        case 'contact_chatalain':
-          $replacements[$original] = l('Chatalain', 'node/899/contact');
-          break;
         case 'copyright':
-          $replacements[$original] = t('2010 - 2013');
+          $date_info = getdate(time());
+          $current_year = $date_info['year'];
+          $base_year = variable_get('wk_copyright_base_year', '');
+          if (($base_year == $current_year) || (empty($base_year))) {
+            $copyright = $current_year;
+          }
+          else {
+            $copyright = $base_year . '-' . $current_year;
+          }
+          $replacements[$original] = $copyright;
           break;
       }
     }
