@@ -66,7 +66,7 @@ function wk_form_alter(&$form, &$form_state) {
       $form['#validate'][] = '_wk_form_validate_email_not_changed';
     }
   }
-  if (isset($form['type'])) {
+  if (!empty($form['#node_edit_form'])) {
     // This next block is copied from the 'revisioning' module, which for some reason
     // only shows these radios for users with 'administer nodes'.  We allow it for
     // any user who can publish the node.
@@ -105,17 +105,11 @@ function wk_form_alter(&$form, &$form_state) {
       // presses one of the first two radio buttons. Also updates summary tabs.
       $js_file = drupal_get_path('module', 'revisioning') . '/revision-radios.js';
       drupal_add_js($js_file, array('weight' => 1)); // after node.js
+      // If preference specifies that "no moderation" is the default, then change the control default value
+      if (variable_get('wk_no_moderation_by_default', TRUE)) {
+        $form['revision_information']['revision_operation']['#default_value'] = NEW_REVISION_NO_MODERATTION;
+      }
     }
-  }
-  // 0 == Modify current revision, no moderation
-  // 1 == Create new revision, no moderation
-  // 2 == Create new revision and moderate
-  // Revisioning usually makes the default value '2', but
-  // we prefer it to be '0' (no moderation unless specified).
-  // TODO:  Check user access to make sure that current user
-  // has the ability to publish content.
-  if (isset($form['revision_information']['revision_operation'])) {
-    $form['revision_information']['revision_operation']['#default_value'] = 1;
   }
 }
 
