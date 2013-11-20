@@ -186,6 +186,49 @@ function wk_domain_conf() {
 }
 
 /**
+ * Implements hook_permission().
+ */
+function wk_permission() {
+  $permissions = array(
+    'administer site configuration for assigned domains' => array(
+      'title' => t('Administer site configuration for assigned domains'),
+      'restrict access' => TRUE,
+    ),
+  );
+  return $permissions;
+}
+
+function wk_menu_alter(&$items) {
+  // This is sufficient to allow our copyright base year to be edited, but other domain form items do not appear.
+  $items['admin/structure/domain/view/%domain/config']['access callback'] = '_wk_domain_conf_access_callback';
+  if (count($items['admin/structure/domain/view/%domain/config']['access arguments'] == 1)) {
+    $items['admin/structure/domain/view/%domain/config']['access arguments'][] = 4;
+  }
+  $items['admin/structure/domain/view/%domain/conf-reset']['access callback'] = '_wk_domain_conf_access_callback';
+  if (count($items['admin/structure/domain/view/%domain/conf-reset']['access arguments'] == 1)) {
+    $items['admin/structure/domain/view/%domain/conf-reset']['access arguments'][] = 4;
+  }
+  $items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access callback'] = '_wk_domain_conf_access_callback';
+  if (count($items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access arguments'] == 1)) {
+    $items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access arguments'][] = 4;
+  }
+}
+
+function _wk_domain_conf_access_callback($permission, $domain) {
+  if (user_access($permission)) {
+    return TRUE;
+  }
+  // If the user is assigned to this domain, then allow them to
+  // edit this domain configuration item if they have the right
+  // to do so, as granted by our permission
+  global $user;
+  if (array_key_exists($domain['domain_id'], $user->domain_user)) {
+    return user_access('administer site configuration for assigned domains');
+  }
+  return FALSE;
+}
+
+/**
  * Hook token_info
  *
  * Declare tokens as_year and event_month.

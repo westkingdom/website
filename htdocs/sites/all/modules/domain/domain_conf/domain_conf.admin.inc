@@ -44,6 +44,7 @@ function domain_conf_page($domain) {
  *   The domain currently being updated.
  */
 function domain_conf_form($form, &$form_state, $domain) {
+  global $user;
   $form = array();
   $batch = domain_batch_actions();
   $settings = array();
@@ -56,7 +57,11 @@ function domain_conf_form($form, &$form_state, $domain) {
     $permission = isset($action['#permission']) ? $action['#permission'] : 'administer domains';
     $collapsed = isset($action['#collapsed']) ? $action['#collapsed'] : FALSE;
     if (!user_access($permission) || $action['#domain_action'] != 'domain_conf') {
-      continue;
+      // If the current user is assigned to this domain, then also test the
+      // specified permission 'for assigned domains' before continuing.
+      if ((!array_key_exists($domain['domain_id'], $user->domain_user)) || !user_access($permission . ' for assigned domains')) {
+        continue;
+      }
     }
     if ($action['#form']['#type'] == 'select') {
       $action['#form']['#options'] = array('domain-conf-ignore' => t('Use primary domain settings')) + $action['#form']['#options'];
