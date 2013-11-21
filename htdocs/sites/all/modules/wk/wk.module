@@ -58,6 +58,31 @@ function wk_form_alter(&$form, &$form_state) {
   //dpm($form_state);
   //dpm($form_state['node']);
   //dpm(current_path());
+  if ($form['#id'] == 'domain_form') {
+    if (!user_access('administer domains')) {
+      foreach ($form as $key => $info) {
+        if (is_array($info) && (array_key_exists('#type', $info))) {
+          $form[$key]['#disabled'] = TRUE;
+        }
+      }
+    }
+  }
+  if ($form['#id'] == 'domain-theme-form') {
+    if (!user_access('administer domains') && !user_access('administer themes for assigned domains')) {
+      $form['submit']['#disabled'] = TRUE;
+      $form['intro'] = array('#markup' => t('You do not have permission to change the theme for this domain, but you may configure the theme settings for the selected theme.'));
+      foreach ($form['theme'] as $id => $info) {
+        if (isset($info['#type']) && ($info['#type'] == 'radio')) {
+          if (!$form['theme'][$id]['#default_value']) {
+            unset($form['theme'][$id]);
+          }
+          else {
+            $form['theme'][$id]['#disabled'] = TRUE;
+          }
+        }
+      }
+    }
+  }
   if (($form['#form_id'] == 'contact_personal_form') || ($form['#form_id'] == 'og_contact_mail_page') || ($form['#form_id'] == 'contact_site_form')) {
     if (!empty($form['mail']['#default_value'])) {
       $form['mail']['#type'] = 'hidden';
@@ -194,28 +219,46 @@ function wk_permission() {
       'title' => t('Administer site configuration for assigned domains'),
       'restrict access' => TRUE,
     ),
+    'administer menu for assigned domains' => array(
+      'title' => t('Administer menu for assigned domains'),
+    ),
+    'administer themes for assigned domains' => array(
+      'title' => t('Administer themes for assigned domains'),
+      'description' => t('Select the theme for assigned domains, and adjust theme configuration.'),
+    ),
+    'administer theme configuration for assigned domains' => array(
+      'title' => t('Administer theme configuration for assigned domains'),
+      'description' => t("Allow a user who cannot change the domain theme to configure the selected theme's configuration."),
+    ),
   );
   return $permissions;
 }
 
 function wk_menu_alter(&$items) {
-  // This is sufficient to allow our copyright base year to be edited, but other domain form items do not appear.
+  $items['admin/structure/domain']['access callback'] = '_wk_domain_view_access_callback';
+  $items['admin/structure/domain']['access arguments'] = array('administer site configuration for assigned domains');
+  $items['admin/structure/domain/view']['access callback'] = '_wk_domain_view_access_callback';
+  $items['admin/structure/domain/view']['access arguments'] = array('administer site configuration for assigned domains');
+  $items['admin/structure/domain/view/%domain']['access callback'] = '_wk_domain_conf_access_callback';
+  $items['admin/structure/domain/view/%domain']['access arguments'] = array(4, 'administer site configuration for assigned domains');
+  $items['admin/structure/domain/view/%domain/edit']['access callback'] = '_wk_domain_conf_access_callback';
+  $items['admin/structure/domain/view/%domain/edit']['access arguments'] = array(4, 'administer site configuration for assigned domains');
   $items['admin/structure/domain/view/%domain/config']['access callback'] = '_wk_domain_conf_access_callback';
-  if (count($items['admin/structure/domain/view/%domain/config']['access arguments'] == 1)) {
-    $items['admin/structure/domain/view/%domain/config']['access arguments'][] = 4;
-  }
+  $items['admin/structure/domain/view/%domain/config']['access arguments'] = array(4, 'administer site configuration for assigned domains');
   $items['admin/structure/domain/view/%domain/conf-reset']['access callback'] = '_wk_domain_conf_access_callback';
-  if (count($items['admin/structure/domain/view/%domain/conf-reset']['access arguments'] == 1)) {
-    $items['admin/structure/domain/view/%domain/conf-reset']['access arguments'][] = 4;
-  }
+  $items['admin/structure/domain/view/%domain/conf-reset']['access arguments'] = array(4, 'administer site configuration for assigned domains');
+  $items['admin/structure/domain/view/%domain/theme']['access callback'] = '_wk_domain_conf_access_callback';
+  $items['admin/structure/domain/view/%domain/theme']['access arguments'] = array(4, 'administer themes for assigned domains', 'administer theme configuration for assigned domains');
   $items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access callback'] = '_wk_domain_conf_access_callback';
-  if (count($items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access arguments'] == 1)) {
-    $items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access arguments'][] = 4;
-  }
+  $items['admin/structure/domain/view/%domain/theme/%/theme-settings']['access arguments'] = array(4, 'administer themes for assigned domains', 'administer theme configuration for assigned domains');
 }
 
-function _wk_domain_conf_access_callback($permission, $domain) {
-  if (user_access($permission)) {
+function _wk_domain_view_access_callback($permission) {
+  return user_access('administer domains') || user_access($permission);
+}
+
+function _wk_domain_conf_access_callback($domain, $permission, $alternate_permission = '') {
+  if (user_access('administer domains')) {
     return TRUE;
   }
   // If the user is assigned to this domain, then allow them to
@@ -223,7 +266,7 @@ function _wk_domain_conf_access_callback($permission, $domain) {
   // to do so, as granted by our permission
   global $user;
   if (array_key_exists($domain['domain_id'], $user->domain_user)) {
-    return user_access('administer site configuration for assigned domains');
+    return user_access($permission) || (!empty($alternate_permission) && user_access($alternate_permission));
   }
   return FALSE;
 }
