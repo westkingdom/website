@@ -4,7 +4,8 @@
   display: none;
 }
 
-#block-wk-wk-related-sites img {
+#block-wk-wk-related-sites img,
+.footer-contacts img {
   float: left;
   height: 20px;
   margin-left: 6px;
@@ -12,11 +13,12 @@
   opacity: 0.7;
 }
 
-#block-wk-wk-related-sites li:hover img {
+#block-wk-wk-related-sites li:hover img,
+.footer-contacts li:hover img {
   opacity: 1.0;
 }
 
-#block-wk-wk-related-sites li a.site-label {
+#block-wk-wk-related-sites li a.site-label,
+#footer-columns .footer-contacts li a {
   padding-left: 48px;
 }
-

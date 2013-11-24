@@ -154,17 +154,6 @@ function wk_block_info() {
   $site_label = wk_branch_site_label($branch_term);
   $description = strip_tags($branch_term['description']);
   $site_label .= " <span class='site-label-location'>$description</span>";
-
-
-  block-wk-wk-related-sites
-
-  img
-    height - 20
-    margin-left - 6
-    margin-top - 6
-
-  li a
-    padding-right - 48
 */
 
 /**
@@ -635,7 +624,7 @@ function wk_branch_site_label($branch_term, $image_attributes = array(), $requir
   $description = strip_tags($branch_term['description']);
   $site_label = '';
   if ($url) {
-    $site_label = l($title, $url, array('attributes' => array('title' => $description, 'class' => 'site-label')));
+    $site_label = l($title, $url, array('attributes' => array('title' => $description, 'class' => array('site-label'))));
   }
   elseif(!$require_url) {
     $site_label = "<b>$title</b>";
