@@ -139,6 +139,64 @@ function wk_form_alter(&$form, &$form_state) {
 }
 
 /**
+ * Implementation of hook_block_info().
+ */
+function wk_block_info() {
+  $blocks['wk_related_sites'] = array(
+    'info' => t('Related Sites'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+
+  return $blocks;
+}
+
+/*
+  $site_label = wk_branch_site_label($branch_term);
+  $description = strip_tags($branch_term['description']);
+  $site_label .= " <span class='site-label-location'>$description</span>";
+
+
+  block-wk-wk-related-sites
+
+  img
+    height - 20
+    margin-left - 6
+    margin-top - 6
+
+  li a
+    padding-right - 48
+*/
+
+/**
+ * Implementation of hook_block_view().
+ */
+function wk_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'wk_related_sites':
+      $content = '';
+      $parent_terms = regnum_domain_parent_term_list();
+      if (!empty($parent_terms)) {
+        $parent_term_list = wk_branch_site_label_list(array_reverse($parent_terms), array("class" => "site-arms"));
+        $parent_list_html = theme_item_list(array('items' => $parent_term_list, 'title' => NULL, 'type' => 'ul', 'attributes' => array()));
+        $content = "<span id='parent-sites'>$parent_list_html</span>";
+      }
+      $site_branch_term = regnum_domain_taxonomy_term();
+      $children_terms =  taxonomy_get_children($site_branch_term->tid);
+      if (!empty($children_terms)) {
+        $children_terms_list = wk_branch_site_label_list($children_terms, array("class" => "site-arms"));
+        $children_list_html = theme_item_list(array('items' => $children_terms_list, 'title' => FALSE, 'type' => 'ul', 'attributes' => array()));
+        $content .= "<span id='parent-sites'>$children_list_html</span>";
+      }
+      $block['subject'] = t('Related Sites');
+      $block['content'] = $content;
+      break;
+  }
+  return $block;
+}
+
+/**
  * Don't allow users to change their personal email address
  * on contact forms.  This validate function will only be set
  * if the user was logged in; anonymous users get to put whatever
@@ -539,4 +597,66 @@ function _wk_to_machine_name($human_readable) {
   $machine_readable = preg_replace("@['`]s@",'s',$machine_readable);
   $machine_readable = preg_replace('@[^a-z0-9_]+@','-',$machine_readable);
   return $machine_readable;
+}
+
+/**
+ * Return the URL to the specified site, or FALSE if the
+ * branch does not have a site.
+ */
+function wk_branch_site_url($branch_term) {
+  $term = $branch_term;
+  if (is_array($term)) {
+    $term = $term['tid'];
+  }
+  $e = entity_metadata_wrapper("taxonomy_term", $term);
+  $url = $e->field_external_site_url->value();
+  if (empty($url)) {
+    $domain = _regnum_domain_sitename_load($branch_term);
+    if (!empty($domain)) {
+      $url = $domain['scheme'] . '://' . $domain['subdomain'];
+    }
+    else {
+      $url = FALSE;
+    }
+  }
+  return $url;
+}
+
+function wk_branch_site_label($branch_term, $image_attributes = array(), $require_url = TRUE) {
+  if (is_numeric($branch_term)) {
+    $branch_term = taxonomy_term_load($branch_term);
+  }
+  if (is_object($branch_term)) {
+    $branch_term = (array)$branch_term;
+  }
+
+  $url = wk_branch_site_url($branch_term);
+  $title = $branch_term['name'];
+  $description = strip_tags($branch_term['description']);
+  $site_label = '';
+  if ($url) {
+    $site_label = l($title, $url, array('attributes' => array('title' => $description, 'class' => 'site-label')));
+  }
+  elseif(!$require_url) {
+    $site_label = "<b>$title</b>";
+  }
+  if (!empty($site_label)) {
+    $e = entity_metadata_wrapper("taxonomy_term", $branch_term['tid']);
+    $img_info = $e->field_arms->value();
+    if ($img_info) {
+      $site_label = theme_image(array("path" => $img_info['uri'], "title" => $title, "attributes" => $image_attributes)) . " $site_label";
+    }
+  }
+  return $site_label;
+}
+
+function wk_branch_site_label_list($branch_list, $image_attributes = array(), $require_url = TRUE) {
+  $list = array();
+  foreach ($branch_list as $branch_term) {
+    $site_label = wk_branch_site_label($branch_term, $image_attributes, $require_url);
+    if (!empty($site_label)) {
+      $list[] = $site_label;
+    }
+  }
+  return $list;
 }

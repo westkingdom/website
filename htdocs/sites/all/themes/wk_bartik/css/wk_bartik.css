@@ -4,3 +4,19 @@
   display: none;
 }
 
+#block-wk-wk-related-sites img {
+  float: left;
+  height: 20px;
+  margin-left: 6px;
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+#block-wk-wk-related-sites li:hover img {
+  opacity: 1.0;
+}
+
+#block-wk-wk-related-sites li a.site-label {
+  padding-left: 48px;
+}
+
