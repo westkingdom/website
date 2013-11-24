@@ -1794,6 +1794,8 @@ function _regnum_configured_taxonomy_sets() {
 function _regnum_filter_officer_process($text, $filter, $format) {
   $shorten_function = isset($filter->settings['group_shorten_function']) ? $filter->settings['group_shorten_function'] : 'bar';
   $replacements = array();
+  $image_attributes = array();
+
   //
   // Regular expresion is:
   //
@@ -1802,7 +1804,11 @@ function _regnum_filter_officer_process($text, $filter, $format) {
   //          /*                #     an optional /
   //          ([^\]:/~]*)       #     any number of characters except ], :, ~ or /
   //          (~[^\]:/~]*|)     #     a tilde followed by some characters, or nothing
-  //    :\]                     # :]
+  //    :                       # :
+  //    (
+  //    [i]*                    #     any number of flags. So far, i is the only valid flag
+  //    )
+  //    \]                      # ]
   //    (
   //       \(                   #  (
   //           [^)]*            #     any number of characters except )
@@ -1820,7 +1826,7 @@ function _regnum_filter_officer_process($text, $filter, $format) {
   //
   //    array('[:office:]', 'office', '')
   //
-  if (preg_match_all('#\[:([^\]:/~]*)/*([^\]:/~]*)(~[^\]:/~]*|):\](\([^)]*\)|)#', $text, $matches, PREG_SET_ORDER)) {
+  if (preg_match_all('#\[:([^\]:/~]*)/*([^\]:/~]*)(~[^\]:/~]*|):([i]*)\](\([^)]*\)|)#', $text, $matches, PREG_SET_ORDER)) {
     // For each configured entity form, get the set of taxonomy terms
     // that we can potentially look up in.
     $configured_forms = _regnum_configured_entityforms();
@@ -1847,8 +1853,9 @@ function _regnum_filter_officer_process($text, $filter, $format) {
         $office = $match_set[2];
       }
       $deputy = $match_set[3];
-      if (!empty($match_set[4])) {
-        $template = substr($match_set[4], 1, -1);
+      $flags = $match_set[4];
+      if (!empty($match_set[5])) {
+        $template = substr($match_set[5], 1, -1);
       }
       // If we cannot find a matching taxonomy term, then we will replace
       // the token with an empty string.
@@ -1890,7 +1897,23 @@ function _regnum_filter_officer_process($text, $filter, $format) {
             if ($officer_node) {
               $link_replacements = regnum_officer_name_replacements($officer_node);
               $url = 'node/' . $officer_node->nid . '/contact';
-              $replacement = l(t($template, $link_replacements), $url);
+              $replacement = l(t($template, $link_replacements), $url, array('attributes' => array('class' => array('officer-link'))));
+              // If the user requested an icon, then assume that the
+              // first attached field of type field_item_image is the
+              // one we want to use.  Usually, there should only be one
+              // image field on an officer taxonomy term.
+              if (strpos($flags, "i") !== FALSE) {
+                $e = entity_metadata_wrapper("taxonomy_term", $office_tid);
+                $image_field_name = FALSE;
+                foreach ($e->getPropertyInfo() as $id => $info) {
+                  if ($info['type'] == 'field_item_image') {
+                    $image_field_name = $id;
+                    $img_info = $e->$image_field_name->value();
+                    $replacement = theme_image(array("path" => $img_info['uri'], "title" => $link_replacements['!title'], "attributes" => $image_attributes)) . " $replacement";
+                    break;
+                  }
+                }
+              }
             }
           }
         }
@@ -1985,20 +2008,4 @@ function regnum_domain_parent_term_list($domain = FALSE) {
   }
   return $result;
 }
-
-
-/**
- * Implements hook_tokens().
- *
-function regnum_tokens($type, $tokens, array $data = array(), array $options = array()) {
-  $replacements = array();
-  // Parent domain tokens.
-  if ($type == 'parent-domain') {
-    $parent_domain = regnum_parent_domain();
-    $replacements += token_generate('domain', $tokens, array('domain' => $parent_domain), $options);
-  }
-  return $replacements;
-}
-
-*/
 
