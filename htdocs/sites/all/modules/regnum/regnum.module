@@ -964,7 +964,6 @@ function _regnum_random_password($length=16) {
  * Implementation of hook_block_info().
  */
 function regnum_block_info() {
-  // This example comes from node.module.
   $blocks['regnum_approvals'] = array(
     'info' => t('Regnum Change Approval List'),
     'cache' => DRUPAL_NO_CACHE,
@@ -1775,6 +1774,23 @@ function _regnum_filter_officer_settings($form, $form_state, $filter, $format, $
   return $settings;
 }
 
+/**
+ * Return all of the taxonomy terms associated with each
+ * configured entityform.
+ */
+function _regnum_configured_taxonomy_sets() {
+  $configured_forms = _regnum_configured_entityforms();
+  foreach ($configured_forms as $entityform_bundle => $info) {
+    $taxonomy_fields = _regnum_group_taxonomy_fields($info['group-bundle']);
+    // Ignore any set that does not have at least two taxonomy tern fields
+    // (branch and office).
+    if (count($taxonomy_fields) >= 2) {
+      $taxonomy_sets[$entityform_bundle] = $taxonomy_fields;
+    }
+  }
+  return $taxonomy_sets;
+}
+
 function _regnum_filter_officer_process($text, $filter, $format) {
   $shorten_function = isset($filter->settings['group_shorten_function']) ? $filter->settings['group_shorten_function'] : 'bar';
   $replacements = array();
@@ -1807,16 +1823,8 @@ function _regnum_filter_officer_process($text, $filter, $format) {
   if (preg_match_all('#\[:([^\]:/~]*)/*([^\]:/~]*)(~[^\]:/~]*|):\](\([^)]*\)|)#', $text, $matches, PREG_SET_ORDER)) {
     // For each configured entity form, get the set of taxonomy terms
     // that we can potentially look up in.
-    $taxonomy_sets = array();
     $configured_forms = _regnum_configured_entityforms();
-    foreach ($configured_forms as $entityform_bundle => $info) {
-      $taxonomy_fields = _regnum_group_taxonomy_fields($info['group-bundle']);
-      // Ignore any set that does not have at least two taxonomy tern fields
-      // (branch and office).
-      if (count($taxonomy_fields) >= 2) {
-        $taxonomy_sets[$entityform_bundle] = $taxonomy_fields;
-      }
-    }
+    $taxonomy_sets = _regnum_configured_taxonomy_sets();
     // Process all of the matches, looking for suitable entries
     // in the taxonomy term sets for the branch and office that was specified.
     foreach ($matches as $match_set) {
@@ -1828,8 +1836,10 @@ function _regnum_filter_officer_process($text, $filter, $format) {
         // branch is set by the name of the current domain.
         // TODO: Should we just require domain access, so we don't need to test?
         if (module_exists('domain')) {
-          $domain_info = domain_initial_domain();
-          $branch = $domain_info['sitename'];
+          $domain_info = domain_get_domain();
+          if (array_key_exists('sitename', $domain_info)) {
+            $branch = $domain_info['sitename'];
+          }
         }
       }
       else {
@@ -1909,3 +1919,86 @@ function _regnum_filter_officer_tips($filter, $format, $long = FALSE) {
 /**
  * @} End of "Text input filters".
  */
+
+
+/**
+ * Return the appropriate domain record for the specified
+ * sitename.
+ *
+ * @param sitename Name of the domain, or a taxonomy term
+ * corresponding with the desired domain.
+ */
+function _regnum_domain_sitename_load($sitename, $full = FALSE) {
+  // Convert from taxonomy term to string
+  if (is_object($sitename) && isset($sitename->name)) {
+    $sitename = $sitename->name;
+  }
+  if (is_array($sitename) && isset($sitename['name'])) {
+    $sitename = $sitename['name'];
+  }
+  // If we don't have a valid sitename, return empty (no domain).
+  if (!is_string($sitename)) {
+    return array();
+  }
+  // Do a domain lookup on the sitename.
+  $domain = db_query('SELECT domain_id, subdomain, sitename, scheme, valid, weight, is_default, machine_name FROM {domain} WHERE sitename = :sitename', array(':sitename' => $sitename))->fetchAssoc();
+  if ($full && !empty($domain)) {
+    domain_api($domain, TRUE);
+  }
+  return $domain;
+}
+
+/**
+ * Return the taxonomy term corresponding with the branch
+ * group for the specified domain.
+ */
+function regnum_domain_taxonomy_term($domain = FALSE) {
+  if (!$domain) {
+    $domain_info = domain_get_domain();
+  }
+  $branch = $domain_info['sitename'];
+  $taxonomy_sets = _regnum_configured_taxonomy_sets();
+  foreach ($taxonomy_sets as $entityform_bundle => $taxonomy_set) {
+    $branch_vocabulary = $taxonomy_set[0]['vocabulary'];
+    $branch_term = taxonomy_get_term_by_name($branch, $branch_vocabulary);
+    return reset($branch_term);
+  }
+  return FALSE;
+}
+
+/**
+ * Returns a list of taxonomy terms corresponding with
+ * the parents of the specified domain.
+ */
+function regnum_domain_parent_term_list($domain = FALSE) {
+  $result = array();
+  $branch_term = regnum_domain_taxonomy_term($domain);
+  if ($branch_term) {
+    $branch_tid = $branch_term->tid;
+    $parents = taxonomy_get_parents($branch_term->tid);
+    while ($parents) {
+      // Only look at the first parent (there should not be more than one)
+      $parent_term = reset($parents);
+      $result[$parent_term->tid] = (array)$parent_term;
+      $parents = taxonomy_get_parents($parent_term->tid);
+    }
+  }
+  return $result;
+}
+
+
+/**
+ * Implements hook_tokens().
+ *
+function regnum_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  // Parent domain tokens.
+  if ($type == 'parent-domain') {
+    $parent_domain = regnum_parent_domain();
+    $replacements += token_generate('domain', $tokens, array('domain' => $parent_domain), $options);
+  }
+  return $replacements;
+}
+
+*/
+
