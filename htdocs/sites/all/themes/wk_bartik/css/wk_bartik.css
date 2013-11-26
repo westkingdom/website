@@ -22,3 +22,13 @@
 #footer-columns .footer-contacts li a {
   padding-left: 48px;
 }
+
+a.site5 {
+  float: right;
+}
+
+#copyright-notice {
+  margin-left: 96px;
+  margin-right: 96px;
+  text-align: center;
+}
