@@ -1,9 +1,14 @@
 <?php
 
 /**
+ * @file
+ * Additional text filter for token input.
+ */
+
+DEFINE('TOKEN_FILTER_DEFAULT_ALLOWED_TAGS', 'a em strong cite blockquote code ul ol li dl dt dd');
+
+/**
  * Implements hook_filter_info().
- *
- * Adds the Token filter to the textx format options.
  */
 function token_filter_filter_info() {
   $filters['filter_tokens'] = array(
@@ -16,38 +21,67 @@ function token_filter_filter_info() {
   return $filters;
 }
 
+function token_filter_menu() {
+  $items = array();
+
+  $items['admin/config/content/token_filter'] = array(
+    'title' => 'Token Filter',
+    'description' => 'Configure the allowed html tags that may appear in tokens replaced by the token filter.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('token_filter_admin_configure'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'token_filter.admin.inc'
+  );
+
+  return $items;
+}
+
 /**
- * Filter process callback for the token input filter.
+ * Filter process callback for the token text filter.
  */
 function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache, $cache_id) {
   $data = array();
   $options = array();
 
-  // Attempt to fetch the entity that is being viewed via a backtrace to the
-  // field_attach_view($entity_type, $entity) function and parameters §if found.
-  $backtrace = debug_backtrace();
-  foreach ($backtrace as $caller) {
-    if ($caller['function'] == 'field_attach_view') {
-      $entity_type = $caller['args'][0];
-      $entity = $caller['args'][1];
-      $token_type = token_get_entity_mapping('entity', $entity_type);
-      $data[$token_type] = $entity;
-      // Use the proper language code that field_attach_view was called with.
-      if ($langcode = $caller['args'][3]) {
-        $language_list = language_list();
-        if (!empty($language_list[$langcode])) {
-          $options['language'] = $language_list[$langcode];
-        }
-      }
-      break;
-    }
-    elseif ($caller['function'] == '_drupal_bootstrap_full' || $caller == 'menu_execute_active_handler') {
-      // There is no point in going back this far, so just stop.
-      break;
+  // Add items based on the current menu item.  Rather than
+  // guess how to interpret the parameters of the menu item
+  // (e.g. foreach($menu_item['page_arguments'] as $item)),
+  // we will instead explicitly recognize certain well-known
+  // paths and pull out the known arguement to use in
+  // token_replace.
+  $menu_item = menu_get_item();
+  if ($menu_item) {
+    switch ($menu_item['map'][0]) {
+      case 'node':
+      case 'user':
+        $data[$menu_item['map'][0]] = $menu_item['map'][1];
+        break;
+      case 'taxonomy':
+        $data[$menu_item['map'][1]] = $menu_item['map'][2];
+        break;
     }
   }
 
+  // Erase any tokens that are not replaced
+  $options['clear'] = true;
+  // Instead of allowing token_replace to sanitize tokens,
+  // we will instead use our own callback function that uses
+  // filter_xss instead.  $options['allowed-tags'] is used
+  // in the callback.
+  $options['sanitize'] = false;
+  $options['callback'] = '_token_filter_filter_xss';
+  $options['allowed-tags'] = explode(" ", variable_get('token_filter_allowed_tags', TOKEN_FILTER_DEFAULT_ALLOWED_TAGS));
+
   return token_replace($text, $data, $options);
+}
+
+/**
+ * Call filter_xss on each of the items in the replacements array.
+ */
+function _token_filter_filter_xss(&$replacements, $data, $options) {
+  foreach ($replacements as $token => &$replacement) {
+    $replacement = filter_xss($replacement, $options['allowed-tags']);
+  }
 }
 
 /**
