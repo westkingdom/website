@@ -673,3 +673,59 @@ function _wk_full_parentage($domain = FALSE) {
 
   return $result;
 }
+
+/**
+ * Create a new custom menu for a branch group.  We create separate
+ * menus for every group (rather than making a fixed dynamic menu that
+ * adapts to the current domain) to make it easy for branch domain web
+ * ministers to customize their main menu, if they wish.
+ */
+function _wk_create_branch_menu($branch_term, $homepage_nid) {
+  $branch_id = $branch_term->tid;
+  $short_name = _wk_term_short_name($branch_term);
+  $menu_name = _wk_to_machine_name(_wk_term_short_name($branch_term)) . '-main-menu';
+  $menu_title = t('!name Main Menu', array('!name' => $short_name));
+  $menu = array(
+   'menu_name' => $menu_name,
+   'title' => $menu_title,
+   'description' => t('Contains the custom menu items for the main menu of the !name', array('!name' => $branch_term->name)),
+  );
+
+  $menu_items = array(
+    array(
+      'link_title' => t("Welcome"),
+      'link_path' => "node/$homepage_nid",
+    ),
+    array(
+      'link_title' => t("Calendar"),
+      'link_path' => "calendar/$branch_id",
+    ),
+    array(
+      'link_title' => t("Meetings"),
+      'link_path' => "meetings/$branch_id",
+    ),
+    array(
+      'link_title' => t("Events"),
+      'link_path' => "events/$branch_id",
+    ),
+    array(
+      'link_title' => t("Officers"),
+      'link_path' => "officers/$branch_id",
+    ),
+  );
+  // Try to load the specified menu name to find out if it already exists.
+  if (!menu_load($menu_name)) {
+    menu_save($menu);
+    $weight = 0;
+    foreach ($menu_items as $link) {
+      $link += array(
+        'menu_name' => $menu_name,
+        'weight' => $weight,
+        'expanded' => 0,
+      );
+      $mlid = menu_link_save($link);
+      $weight += 10;
+    }
+  }
+  return $menu;
+}
