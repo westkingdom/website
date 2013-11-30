@@ -377,6 +377,11 @@ function wk_token_info() {
     'name' => t("Copyright"),
     'description' => t("A range of years starting at the specified base year (as set in domain access settings) and continuing to the current year."),
   );
+  $site['full-parentage'] = array(
+    'name' => t("Full Parentage"),
+    'description' => t("The full list of parent domains for the current domain within a site hierarchy."),
+  );
+
   return array(
     'tokens' => array('node' => $node, 'site' => $site),
   );
@@ -403,6 +408,10 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
             $copyright = $base_year . '-' . $current_year;
           }
           $replacements[$original] = $copyright;
+          break;
+
+        case 'full-parentage':
+          $replacements[$original] = _wk_full_parentage();
           break;
       }
     }
@@ -611,7 +620,7 @@ function wk_branch_site_url($branch_term) {
   return $url;
 }
 
-function wk_branch_site_label($branch_term, $image_attributes = array(), $require_url = TRUE) {
+function wk_branch_site_label($branch_term, $image_attributes = array(), $require_url = TRUE, $include_img = TRUE) {
   if (is_numeric($branch_term)) {
     $branch_term = taxonomy_term_load($branch_term);
   }
@@ -629,7 +638,7 @@ function wk_branch_site_label($branch_term, $image_attributes = array(), $requir
   elseif(!$require_url) {
     $site_label = "<b>$title</b>";
   }
-  if (!empty($site_label)) {
+  if (!empty($site_label) && $include_img) {
     $e = entity_metadata_wrapper("taxonomy_term", $branch_term['tid']);
     $img_info = $e->field_arms->value();
     if ($img_info) {
@@ -648,4 +657,19 @@ function wk_branch_site_label_list($branch_list, $image_attributes = array(), $r
     }
   }
   return $list;
+}
+
+function _wk_full_parentage($domain = FALSE) {
+  $result = '';
+  $parent_terms = regnum_domain_parent_term_list($domain);
+  if (!empty($parent_terms)) {
+    foreach ($parent_terms as $branch_term) {
+      if (!empty($result)) {
+        $result .= t(' of the ');
+      }
+      $result .= wk_branch_site_label($branch_term, array(), FALSE, FALSE);
+    }
+  }
+
+  return $result;
 }
