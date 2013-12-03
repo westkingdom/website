@@ -73,6 +73,10 @@ function regnum_permission() {
       'description' => t('Users with this permission will be able to approve all !bundle submissions, regardless of group membership roles.', array('!bundle' => $entityform_bundle)),
     );
   }
+  $perms['create subdomain for any group'] = array(
+    'title' => t('Create subdomain for any group'),
+    'description' => t('Users with this permission will be able to create new subdomains for any branch group, regardless of group memebership.'),
+  );
 
   return $perms;
 }
@@ -1012,10 +1016,16 @@ function regnum_block_view($delta = '') {
         foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
           // If this is an 'officers' page
           if ($node->type == $info['group-bundle']) {
-            // TODO: we should check to see if the user is a member of this
-            // page, OR of any page that is a parent officer page for this page.
-            $ogm = og_get_membership('node', $node->nid, 'user', $user->uid);
-            if ($ogm) {
+            $can_create_subdomain =  user_access('create subdomain for any group', $user);
+            if (!$can_create_subdomain) {
+              // TODO: we should check to see if the user is a member of this
+              // page, OR of any page that is a parent officer page for this page.
+              $ogm = og_get_membership('node', $node->nid, 'user', $user->uid);
+              if ($ogm) {
+                $can_create_subdomain = TRUE;
+              }
+            }
+            if ($can_create_subdomain) {
               $field_map = _regnum_group_field_map("regnum_change", "officers");
               $officer_field_name = $field_map['office'];
               $officer_term = $current_page->$officer_field_name->value();
@@ -2136,21 +2146,29 @@ function regnum_domain_initialize($domain) {
     domain_conf_variable_set($domain['domain_id'], 'menu_main_links_source', $menu["menu_name"]);
   }
   // Set the site slogan to the taxonomy term description
+  $main_site_slogan = variable_get('site_slogan');
   $slogan = domain_conf_variable_get($domain['domain_id'], 'site_slogan');
-  if (empty($slogan)) {
+  if (empty($slogan) || ($slogan == $main_site_slogan)) {
     // set the created menu as the domain's main menu
     domain_conf_variable_set($domain['domain_id'], '$slogan', strip_tags($branch_term->description));
   }
-  // Create all of the requisite aliases for this domain
-  _regnum_create_domain_alias($domain, array('dev', 'stage', 'backup', 'update'));
+
+  // set theme for domain. TODO: put default theme in a setting somewhere,
+  // or do this in a hook
+  regnum_domain_set_theme($domain, 'wk_bartik');
 
   // TODO: email address for domain?
+}
 
-  // TODO: set theme for domain.
+function regnum_create_aliases_for_all_domains($alias_prefixes, $redirect = 0) {
+  foreach (domain_id_list() as $machine_name => $domain_id) {
+    $domain = domain_lookup($domain_id);
+    regnum_create_domain_alias($domain, $alias_prefixes, $redirect);
+  }
 }
 
 // domain_alias does not include an API function to create aliases.
-function _regnum_create_domain_alias($domain, $alias_prefixes, $redirect = 0) {
+function regnum_create_domain_alias($domain, $alias_prefixes, $redirect = 0) {
   if (module_exists("domain_alias")) {
     $domain_id = $domain['domain_id'];
     $alias_list = domain_alias_list($domain_id);
@@ -2171,4 +2189,43 @@ function _regnum_create_domain_alias($domain, $alias_prefixes, $redirect = 0) {
       }
     }
   }
+}
+
+// domain_theme does not include an API function to set the domain theme.
+function regnum_domain_set_theme($domain, $theme) {
+  // Update or Insert?
+  $domain_id = $domain['domain_id'];
+  // Set all themes in this domain to null status.
+  db_update('domain_theme')
+    ->fields(array(
+      'status' => 0,
+    ))
+    ->condition('domain_id', $domain_id)
+    ->execute();
+  // Now activate the selected theme.
+  // This lookup returns -1 on failure.
+  $check = domain_theme_lookup($domain_id, $theme);
+  // Update.
+  if ($check != -1) {
+    db_update('domain_theme')
+      ->fields(array(
+        'status' => 1,
+      ))
+      ->condition('domain_id', $domain_id)
+      ->condition('theme', $theme)
+      ->execute();
+  }
+  // Insert.
+  else {
+    db_insert('domain_theme')
+      ->fields(array(
+        'domain_id' => $domain_id,
+        'theme' => $theme,
+        'settings' => '',
+        'status' => 1,
+        'filepath' => '',
+      ))
+      ->execute();
+  }
+  cache_clear_all();
 }
