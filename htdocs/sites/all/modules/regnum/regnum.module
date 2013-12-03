@@ -966,6 +966,10 @@ function regnum_block_info() {
     'info' => t('Regnum Change Approval List'),
     'cache' => DRUPAL_NO_CACHE,
   );
+  $blocks['regnum_create_domain'] = array(
+    'info' => t('Regnum Create Domain'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
 
   return $blocks;
 }
@@ -975,12 +979,12 @@ function regnum_block_info() {
  */
 function regnum_block_view($delta = '') {
   $block = array();
+  global $user;
 
   switch ($delta) {
     // This block shows up only on a user's home page.
     case 'regnum_approvals':
       $content = '';
-      global $user;
       $user_page = menu_get_object('user', 1);
       if (($user_page != NULL) && ($user != NULL) && ($user->uid == $user_page->uid)) {
         $result = regnum_submissions_user_can_approve($user_page);
@@ -997,6 +1001,40 @@ function regnum_block_view($delta = '') {
       if (!empty($content)) {
         $block['subject'] = t('Approval List for ' . $user->name);
         $block['content'] = t($content);
+      }
+      break;
+
+    case 'regnum_create_domain':
+      $content = '';
+      $node = menu_get_object('node', 1);
+      if (($node != NULL) && ($user != NULL)) {
+        $current_page = new EntityDrupalWrapper('node', $node);
+        foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+          // If this is an 'officers' page
+          if ($node->type == $info['group-bundle']) {
+            // TODO: we should check to see if the user is a member of this
+            // page, OR of any page that is a parent officer page for this page.
+            $ogm = og_get_membership('node', $node->nid, 'user', $user->uid);
+            if ($ogm) {
+              $field_map = _regnum_group_field_map("regnum_change", "officers");
+              $officer_field_name = $field_map['office'];
+              $officer_term = $current_page->$officer_field_name->value();
+              $officer_term = reset($officer_term);
+              if (in_array($officer_term->tid, $info['group-configuration']['approver-offices'])) {
+                // look up the domain whose sitename == $branch_term->name.
+                $branch_field_name = $field_map['branch'];
+                $branch_term = $current_page->$branch_field_name->value();
+                $branch_term = reset($branch_term);
+                $domain = _regnum_domain_sitename_load($branch_term->name);
+                // If the domain does not exist, then show a block offering to create it.
+                if (empty($domain)) {
+                  $block['subject'] = t('Domain for ' . $branch_term->name);
+                  $block['content'] = drupal_get_form('regnum_create_subdomain', $branch_term->tid);
+                }
+              }
+            }
+          }
+        }
       }
       break;
   }
@@ -2005,6 +2043,38 @@ function regnum_domain_parent_term_list($domain = FALSE) {
   return $result;
 }
 
+function regnum_create_subdomain($form, &$form_state, $domain) {
+  // TODO: we should figure out what the path for the domain would
+  // be, and figure out if DNS has been configured correctly.  We
+  // should include a message that says that everything is okay, or
+  // gives instructions on how to test.
+
+  $form['description'] = array(
+    '#type' => 'item',
+    '#markup' => t('A subdomain does not exist for this branch yet. You may create it if you wish.'),
+  );
+  // This is the first form element. It's a textfield with a label, "Name"
+  $form['domain'] = array(
+    '#type' => 'hidden',
+    '#value' => $domain,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Create',
+  );
+  return $form;
+}
+
+// TODO: validate the form -- insure that user is allowed to create this domain, etc.
+
+function regnum_create_subdomain_submit(&$form_state) {
+  $branch_tid = $form_state['domain']['#value'];
+  $branch_term = taxonomy_term_load($branch_tid);
+  $domain = regnum_domain_add($branch_term);
+  // Redirect to our newly-created domain
+  drupal_goto($domain['path']);
+}
+
 function regnum_domain_add($branch_term) {
   $start_weight = (int) db_query("SELECT weight FROM {domain} ORDER BY weight DESC")->fetchField();
   $sitename = $branch_term->name;
@@ -2025,6 +2095,7 @@ function regnum_domain_add($branch_term) {
   if (isset($domain['domain_id'])) {
     regnum_domain_initialize($domain);
   }
+  return $domain;
 }
 
 function regnum_domain_initialize($domain) {
@@ -2069,5 +2140,35 @@ function regnum_domain_initialize($domain) {
   if (empty($slogan)) {
     // set the created menu as the domain's main menu
     domain_conf_variable_set($domain['domain_id'], '$slogan', strip_tags($branch_term->description));
+  }
+  // Create all of the requisite aliases for this domain
+  _regnum_create_domain_alias($domain, array('dev', 'stage', 'backup', 'update'));
+
+  // TODO: email address for domain?
+
+  // TODO: set theme for domain.
+}
+
+// domain_alias does not include an API function to create aliases.
+function _regnum_create_domain_alias($domain, $alias_prefixes, $redirect = 0) {
+  if (module_exists("domain_alias")) {
+    $domain_id = $domain['domain_id'];
+    $alias_list = domain_alias_list($domain_id);
+    $existing_aliases = array();
+    foreach ($alias_list as $alias_id => $info) {
+      $existing_aliases[$info['pattern']] = $info;
+    }
+    foreach ($alias_prefixes as $alias_prefix) {
+      $pattern = $alias_prefix . '.' . $domain['subdomain'];
+      if (!array_key_exists($pattern, $existing_aliases)) {
+        db_insert('domain_alias')
+          ->fields(array(
+              'domain_id' => $domain_id,
+              'pattern' => $pattern,
+              'redirect' => $redirect,
+            ))
+          ->execute();
+      }
+    }
   }
 }
