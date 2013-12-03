@@ -680,7 +680,7 @@ function _wk_full_parentage($domain = FALSE) {
  * adapts to the current domain) to make it easy for branch domain web
  * ministers to customize their main menu, if they wish.
  */
-function _wk_create_branch_menu($branch_term, $homepage_nid) {
+function _wk_create_branch_menu($branch_term, $homepage_path) {
   $branch_id = $branch_term->tid;
   $short_name = _wk_term_short_name($branch_term);
   $menu_name = _wk_to_machine_name(_wk_term_short_name($branch_term)) . '-main-menu';
@@ -694,7 +694,7 @@ function _wk_create_branch_menu($branch_term, $homepage_nid) {
   $menu_items = array(
     array(
       'link_title' => t("Welcome"),
-      'link_path' => "node/$homepage_nid",
+      'link_path' => "$homepage_path",
     ),
     array(
       'link_title' => t("Calendar"),
