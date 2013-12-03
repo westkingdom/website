@@ -15,6 +15,7 @@
 function _regnum_configured_entityforms() {
   return array(
     'regnum_change' => array(
+      'form-bundle' => 'regnum_change',
       'group-bundle' => 'officers',
       'user-identification-fields' => array(
         'name' => 'field_society_name',
@@ -118,7 +119,6 @@ function regnum_user_access($entityform_bundle, $user = NULL) {
 function regnum_assign_officer($user_officer_info, $group_info) {
   // Get a reference to the user and the office being assigned to.
   $user = _regnum_get_or_create_user($user_officer_info);
-  //var_export($user);
 
   // If we create the node, we make it owned by the specified user;
   // by convention, group nodes are owned by the primary officer.
@@ -128,7 +128,6 @@ function regnum_assign_officer($user_officer_info, $group_info) {
   $owner_uid = $user_officer_info['deputy'] ? 0 : $user->uid;
 
   $officer_node = _regnum_get_or_create_officer_node($group_info, $owner_uid);
-  //var_export($officer_node);
 
   // If the user's email address has been changed, then
   // update it in the user record.
@@ -682,7 +681,6 @@ function _regnum_get_or_create_user($user_info) {
 function _regnum_configured_entityform($regnum_form_bundle) {
   $configured_forms = _regnum_configured_entityforms();
   $result = isset($configured_forms[$regnum_form_bundle]) ? $configured_forms[$regnum_form_bundle] : array();
-  $result['form-bundle'] = $regnum_form_bundle;
   return $result;
 }
 
@@ -1344,8 +1342,6 @@ function regnum_tokens($type, $tokens, array $data = array(), array $options = a
               }
             }
           }
-          //$lines[] = var_export($user_info, TRUE);
-          //$lines[] = var_export($group_info, TRUE);
           $replacements[$original] = implode("\n", $lines);
           break;
         default:
@@ -1977,9 +1973,9 @@ function _regnum_domain_sitename_load($sitename, $full = FALSE) {
  */
 function regnum_domain_taxonomy_term($domain = FALSE) {
   if (!$domain) {
-    $domain_info = domain_get_domain();
+    $domain = domain_get_domain();
   }
-  $branch = $domain_info['sitename'];
+  $branch = $domain['sitename'];
   $taxonomy_sets = _regnum_configured_taxonomy_sets();
   foreach ($taxonomy_sets as $entityform_bundle => $taxonomy_set) {
     $branch_vocabulary = $taxonomy_set[0]['vocabulary'];
@@ -2009,3 +2005,62 @@ function regnum_domain_parent_term_list($domain = FALSE) {
   return $result;
 }
 
+function regnum_domain_add($branch_term) {
+  $start_weight = (int) db_query("SELECT weight FROM {domain} ORDER BY weight DESC")->fetchField();
+  $sitename = $branch_term->name;
+  // Look up the default domain and get its URL.
+  $default_domain = domain_default();
+  $domain_base_url = $default_domain['subdomain'];
+  // TODO: need to call shortname via a hook. For now, make an illegal cross-module call to wk
+  $subdomain = _wk_term_short_name($branch_term);
+  $record = array(
+    'subdomain' => strtolower($subdomain) . '.' . $domain_base_url,
+    'sitename' => $sitename,
+    'valid' => 1,
+    'scheme' => 'http',
+    'weight' => $start_weight + 1,
+    'is_default' => 0,
+  );
+  $domain = domain_save($record, $record);
+  if (isset($domain['domain_id'])) {
+    regnum_domain_initialize($domain);
+  }
+}
+
+function regnum_domain_initialize($domain) {
+  $branch_term = regnum_domain_taxonomy_term($domain);
+
+  // Create a new home page for the new domain, if one has
+  // not already been set.
+  $homepage_path = domain_conf_variable_get($domain['domain_id'], 'site_frontpage');
+  if (empty($homepage_path)) {
+    $homepage_default_text = t("This is the recognized website for the !branch.", array('!branch' => $branch_term->name));
+
+    $node = new stdClass();
+    $node->type = 'page'; // TODO: what content type?
+    node_object_prepare($node);
+    $node->title = $sitename;
+    $node->language = LANGUAGE_NONE;
+    //$node->created = strtotime($item->created_on);
+    $node->uid = 1; // TODO: find $owner_uid; should be the web minister for the new domain
+
+    $node->body[$node->language][0] = array(
+      'value' => $homepage_default_text,
+      'format' => '1',
+    );
+
+    // n.b. Pathauto hooks fire, so node will be given a standard-format url
+    node_save($node);
+
+    $homepage_path = 'node/' . $node->nid;
+    // Save the path to the new homepage as this domain's front page
+    domain_conf_variable_set($domain['domain_id'], 'site_frontpage', "$homepage_path");
+  }
+  $main_menu_name = domain_conf_variable_get($domain['domain_id'], 'menu_main_links_source');
+  if (empty($main_menu_name) || ($main_menu_name == 'main-menu')) {
+    // TODO: create a menu for this domain. This should also be called via a hook
+    $menu = _wk_create_branch_menu($branch_term, $homepage_path);
+    // set the created menu as the domain's main menu
+    domain_conf_variable_set($domain['domain_id'], 'menu_main_links_source', $menu["menu_name"]);
+  }
+}
