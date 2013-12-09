@@ -147,7 +147,6 @@ function noggin_get_theme_asset_areas($theme_key, $theme_settings) {
     }
     $asset_number = $asset_number + 1;
   }
-  dpm($asset_areas);
   return $asset_areas;
 }
 
@@ -315,7 +314,6 @@ function noggin_theme_settings_submit($form, &$form_state) {
       $placement = $values['asset_placement_' . $asset_number];
       if (!empty($placement) && (array_key_exists($placement, $asset_areas))) {
         $values['asset_selector_' . $asset_number] = $asset_areas[$placement]['selector'];
-        dpm($asset_areas[$placement]['selector']);
       }
     }
     else {
@@ -334,15 +332,62 @@ function noggin_theme_settings_submit($form, &$form_state) {
   // If the user uploaded a new image asset, save it to a permanent location
   if ($file = $values['asset_upload']) {
     unset($values['asset_upload']);
-    $filename = file_unmanaged_copy($file->uri);
+    $filename = file_unmanaged_copy($file->uri, _noggin_asset_dir());
     $values['asset_path_' . $unused_asset_number] = $filename;
   }
+  // pre-generate our cached css file any time a our settings page is saved
+  // TODO: test to see if anything changed in our settings first?
+  // This clears the css cache.
+  nogin_regenerate_css();
+}
+
+function _noggin_asset_dir() {
+  $asset_dir = 'public://image_assets';
+  // If domain access is enabled, then put assets in a separate
+  // directory based on the active domain.
+  if (function_exists('domain_get_domain')) {
+    $domain = domain_get_domain();
+    $asset_dir .= '/' . $domain['machine_name'];
+  }
+  if (!is_dir($asset_dir)) {
+    drupal_mkdir($asset_dir, NULL, TRUE);
+  }
+  return $asset_dir;
+}
+
+functoin nogin_regenerate_css() {
+  $css_path = _noggin_asset_dir() . '/noggin.css';
+  _nogin_generate_css_file($css_path);
+}
+
+function _nogin_generate_css_file($file_path) {
+  $css = _nogin_generate_css();
+
+  if (!empty($css)) {
+    file_put_contents(drupal_realpath($file_path), $css);
+    // Clear the Drupal css cache whenever we regenerate our
+    // asset css, so that our generated file will be included
+    // in the new agregated content
+    _drupal_flush_css_js();
+    drupal_clear_css_cache();
+  }
+}
+
+function _nogin_generate_css() {
+  $asset_number = 1;
+  $css = "";
+  while (isset($theme_settings['asset_path_' . $asset_number])) {
+    $css .= _noggin_generate_asset_css($asset_number);
+    $asset_number = $asset_number + 1;
+  }
+  return $css;
 }
 
 /**
  * Calculate the css for one image asset.
  */
 function _noggin_generate_asset_css($asset_number) {
+  $css = '';
   // Get the CSS attribute settings
   $attributes = array();
   $attributes[] = theme_get_setting('asset_horizontal_alignment_' . $asset_number);
@@ -358,14 +403,44 @@ function _noggin_generate_asset_css($asset_number) {
   $path = theme_get_setting('asset_path_' . $asset_number);
   $image_path = file_create_url($path);
 
-  $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;}";
-
+  if (!empt($selector)) {
+    $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;}\n";
+  }
   return $css;
 }
 
 /**
- * Implements hook_preprocess_page().
+ * Implements hook_init
+ *
+ * According to https://api.drupal.org/api/drupal/includes!common.inc/function/drupal_add_css/7,
+ * hook_ini is the best place to call drupal_add_css
+ * when setting $options['preprocess']
  */
+function noggin_init() {
+  $css_path = _noggin_asset_dir() . '/noggin.css';
+
+  if (!file_exists($css_path)) {
+    _nogin_generate_css_file($css_path);
+  }
+
+  if (file_exists($css_path)) {
+    drupal_add_css($css_path, array(
+        'type' => 'file',
+        'group' => CSS_THEME,
+        'weight' => 99,
+        'every_page' => TRUE,
+        'preprocess' => TRUE,
+      )
+    );
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * TODO: If we have any dynamic selectors to generate, then
+ * put them in here, like this.
+ *
 function noggin_preprocess_page(&$vars) {
   // Get the CSS attribute settings
   $attributes = array();
@@ -416,3 +491,4 @@ function noggin_preprocess_page(&$vars) {
     )
   );
 }
+ */
