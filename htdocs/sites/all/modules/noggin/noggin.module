@@ -195,7 +195,7 @@ function noggin_form_alter(&$form, &$form_state, $form_id) {
     //dsm($form_state);
 
     $form['#validate'][] = 'noggin_theme_settings_validate';
-    $form['#submit'][] = 'noggin_theme_settings_submit';
+    array_unshift($form['#submit'], 'noggin_theme_settings_submit');
   }
 }
 
@@ -236,7 +236,7 @@ function noggin_theme_settings_validate($form, &$form_state) {
  * from the Noggin fields.
  */
 function noggin_theme_settings_submit($form, &$form_state) {
-  $values = $form_state['values'];
+  $values = &$form_state['values'];
   // If the user uploaded a new header image, save it to a permanent location
   if ($file = $values['header_upload']) {
     unset($values['header_upload']);
