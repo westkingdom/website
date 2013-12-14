@@ -30,3 +30,13 @@ regions[footer] = Footer
 
 settings[shortcut_module_link] = 0
 
+asset_areas[header][title] = Header
+asset_areas[header][selector] = #header .section
+asset_areas[edge_l][title] = Left edge
+asset_areas[edge_l][selector] = #edge_l
+asset_areas[edge_r][title] = Right edge
+asset_areas[edge_r][selector] = #edge_r
+asset_areas[supporter_l][title] = Left Supporter
+asset_areas[supporter_l][selector] = #supporter_l
+asset_areas[supporter_r][title] = Right Supporter
+asset_areas[supporter_r][selector] = #supporter_r
