@@ -188,10 +188,35 @@ function wk_preprocess_node(&$vars) {
  * Implements hook_form_alter
  */
 function wk_form_alter(&$form, &$form_state) {
+  global $user;
   //dpm($form);
   //dpm($form_state);
   //dpm($form_state['node']);
   //dpm(current_path());
+  if ($form['#id'] == 'domain-overview-form') {
+    if (TRUE || !user_access('administer domains')) {
+      $no_domains = TRUE;
+      foreach ($form['domain'] as $key => $info) {
+        if (is_array($info) && array_key_exists('values', $info)) {
+          $domain = $info['values']['#value'];
+          if (!array_key_exists($domain['domain_id'], $user->domain_user)) {
+            unset($form['domain'][$key]);
+            unset($form['domain_actions'][$key]);
+            unset($form['default_domain']['#options'][$key]);
+          }
+          else {
+            $no_domains = FALSE;
+          }
+        }
+      }
+      // If the user cannot change the default domain,
+      // clear the submit button.
+      unset ($form['submit']);
+      if ($no_domains) {
+        $form['top']['#markup'] = t('You have no domains that you can edit.');
+      }
+    }
+  }
   if ($form['#id'] == 'domain_form') {
     if (!user_access('administer domains')) {
       foreach ($form as $key => $info) {
