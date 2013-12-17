@@ -36,10 +36,6 @@ a.site5 {
 
 /* ############# Begin Supporters CSS ############# */
 
-body
-{
-    background: transparent url(../img/wk_mainbg.png) 50% 0% repeat;
-}
 
 #page-wrapper
 {
@@ -47,16 +43,6 @@ body
   width: 100%;
   margin-left: auto;
   margin-right: auto;
-}
-
-#edge_l
-{
-  background: url('../img/border_vert_or_l.png') 0% 0% repeat-y;
-}
-
-#edge_r
-{
-  background: url('../img/border_vert_or_r.png') 100% 0% repeat-y;
 }
 
 #supporter-wrapper
