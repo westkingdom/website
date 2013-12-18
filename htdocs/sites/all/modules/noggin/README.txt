@@ -4,6 +4,7 @@
    Noggin allows users to add or change the header images.
    The original module was coded by Jeff Eaton. Later work
    has been contributed by Jeff Burnz and Stefan Borchert.
+   Multi-asset support added by greg-1-anderson.
 
    Noggin was originally designed for use with Bartik and
    other core themes, however Noggin will now work with
@@ -15,6 +16,8 @@
    - Set a background color
    - Set height of the header
    - Add extra CSS declarations
+
+   ... and do this multiple times, for multiple images.
 
 
 ## CSS SELECTOR
@@ -33,6 +36,18 @@
    - AT Commerce: #header-wrapper or #header-wrapper .container
    - Pixture Reloaded: #header .header-innner
 
+   Themes may also declare "asset areas", where images can be
+   applied.  This is done by adding records to the theme's .info
+   file.  A simple theme that defines a record for the theme
+   header and the page background would look like this:
+
+      asset_areas[header][title] = Header
+      asset_areas[header][selector] = #header .section
+      asset_areas[background][title] = Background
+      asset_areas[background][selector] = body
+
+   Themes may define as many areas as they wish; each one just
+   needs a title, and the css selector that applies to the element.
 
 ## HEADER HEIGHT
 
@@ -55,6 +70,8 @@
    ~/sites/all/themes/mytheme/header-images
 
    Images must be either .png or .jpg.
+
+   This is currently broken in the multiple-asset version of Noggin.
 
 
 ## HELP!!!
