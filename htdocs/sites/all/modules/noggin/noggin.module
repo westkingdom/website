@@ -4,6 +4,9 @@
  *
  * @param $key
  *   The name of the theme fom which to load additional images.
+ *
+ * TODO: predefined images broken (not implemented).  Need to
+ * design a new feature that is more suited to multiple image assets
  */
 function noggin_get_available_images($key = NULL) {
   $defaults = array(
@@ -119,8 +122,6 @@ function noggin_form_alter(&$form, &$form_state, $form_id) {
       '#maxlength' => 40,
       '#description' => t("If you don't have direct file access to the server, use this field to upload your image asset.")
     );
-
-    //dsm($form_state);
 
     $form['#validate'][] = 'noggin_theme_settings_validate';
     array_unshift($form['#submit'], 'noggin_theme_settings_submit');
@@ -334,6 +335,9 @@ function noggin_theme_settings_submit($form, &$form_state) {
   }
   // Pick a directory to store our assets in.
   $asset_dir = "public://image_assets/$theme_key";
+  // If domain access is in use, also further
+  // segregate images for different domains sharing
+  // the same theme.
   if (module_exists('domain')) {
     if (array_key_exists('domain_id', $form)) {
       $domain_id = $form['domain_id']['#value'];
@@ -356,16 +360,54 @@ function noggin_theme_settings_submit($form, &$form_state) {
   // This clears the css cache.
   $css_file = $asset_dir . '/noggin.css';
   $values['css_file'] = $css_file;
-  if (file_exists($css_file)) {
-    unlink($css_file);
+  _noggin_generate_css_file($css_file, $values);
+}
+
+/**
+ * Rebuild our cached css file after all of the other
+ * submit hooks have had a chance to run.
+ */
+function noggin_rebuild_css_file() {
+  $css_file = theme_get_setting('css_file');
+  if (!empty($css_file)) {
+    $values = _noggin_get_values_from_theme_settings();
+    _noggin_generate_css_file($css_file, $values);
   }
 }
 
-function _nogin_generate_css_file($file_path) {
-  $css = _nogin_generate_css();
+/**
+ *  If we need to rebuild our css file at any time other than
+ *  during a form_submit, we need to recreate a $values[] array
+ *  from theme_get_settings().
+ */
+function _noggin_get_values_from_theme_settings() {
+  $values = array();
+  $asset_number = 1;
+  while ($path = theme_get_setting('asset_path_' . $asset_number)) {
+    $values['asset_path_' . $asset_number] = $path;
+    $values['asset_horizontal_alignment_' . $asset_number] = theme_get_setting('asset_horizontal_alignment_' . $asset_number);
+    $values['asset_vertical_alignment_' . $asset_number] = theme_get_setting('asset_vertical_alignment_' . $asset_number);
+    $values['asset_image_repeat_' . $asset_number] = theme_get_setting('asset_image_repeat_' . $asset_number);
+    $values['asset_color_' . $asset_number] = theme_get_setting('asset_color_' . $asset_number);
+    $values['extra_attributes_' . $asset_number] = theme_get_setting('extra_attributes_' . $asset_number);
+    $values['asset_image_width_' . $asset_number] = theme_get_setting('asset_image_width_' . $asset_number);
+    $values['asset_image_height_' . $asset_number] = theme_get_setting('asset_image_height_' . $asset_number);
+    $values['asset_selector_' . $asset_number] = theme_get_setting('asset_selector_' . $asset_number);
+    $asset_number = $asset_number + 1;
+  }
+  return $values;
+}
+
+/**
+ *  Generate the css for our static assets, and cache
+ *  them in a file that will be provided to Drupal in
+ *  a way that allows it to be aggregated with other css
+ *  files (if css aggregation is turned on).
+ */
+function _noggin_generate_css_file($file_path, $values) {
+  $css = _noggin_generate_css($values);
 
   if (!empty($css)) {
-    dpm($file_path);
     file_put_contents($file_path, $css);
     // Clear the Drupal css cache whenever we regenerate our
     // asset css, so that our generated file will be included
@@ -375,11 +417,14 @@ function _nogin_generate_css_file($file_path) {
   }
 }
 
-function _nogin_generate_css() {
+/**
+ *  Generate the raw css text for our static assets.
+ */
+function _noggin_generate_css($values) {
   $asset_number = 1;
   $css = "";
-  while ($path = theme_get_setting('asset_path_' . $asset_number)) {
-    $css .= _noggin_generate_asset_css($asset_number);
+  while (array_key_exists('asset_path_' . $asset_number, $values)) {
+    $css .= _noggin_generate_asset_css($values, $asset_number);
     $asset_number = $asset_number + 1;
   }
   return $css;
@@ -388,25 +433,28 @@ function _nogin_generate_css() {
 /**
  * Calculate the css for one image asset.
  */
-function _noggin_generate_asset_css($asset_number) {
+function _noggin_generate_asset_css($values, $asset_number) {
   $css = '';
   // Get the CSS attribute settings
   $attributes = array();
-  $attributes[] = theme_get_setting('asset_horizontal_alignment_' . $asset_number);
-  $attributes[] = theme_get_setting('asset_vertical_alignment_' . $asset_number);
-  $attributes[] = theme_get_setting('asset_image_repeat_' . $asset_number);
-  $attributes[] = theme_get_setting('asset_color_' . $asset_number);
-  $attributes[] = theme_get_setting('extra_attributes_' . $asset_number);
+  $attributes[] = $values['asset_horizontal_alignment_' . $asset_number];
+  $attributes[] = $values['asset_vertical_alignment_' . $asset_number];
+  $attributes[] = $values['asset_image_repeat_' . $asset_number];
+  $attributes[] = $values['asset_color_' . $asset_number];
+  $attributes[] = $values['extra_attributes_' . $asset_number];
   $all_attributes = implode(' ', $attributes);
   // Get width and height
-  $width = theme_get_setting('asset_image_width_' . $asset_number);
-  $height = theme_get_setting('asset_image_height_' . $asset_number) ? theme_get_setting('asset_image_height_' . $asset_number) : 'auto';
-  $selector = theme_get_setting('asset_selector_' . $asset_number);
-  $path = theme_get_setting('asset_path_' . $asset_number);
-  $image_path = file_create_url($path);
+  $width = $values['asset_image_width_' . $asset_number];
+  $height = $values['asset_image_height_' . $asset_number] ? $values['asset_image_height_' . $asset_number] : 'auto';
+  $selector = $values['asset_selector_' . $asset_number];
+  $path = $values['asset_path_' . $asset_number];
 
-  if (!empty($selector)) {
+  if (!empty($selector) && !empty($path)) {
+    $image_path =  file_create_url($path);
+    $image_path =  parse_url($image_path, PHP_URL_PATH);
     $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;}\n";
+    // Collapse multiple adjacent spaces into a single space
+    $css = preg_replace('/  */', ' ', $css);
   }
   return $css;
 }
@@ -422,9 +470,6 @@ function noggin_init() {
   if (!function_exists('drush_main')) {
     $css_file = theme_get_setting('css_file');
     if (!empty($css_file)) {
-      if (!file_exists($css_file)) {
-        _nogin_generate_css_file($css_file);
-      }
       if (file_exists($css_file)) {
         drupal_add_css($css_file, array(
             'type' => 'file',
