@@ -56,3 +56,44 @@ a:active {
 #secondary-menu-links li a {
   color: #fffeff;
 }
+
+/* ---------- Calendar Colors ----------- */
+
+.page .calendar-calendar .month-view .full td.single-day div.monthview,
+.page .calendar-calendar .week-view .full td.single-day div.weekview,
+.page .calendar-calendar .day-view .full td.single-day div.dayview {
+  color: #666;
+}
+
+.page .calendar-calendar .month-view .full td.multi-day div.monthview,
+.page .calendar-calendar .week-view .full td.multi-day div.weekview,
+.page .calendar-calendar .day-view .full td.multi-day div.dayview {
+  color: #666;
+  background: #FEB;
+}
+
+.page .calendar-calendar .month-view .full td.multi-day .inner div.monthview .continues,
+.page .calendar-calendar .week-view .full td.multi-day .inner div.weekview .continues,
+.page .calendar-calendar .day-view .full td.multi-day .inner div.dayview .continues {
+  color: #666;
+  background: #EDA;
+}
+
+.page .calendar-calendar .month-view .full td.multi-day .inner div.monthview .cutoff,
+.page .calendar-calendar .week-view .full td.multi-day .inner div.weekview .cutoff,
+.page .calendar-calendar .day-view .full td.multi-day .inner div.dayview .cutoff {
+  color: #666;
+  background: #EDA;
+}
+
+.page .calendar-calendar .month-view .full td.single-day .inner div.monthview a:link,
+.page .calendar-calendar .week-view .full td.single-day .inner div.weekview a:visited,
+.page .calendar-calendar .day-view .full td.single-day .inner div.dayview a:hover {
+  color: #000;
+}
+
+.page .calendar-calendar .month-view .full td.multi-day .inner div.monthview a:link,
+.page .calendar-calendar .week-view .full td.multi-day .inner div.weekview a:visited,
+.page .calendar-calendar .day-view .full td.multi-day .inner div.dayview a:hover {
+  color: #000;
+}
