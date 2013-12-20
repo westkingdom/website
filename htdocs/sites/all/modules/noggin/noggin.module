@@ -181,7 +181,7 @@ function _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path
         ':input[name="asset_placement_' . $asset_number . '"]' => array('value' => 'advanced'),
       ),
     ),
-    '#default_value' => isset($theme_settings['asset_selector_' . $asset_number]) ? $theme_settings['asset_selector_' . $asset_number] : '#header',
+    '#default_value' => isset($theme_settings['asset_selector_' . $asset_number]) ? $theme_settings['asset_selector_' . $asset_number] : $asset_number == 1 ? '#header' : '',
     '#description' => t('The CSS selector to use when placing the image asset.'),
     '#size' => 30,
   );
@@ -270,7 +270,12 @@ function _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path
  */
 function noggin_theme_settings_validate($form, &$form_state) {
   // Handle file uploads.
-  $validators = array('file_validate_is_image' => array());
+  // n.b. If we do not provide file_validate_extensions, then
+  // file_save_upload will add one with default extensions.
+  $validators = array(
+    'noggin_file_validate_is_image_or_zip' => array(),
+    'file_validate_extensions' => array('jpg jpeg gif png zip'),
+  );
   // Check for a new uploaded logo.
   $file = file_save_upload('asset_upload', $validators);
   if (isset($file)) {
@@ -289,13 +294,73 @@ function noggin_theme_settings_validate($form, &$form_state) {
   $asset_number = 1;
   while (isset($form_state['values']['asset_path_' . $asset_number])) {
     if (!empty($form_state['values']['asset_path_' . $asset_number])) {
-      $path = _system_theme_settings_validate_path($form_state['values']['asset_path_' . $asset_number]);
+      $path = noggin_settings_validate_path($form_state['values']['asset_path_' . $asset_number]);
       if (!$path) {
         form_set_error('asset_path_' . $asset_number, t('The custom image asset path !path is invalid.', array('!path' => $form_state['values']['asset_path_' . $asset_number])));
       }
     }
     $asset_number = $asset_number + 1;
   }
+}
+
+/**
+ * Copy of _system_theme_settings_validate_path(),
+ * but uses 'file_exists' instead of 'is_file'.
+ */
+function noggin_settings_validate_path($path) {
+  // Absolute local file paths are invalid.
+  if (drupal_realpath($path) == $path) {
+    return FALSE;
+  }
+  // A path relative to the Drupal root or a fully qualified URI is valid.
+  if (file_exists($path)) {
+    return $path;
+  }
+  // Prepend 'public://' for relative file paths within public filesystem.
+  if (file_uri_scheme($path) === FALSE) {
+    $path = 'public://' . $path;
+  }
+  if (file_exists($path)) {
+    return $path;
+  }
+  return FALSE;
+}
+
+/**
+ *  Copy of file_validate_is_image(), but also accepts
+ *  zip files if they contain nothing but images.
+ */
+function noggin_file_validate_is_image_or_zip(stdClass $file) {
+  $errors = array();
+
+  $path_parts = pathinfo($file->filename);
+  if ($path_parts['extension'] == "zip") {
+    $zip = new ArchiverZip($file->uri);
+    foreach($zip->listContents() as $zip_entry) {
+      // Ignore the directories
+      if (substr($zip_entry, -1) != '/') {
+        // Check to see if each file is an image, or something else
+        $path_parts = pathinfo($zip_entry);
+        switch ($path_parts['extension']) {
+          case 'jpg':
+          case 'jpeg':
+          case 'gif':
+          case 'png':
+            break;
+          default:
+            $errors[] = t('Zip file can only contain images; the file !entry is not allowed.', array('!entry' => $zip_entry));
+        }
+      }
+    }
+  }
+  else {
+    $info = image_get_info($file->uri);
+    if (!$info || empty($info['extension'])) {
+      $errors[] = t('Only JPEG, PNG and GIF images, or zip files containing images, are allowed.');
+    }
+  }
+
+  return $errors;
 }
 
 /**
@@ -314,7 +379,7 @@ function noggin_theme_settings_submit($form, &$form_state) {
     // If the user entered a path relative to the system files directory for
     // a image asset, store a public:// URI so the theme system can handle it.
     if (!empty($values['asset_path_' . $asset_number])) {
-      $values['asset_path_' . $asset_number] = _system_theme_settings_validate_path($values['asset_path_' . $asset_number]);
+      $values['asset_path_' . $asset_number] = noggin_settings_validate_path($values['asset_path_' . $asset_number]);
       $placement = $values['asset_placement_' . $asset_number];
       if (!empty($placement) && (array_key_exists($placement, $asset_areas))) {
         $values['asset_selector_' . $asset_number] = $asset_areas[$placement]['selector'];
@@ -352,15 +417,47 @@ function noggin_theme_settings_submit($form, &$form_state) {
   // If the user uploaded a new image asset, save it to a permanent location
   if ($file = $values['asset_upload']) {
     unset($values['asset_upload']);
-    $filename = file_unmanaged_copy($file->uri, $asset_dir);
-    $values['asset_path_' . $unused_asset_number] = $filename;
+    $path_parts = pathinfo($file->filename);
+    // If the upload is a zip file, extract it.
+    if ($path_parts['extension'] == "zip") {
+      $zip = new ArchiverZip(drupal_realpath($file->uri));
+      $contents = $zip->listContents();
+      $first_zip_entry = reset($contents);
+      $zip_base_directory = (substr($first_zip_entry, -1) == '/') ? $first_zip_entry : '';
+      $zip->extract($asset_dir);
+      // If there are no directories in the zipfile, then
+      // upload each image, creating a separate asset for each.
+      if (empty($zip_base_directory)) {
+        foreach ($contents as $zip_entry) {
+          // Hopefully, there is either one single base directory,
+          // or no directories at all in this zipfile.  We'll test
+          // to be sure, though, and skip any directories.
+          if (substr($zip_entry, -1) != '/') {
+            $values += _noggin_get_values_for_asset($unused_asset_number);
+            $values['asset_path_' . $unused_asset_number] = $asset_dir . '/' . $zip_entry;
+            $unused_asset_number = $unused_asset_number + 1;
+          }
+        }
+      }
+      else {
+        // If this is a zip file with a folder full of images,
+        // then create just one new asset entry pointing at the
+        // folder full of files.
+        $values['asset_path_' . $unused_asset_number] = $asset_dir . '/' . $zip_base_directory;
+      }
+    }
+    // If the upload is not a zip file, then copy it.
+    else {
+      $filename = file_unmanaged_copy($file->uri, $asset_dir);
+      $values['asset_path_' . $unused_asset_number] = $filename;
+    }
   }
   // pre-generate our cached css file any time a our settings page is saved
   // TODO: test to see if anything changed in our settings first?
   // This clears the css cache.
   $css_file = $asset_dir . '/noggin.css';
   $values['css_file'] = $css_file;
-  _noggin_generate_css_file($css_file, $values);
+  _noggin_generate_static_css_file($css_file, $values);
 }
 
 /**
@@ -371,7 +468,7 @@ function noggin_rebuild_css_file() {
   $css_file = theme_get_setting('css_file');
   if (!empty($css_file)) {
     $values = _noggin_get_values_from_theme_settings();
-    _noggin_generate_css_file($css_file, $values);
+    _noggin_generate_static_css_file($css_file, $values);
   }
 }
 
@@ -384,17 +481,26 @@ function _noggin_get_values_from_theme_settings() {
   $values = array();
   $asset_number = 1;
   while ($path = theme_get_setting('asset_path_' . $asset_number)) {
-    $values['asset_path_' . $asset_number] = $path;
-    $values['asset_horizontal_alignment_' . $asset_number] = theme_get_setting('asset_horizontal_alignment_' . $asset_number);
-    $values['asset_vertical_alignment_' . $asset_number] = theme_get_setting('asset_vertical_alignment_' . $asset_number);
-    $values['asset_image_repeat_' . $asset_number] = theme_get_setting('asset_image_repeat_' . $asset_number);
-    $values['asset_color_' . $asset_number] = theme_get_setting('asset_color_' . $asset_number);
-    $values['extra_attributes_' . $asset_number] = theme_get_setting('extra_attributes_' . $asset_number);
-    $values['asset_image_width_' . $asset_number] = theme_get_setting('asset_image_width_' . $asset_number);
-    $values['asset_image_height_' . $asset_number] = theme_get_setting('asset_image_height_' . $asset_number);
-    $values['asset_selector_' . $asset_number] = theme_get_setting('asset_selector_' . $asset_number);
+    $values += _noggin_get_values_for_asset($asset_number);
     $asset_number = $asset_number + 1;
   }
+  return $values;
+}
+
+/**
+ * Get the current values for one particular asset.
+ */
+function _noggin_get_values_for_asset($asset_number) {
+  $values['asset_path_' . $asset_number] = theme_get_setting('asset_path_' . $asset_number);
+  $values['asset_horizontal_alignment_' . $asset_number] = theme_get_setting('asset_horizontal_alignment_' . $asset_number);
+  $values['asset_vertical_alignment_' . $asset_number] = theme_get_setting('asset_vertical_alignment_' . $asset_number);
+  $values['asset_image_repeat_' . $asset_number] = theme_get_setting('asset_image_repeat_' . $asset_number);
+  $values['asset_color_' . $asset_number] = theme_get_setting('asset_color_' . $asset_number);
+  $values['extra_attributes_' . $asset_number] = theme_get_setting('extra_attributes_' . $asset_number);
+  $values['asset_image_width_' . $asset_number] = theme_get_setting('asset_image_width_' . $asset_number);
+  $values['asset_image_height_' . $asset_number] = theme_get_setting('asset_image_height_' . $asset_number);
+  $values['asset_selector_' . $asset_number] = theme_get_setting('asset_selector_' . $asset_number);
+
   return $values;
 }
 
@@ -404,8 +510,8 @@ function _noggin_get_values_from_theme_settings() {
  *  a way that allows it to be aggregated with other css
  *  files (if css aggregation is turned on).
  */
-function _noggin_generate_css_file($file_path, $values) {
-  $css = _noggin_generate_css($values);
+function _noggin_generate_static_css_file($file_path, $values) {
+  $css = _noggin_generate_static_css($values);
 
   if (!empty($css)) {
     file_put_contents($file_path, $css);
@@ -420,11 +526,41 @@ function _noggin_generate_css_file($file_path, $values) {
 /**
  *  Generate the raw css text for our static assets.
  */
-function _noggin_generate_css($values) {
+function _noggin_generate_static_css($values) {
   $asset_number = 1;
   $css = "";
   while (array_key_exists('asset_path_' . $asset_number, $values)) {
-    $css .= _noggin_generate_asset_css($values, $asset_number);
+    // skip dynamic assets
+    if (_noggin_asset_is_static($values, $asset_number)) {
+      $asset_css = _noggin_generate_asset_css($values, $asset_number);
+      $css .= $asset_css;
+    }
+    $asset_number = $asset_number + 1;
+  }
+  return $css;
+}
+
+/**
+ *  Return TRUE if the asset is static
+ */
+function _noggin_asset_is_static($values, $asset_number) {
+  $path = $values['asset_path_' . $asset_number];
+
+  return !is_dir($path);
+}
+
+/**
+ *  Generate the raw css text for our dynamic assets.
+ */
+function _noggin_generate_dynamic_css($values) {
+  $asset_number = 1;
+  $css = "";
+  while (array_key_exists('asset_path_' . $asset_number, $values)) {
+    // include only dynamic assets
+    if (!_noggin_asset_is_static($values, $asset_number)) {
+      $asset_css = _noggin_generate_asset_css($values, $asset_number);
+      $css .= $asset_css;
+    }
     $asset_number = $asset_number + 1;
   }
   return $css;
@@ -449,6 +585,19 @@ function _noggin_generate_asset_css($values, $asset_number) {
   $selector = $values['asset_selector_' . $asset_number];
   $path = $values['asset_path_' . $asset_number];
 
+  // If the asset points to a directory instead of a file,
+  // then find and return a random file from that directory.
+  if (is_dir($path)) {
+    $images = file_scan_directory($path, '/.*\.(png|jpg|jpeg|gif)/');
+    if (empty($images)) {
+      $path = '';
+    }
+    else {
+      $path = array_rand($images);
+    }
+  }
+
+  // If we have a selector and an image, generate the css
   if (!empty($selector) && !empty($path)) {
     $image_path =  file_create_url($path);
     $image_path =  parse_url($image_path, PHP_URL_PATH);
@@ -486,53 +635,10 @@ function noggin_init() {
 
 /**
  * Implements hook_preprocess_page().
- *
- * TODO: If we have any dynamic selectors to generate, then
- * put them in here, like this.
- *
+ */
 function noggin_preprocess_page(&$vars) {
-  // Get the CSS attribute settings
-  $attributes = array();
-  $attributes[] = theme_get_setting('asset_horizontal_alignment');
-  $attributes[] = theme_get_setting('asset_vertical_alignment');
-  $attributes[] = theme_get_setting('asset_image_repeat');
-  $attributes[] = theme_get_setting('asset_color');
-  $attributes[] = theme_get_setting('extra_attributes');
-  $all_attributes = implode(' ', $attributes);
-  // Get width and height
-  $width = theme_get_setting('asset_image_width');
-  $height = theme_get_setting('asset_image_height') ? theme_get_setting('asset_image_height') : 'auto';
-  // Image asset and CSS selector
-  $asset = theme_get_setting('image_assets');
-  $selector = theme_get_setting('asset_selector');
-  // Get the path to the image
-  switch ($asset) {
-    case NULL:
-    case FALSE:
-      return;
-
-    case 'custom':
-      $path = theme_get_setting('asset_path');
-      $image_path = file_create_url($path);
-      break;
-
-    default:
-      // Get key and filename
-      list($key, $file) = explode(':', $asset);
-      switch ($key) {
-        case 'noggin':
-          // Image provided by module Noggin
-          $image_path = file_create_url(drupal_get_path('module', 'noggin') . '/headers');
-          break;
-        default:
-          // Image provided by theme
-          $image_path = file_create_url(drupal_get_path('theme', $key) . '/header-images');
-          break;
-      }
-      $image_path .= "/$file";
-  }
-  $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;}";
-  // TODO: possibly save this in a file?
+  $values = _noggin_get_values_from_theme_settings();
+  $css = _noggin_generate_dynamic_css($values);
   drupal_add_css($css, array(
     'type' => 'inline',
     'group' => CSS_THEME,
@@ -540,4 +646,3 @@ function noggin_preprocess_page(&$vars) {
     )
   );
 }
- */
