@@ -1,8 +1,171 @@
+
+/* ############# Begin Text Size and Style CSS ############# */
+
+h1 {
+  font-size: 24px;
+}
+
+/* ############# End Text Size and Style CSS ############# */
+
+/* ############# Begin Image CSS ############# */
+
+.file-image .image-frame {
+  width: 100%;
+}
+
+.file-image img {
+  width: 100%;
+  height: auto;
+  border: 2px solid black;
+}
+
+.field-name-field-file-image-title-text {
+  text-align: center;
+  font-weight: bold;
+}
+
+/* ############# End Image CSS ############# */
+
+
+/* ############# Begin Search & Login Block CSS ############# */
+
 .link-search,
 .block-search-id-form h3,
 .block-search-id-form .edit-block {
   display: none;
 }
+
+/* ############# End Search & Login Block CSS ############# */
+
+/* ############# Begin Calendar Event Node CSS ############# */
+
+.submitted {
+  display: none;
+}
+
+.calendar-event-arms {
+  width: 100%;
+  z-index: 1;
+}
+
+.calendar-event-arms .field-label {
+  display: none;
+}
+
+.calendar-event-arms img {
+  height: 96px;
+  width: auto;
+  margin-right: 16px;
+}
+
+.calendar-event-arms .left-arms img {
+  float: left;
+}
+
+.calendar-event-arms .right-arms img {
+  float: right;
+}
+
+.field-name-field-prequel {
+  margin-bottom: 16px;
+}
+
+.field-name-field-file-image-title-text {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.node-cal-event .field-name-field-event-site .field-label {
+  float: left;
+}
+
+.node-cal-event .field-name-field-event-site .node-location .field-label {
+  float: none;
+}
+
+.node-cal-event .node-location h2,
+.node-location .node-cal-event h2 {
+  font-size: 13px;
+  margin: 0px;
+}
+
+.node-location .node-cal-event {
+  margin-bottom: 16px;
+}
+
+.node-location .node-cal-event .clearfix:after {
+  clear: none;
+}
+
+.node-cal-event .node-location .street-address {
+  display: inline;
+  margin-right: 4px;
+}
+
+.node-cal-event .node-location .street-address:after {
+  margin-left: -4px;
+  content:", ";
+}
+
+.node-cal-event .node-location .country-name {
+  display: inline;
+}
+
+.node-cal-event .node-location .country-name:before {
+  content:" (";
+}
+
+.node-cal-event .node-location .country-name:after {
+  content:")";
+}
+
+.field-name-field-site-events {
+  clear: both;
+}
+
+.node-type-cal-event .event-info {
+  width: 100%;
+  z-index: 2;
+}
+
+.node-type-cal-event h1 {
+  text-align: center;
+  margin: 0px;
+}
+
+.node-type-cal-event .field-name-field-date {
+  text-align: center;
+}
+
+.node-type-cal-event .field-name-taxonomy-vocabulary-2 {
+  font-size: 16px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.node-type-cal-event .event-info .field-type-taxonomy-term-reference ul.links li {
+  float: none;
+}
+
+.cal-event-location-long-summary {
+  display: block;
+  text-align: center;
+  margin: 0px;
+}
+
+.past-events ul {
+  padding-left: 0px;
+}
+
+.past-events li {
+  list-style-type: none;
+  list-style-image: none;
+}
+
+
+/* ############# End Calendar Event Node CSS ############# */
+
+/* ############# Begin Footer CSS ############# */
 
 #block-wk-wk-related-sites img,
 .footer-contacts img {
@@ -33,9 +196,13 @@ a.site5 {
   text-align: center;
 }
 
+/* ############# End Footer CSS ############# */
 
-/* ############# Begin Supporters CSS ############# */
+/* ############# Begin Edge & Supporters CSS ############# */
 
+#zone-content-wrapper {
+  min-height: 600px;
+}
 
 #page-wrapper
 {
@@ -106,5 +273,5 @@ a.site5 {
 /* end hide */
 
 
-/* ############# End Supporters CSS ############# */
+/* ############# End Edge & Supporters CSS ############# */
 
