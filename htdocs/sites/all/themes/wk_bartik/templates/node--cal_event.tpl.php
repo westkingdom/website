@@ -86,13 +86,6 @@
     </h2>
   <?php endif; ?>
   <?php print render($title_suffix); ?>
-  <div class="event-info">
-    <?php print render($cal_event_date); ?>
-    <?php if (isset($cal_event_location_long_summary)) {
-      print '<div class="cal-event-location-long-summary">' . $cal_event_location_long_summary . '</div>';
-    } ?>
-    <?php print render($cal_event_branch); ?>
-  </div>
 
   <?php if ($display_submitted): ?>
     <footer class="meta submitted">
