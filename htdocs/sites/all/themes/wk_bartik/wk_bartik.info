@@ -31,7 +31,7 @@ regions[footer] = Footer
 settings[shortcut_module_link] = 0
 
 asset_areas[header][title] = Header
-asset_areas[header][selector] = #header .section
+asset_areas[header][selector] = .page-with-background #header .section, .borderless-page #header
 asset_areas[background][title] = Background
 asset_areas[background][selector] = body.page-with-background
 asset_areas[edge_l][title] = Left edge
