@@ -27,7 +27,17 @@ h1 {
 /* ############# End Image CSS ############# */
 
 
-/* ############# Begin Search & Login Block CSS ############# */
+/* ############# Begin Header CSS ############# */
+
+
+/* ----- Logo CSS ----- */
+
+#logo {
+  padding-bottom: 0px;
+  margin-bottom: -8px;
+}
+
+/* ----- Search and login CSS ----- */
 
 .link-search,
 .block-search-id-form h3,
@@ -35,7 +45,7 @@ h1 {
   display: none;
 }
 
-/* ############# End Search & Login Block CSS ############# */
+/* ############# End Header CSS ############# */
 
 /* ############# Begin Calendar Event Node CSS ############# */
 
