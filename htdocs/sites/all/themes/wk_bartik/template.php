@@ -20,7 +20,6 @@ function wk_bartik_process_page(&$variables) {
 }
 
 function wk_bartik_process_page__cal_event(&$variables) {
-    $variables['title_prefix']['#markup'] = '<b>YES:</b>' . var_export(array_keys($variables), TRUE);
   $node = $variables['node'];
   // Output device arms before the page title
   $output = '';
