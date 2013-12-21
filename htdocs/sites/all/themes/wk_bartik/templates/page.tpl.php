@@ -191,7 +191,6 @@
           <?php print $title; ?>
         </h1>
       <?php endif; ?>
-      <?php print render($title_aux_info); ?>
       <?php print render($title_suffix); ?>
       <?php if ($tabs): ?>
         <div class="tabs">
