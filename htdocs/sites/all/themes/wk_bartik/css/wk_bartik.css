@@ -204,7 +204,7 @@ a.site5 {
   min-height: 600px;
 }
 
-#page-wrapper
+.page-with-background #page-wrapper
 {
   max-width: 1290px;
   width: 100%;
@@ -212,7 +212,7 @@ a.site5 {
   margin-right: auto;
 }
 
-#supporter-wrapper
+.page-with-background #supporter-wrapper
 {
   margin: 0px -175px 0 -175px;
   /* Negative margin adjustment: needed for IE7+, innocuous for other browsers */
@@ -253,14 +253,14 @@ a.site5 {
   min-height: 100%;
 }
 
-#edge_l
+.page-with-background #edge_l
 {
   margin-left: 159px;
   padding-left: 16px;
   min-height: 100%;
 }
 
-#edge_r
+.page-with-background #edge_r
 {
   margin-right: 159px;
   padding-right: 16px;
