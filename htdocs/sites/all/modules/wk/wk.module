@@ -46,6 +46,64 @@ function wk_preprocess_page(&$variables) {
   }
 }
 
+function wk_preprocess_page__officers(&$variables) {
+  global $user;
+  $output = '';
+  $office_title='';
+  $branch_group_terms=FALSE;
+  $officer_terms=FALSE;
+  $node = $variables['node'];
+  if (isset($node->taxonomy_vocabulary_2[LANGUAGE_NONE])) {
+    $branch_group_terms = $node->taxonomy_vocabulary_2[LANGUAGE_NONE];
+  }
+  if (isset($node->field_office[LANGUAGE_NONE])) {
+    $officer_terms = $node->field_office[LANGUAGE_NONE];
+  }
+  if ($branch_group_terms) {
+    $branch_output = '';
+    foreach ($branch_group_terms as $index => $term) {
+      if (isset($term['taxonomy_term'])) {
+        $view = field_view_field('taxonomy_term', $term['taxonomy_term'], 'field_arms');
+        if (!empty($view)) {
+          $branch_output .= render($view);
+        }
+      }
+    }
+    if (!empty($branch_output)) {
+      $output .= "<div class='officer-branch'>$branch_output</div>";
+    }
+  }
+  if ($officer_terms) {
+    $officer_output = '';
+    foreach ($officer_terms as $index => $term) {
+      if (isset($term['taxonomy_term'])) {
+        $view = field_view_field('taxonomy_term', $term['taxonomy_term'], 'field_badge');
+        if (!empty($view)) {
+          $officer_output .= render($view);
+        }
+        if (empty($office_title)) {
+          $office_title = ' the ';
+        }
+        else {
+          $office_title .= ' and ';
+        }
+        $office_title .= $term['taxonomy_term']->name;
+      }
+    }
+    if (!empty($officer_output)) {
+      $output .= "<div class='officer-badge'>$officer_output</div>";
+    }
+  }
+  if (!empty($output)) {
+    $variables['title_prefix']['#markup'] = "
+<div class='officer-badges'>
+  $output
+</div>";
+  }
+  $uri = request_uri();
+  $variables['title_suffix']['#markup'] = "<a href='$uri/contact' class='link-contact'>Contact $office_title</a>";
+}
+
 function wk_preprocess_page__cal_event(&$variables) {
   $node = $variables['node'];
   // Output device arms before the page title
