@@ -47,6 +47,45 @@ h1 {
 
 /* ############# End Header CSS ############# */
 
+/* ############# Begin Officer Node CSS ############# */
+
+.node-type-officers h1 {
+  margin-bottom: 0px;
+}
+
+.link-contact {
+  padding-left: 28px;
+  background: url('../images/e-mail_icon-sm.png') no-repeat;
+}
+
+.officer-badges .field-label {
+  display: none;
+}
+
+.view-officers-of-a-branch-group .field-name-field-arms {
+  display: none;
+}
+
+.officers-list .views-field-field-type-of-deputy {
+  padding-left: 16px;
+  font-weight: bold;
+}
+
+.officer-badges .officer-branch,
+.officer-badges .officer-badge {
+  float: left;
+}
+
+.officer-badges .officer-branch img,
+.officer-badges .officer-badge img {
+  height: 64px;
+  width: auto;
+  margin-right: 16px;
+  margin-bottom: 24px;
+}
+
+/* ############# End Officer Node CSS ############# */
+
 /* ############# Begin Calendar Event Node CSS ############# */
 
 .submitted {
