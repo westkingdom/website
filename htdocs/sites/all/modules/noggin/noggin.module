@@ -108,9 +108,16 @@ function noggin_form_alter(&$form, &$form_state, $form_id) {
       if (file_uri_scheme($asset_path) == 'public') {
         $asset_path = file_uri_target($asset_path);
       }
-      $asset_placement_options = array('' => t('Not used'), 'advanced' => t('Advanced placement'));
+      $asset_placement_options = array('' => t('Not used'), 'advanced' => t('Advanced'));
       foreach ($asset_areas as $key => $area) {
-        if (!isset($area['#used']) || (isset($theme_settings['asset_selector_' . $asset_number]) && ($theme_settings['asset_selector_' . $asset_number] == $area['selector']))) {
+        $selectable = !isset($area['#used']);
+        if ((isset($theme_settings['asset_selector_' . $asset_number]) && ($theme_settings['asset_selector_' . $asset_number] == $area['selector']))) {
+          $theme_settings['asset_placement_' . $asset_number] = $key;
+        }
+        if ((isset($theme_settings['asset_placement_' . $asset_number]) && ($theme_settings['asset_placement_' . $asset_number] == $key))) {
+          $selectable = TRUE;
+        }
+        if ($selectable) {
           $asset_placement_options[$key] = $area['title'];
         }
       }
@@ -181,7 +188,7 @@ function _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path
         ':input[name="asset_placement_' . $asset_number . '"]' => array('value' => 'advanced'),
       ),
     ),
-    '#default_value' => isset($theme_settings['asset_selector_' . $asset_number]) ? $theme_settings['asset_selector_' . $asset_number] : $asset_number == 1 ? '#header' : '',
+    '#default_value' => isset($theme_settings['asset_selector_' . $asset_number]) ? $theme_settings['asset_selector_' . $asset_number] : '',
     '#description' => t('The CSS selector to use when placing the image asset.'),
     '#size' => 30,
   );
@@ -500,6 +507,7 @@ function _noggin_get_values_for_asset($asset_number) {
   $values['asset_image_width_' . $asset_number] = theme_get_setting('asset_image_width_' . $asset_number);
   $values['asset_image_height_' . $asset_number] = theme_get_setting('asset_image_height_' . $asset_number);
   $values['asset_selector_' . $asset_number] = theme_get_setting('asset_selector_' . $asset_number);
+  $values['asset_placement_' . $asset_number] = theme_get_setting('asset_placement_' . $asset_number);
 
   return $values;
 }
