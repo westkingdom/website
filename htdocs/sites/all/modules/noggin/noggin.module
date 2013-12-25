@@ -278,6 +278,12 @@ function _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path
     '#default_value' => isset($theme_settings['media_wrapper_' . $asset_number]) ? $theme_settings['media_wrapper_' . $asset_number] : NULL,
     '#description' => t('Example: @media all and (min-width: 901px)'),
   );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['hover_css_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Hover css'),
+    '#default_value' => isset($theme_settings['hover_css_' . $asset_number]) ? $theme_settings['hover_css_' . $asset_number] : NULL,
+    '#description' => t('Example: background-position:left -60px;'),
+  );
   return $form;
 }
 
@@ -522,6 +528,7 @@ function _noggin_get_values_for_asset($asset_number) {
   $values['asset_placement_' . $asset_number] = theme_get_setting('asset_placement_' . $asset_number);
   $values['additional_css_' . $asset_number] = theme_get_setting('additional_css_' . $asset_number);
   $values['media_wrapper_' . $asset_number] = theme_get_setting('media_wrapper_' . $asset_number);
+  $values['hover_css_' . $asset_number] = theme_get_setting('hover_css_' . $asset_number);
 
   return $values;
 }
@@ -608,6 +615,7 @@ function _noggin_generate_asset_css($values, $asset_number) {
   $path = $values['asset_path_' . $asset_number];
   $additional_css = $values['additional_css_' . $asset_number];
   $media_wrapper = $values['media_wrapper_' . $asset_number];
+  $hover_css = $values['hover_css_' . $asset_number];
 
   // If the asset points to a directory instead of a file,
   // then find and return a random file from that directory.
@@ -626,6 +634,12 @@ function _noggin_generate_asset_css($values, $asset_number) {
     $image_path =  file_create_url($path);
     $image_path =  parse_url($image_path, PHP_URL_PATH);
     $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;$additional_css}\n";
+    if (!empty($hover_css)) {
+      $hover_selector = _noggin_generate_sub_selector($selector, ":hover");
+      if (!empty($hover_selector)) {
+        $css .= "$hover_selector { $hover_css }\n";
+      }
+    }
     if (!empty($media_wrapper)) {
       $css = "$media_wrapper {\n$css\n}\n";
     }
@@ -633,6 +647,20 @@ function _noggin_generate_asset_css($values, $asset_number) {
     $css = preg_replace('/  */', ' ', $css);
   }
   return $css;
+}
+
+function _noggin_generate_sub_selector($selector, $selector_modifier) {
+  $sub_selector = array();
+  foreach (explode(',', $selector) as $sel) {
+    if (strpos($sel, ':') === FALSE) {
+      $modified_selector = trim($sel) . $selector_modifier;
+      // If the selector is 'li a', then
+      // put the modifier on the li
+      $modified_selector = str_replace("li a$selector_modifier", "li$selector_modifier a", $modified_selector);
+      $sub_selector[] = $modified_selector;
+    }
+  }
+  return implode(', ', $sub_selector);
 }
 
 /**
