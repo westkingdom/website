@@ -266,6 +266,18 @@ function _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path
     '#default_value' => isset($theme_settings['extra_attributes_' . $asset_number]) ? $theme_settings['extra_attributes_' . $asset_number] : NULL,
     '#description' => t('Any additional CSS attributes that should be applied to the image asset.'),
   );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['additional_css_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Additional CSS'),
+    '#default_value' => isset($theme_settings['additional_css_' . $asset_number]) ? $theme_settings['additional_css_' . $asset_number] : NULL,
+    '#description' => t('Any additional CSS that should be applied to the same element as the image asset.'),
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['media_wrapper_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Media wrapper'),
+    '#default_value' => isset($theme_settings['media_wrapper_' . $asset_number]) ? $theme_settings['media_wrapper_' . $asset_number] : NULL,
+    '#description' => t('Example: @media all and (min-width: 901px)'),
+  );
   return $form;
 }
 
@@ -508,6 +520,8 @@ function _noggin_get_values_for_asset($asset_number) {
   $values['asset_image_height_' . $asset_number] = theme_get_setting('asset_image_height_' . $asset_number);
   $values['asset_selector_' . $asset_number] = theme_get_setting('asset_selector_' . $asset_number);
   $values['asset_placement_' . $asset_number] = theme_get_setting('asset_placement_' . $asset_number);
+  $values['additional_css_' . $asset_number] = theme_get_setting('additional_css_' . $asset_number);
+  $values['media_wrapper_' . $asset_number] = theme_get_setting('media_wrapper_' . $asset_number);
 
   return $values;
 }
@@ -592,6 +606,8 @@ function _noggin_generate_asset_css($values, $asset_number) {
   $height = $values['asset_image_height_' . $asset_number] ? $values['asset_image_height_' . $asset_number] : 'auto';
   $selector = $values['asset_selector_' . $asset_number];
   $path = $values['asset_path_' . $asset_number];
+  $additional_css = $values['additional_css_' . $asset_number];
+  $media_wrapper = $values['media_wrapper_' . $asset_number];
 
   // If the asset points to a directory instead of a file,
   // then find and return a random file from that directory.
@@ -609,7 +625,10 @@ function _noggin_generate_asset_css($values, $asset_number) {
   if (!empty($selector) && !empty($path)) {
     $image_path =  file_create_url($path);
     $image_path =  parse_url($image_path, PHP_URL_PATH);
-    $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;}\n";
+    $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;$additional_css}\n";
+    if (!empty($media_wrapper)) {
+      $css = "$media_wrapper {\n$css\n}\n";
+    }
     // Collapse multiple adjacent spaces into a single space
     $css = preg_replace('/  */', ' ', $css);
   }
