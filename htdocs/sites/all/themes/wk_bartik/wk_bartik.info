@@ -32,6 +32,15 @@ settings[shortcut_module_link] = 0
 
 asset_areas[header][title] = Header
 asset_areas[header][selector] = .page-with-background #header .section, .borderless-page #header
+asset_areas[main-menu-wrapper][title] = Main menu - wrapper
+asset_areas[main-menu-wrapper][selector] = #main-menu ul li
+asset_areas[main-menu-wrapper][media-wrapper] = @media all and (min-width: 901px)
+asset_areas[main-menu-wrapper-first][title] = Main menu - wrapper.first
+asset_areas[main-menu-wrapper-first][selector] = #main-menu ul li.first
+asset_areas[main-menu-wrapper-first][media-wrapper] = @media all and (min-width: 901px)
+asset_areas[main-menu-link][title] = Main menu - link
+asset_areas[main-menu-link][selector] = #main-menu ul li a, #main-menu ul li a:link, #main-menu ul li a:visited, #main-menu ul li a:hover
+asset_areas[main-menu-link][media-wrapper] = @media all and (min-width: 901px)
 asset_areas[background][title] = Background
 asset_areas[background][selector] = body.page-with-background
 asset_areas[edge_l][title] = Left edge
