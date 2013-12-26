@@ -45,6 +45,20 @@ h1 {
   display: none;
 }
 
+/* ----- Menu button CSS ----- */
+
+@media all and (min-width: 901px) {
+  #main-menu ul li a,
+  #main-menu ul li a:link,
+  #main-menu ul li a:hover,
+  #main-menu ul li a:visited {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
 /* ############# End Header CSS ############# */
 
 /* ############# Begin Officer Node CSS ############# */
