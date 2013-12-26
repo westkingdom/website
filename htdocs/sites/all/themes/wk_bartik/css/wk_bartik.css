@@ -18,7 +18,6 @@ h1 {
 }
 
 .file-image img {
-  width: 100%;
   height: auto;
   border: 2px solid black;
 }
@@ -26,6 +25,62 @@ h1 {
 .field-name-field-file-image-title-text {
   text-align: center;
   font-weight: bold;
+}
+
+.file-image .image-style-full,
+.file-image .image-style-half,
+.file-image .image-style-half-r,
+.file-image .image-style-third,
+.file-image .image-style-third-r {
+  width: 100%;
+}
+
+@media all and (min-width: 560px) {
+
+  .file-image .image-style-half {
+    width: 50%;
+    float: left;
+    margin-right: 12px;
+  }
+
+  .file-image .image-style-half-r {
+    width: 50%;
+    float: right;
+    margin-left: 12px;
+  }
+
+}
+
+@media all and (min-width: 560px) and (max-width: 900px) {
+
+  .file-image .image-style-third {
+    width: 50%;
+    float: left;
+    margin-right: 12px;
+  }
+
+  .file-image .image-style-third-r {
+    width: 50%;
+    float: right;
+    margin-left: 12px;
+  }
+
+}
+
+@media all and (min-width: 901px) {
+
+  .file-image .image-style-third {
+    width: 33%;
+    float: left;
+    margin-right: 12px;
+  }
+
+  .file-image .image-style-third-r {
+    width: 33%;
+    float: right;
+    margin-left: 12px;
+  }
+
 }
 
 /* ############# End Image CSS ############# */
@@ -163,6 +218,35 @@ h1 {
 }
 
 /* ############# End OM MaxiMenu Search & Login Block CSS ############# */
+
+/* ############# Begin General Field CSS ############# */
+
+blockquote {
+  margin-left: 16px;
+  padding-left: 48px;
+  background: url('../images/blockquote.png') 0% 0% no-repeat;
+}
+
+.page-taxonomy-term article {
+  clear: both;
+}
+
+.field-name-field-postal-codes .field-item {
+  float: left;
+  margin-right: 8px;
+  font-size: 85%;
+  color: #888;
+}
+
+.field-name-field-postal-codes .field-items:after {
+  content: "\0020";
+  display: block;
+  height: 0;
+  overflow: hidden;
+  clear: both;
+}
+
+/* ############# End General Field CSS ############# */
 
 /* ############# Begin Officer Node CSS ############# */
 
