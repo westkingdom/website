@@ -61,6 +61,105 @@ h1 {
 
 /* ############# End Header CSS ############# */
 
+/* ############# Begin OM MaxiMenu Search & Login Block CSS ############# */
+
+#om-maximenu-om-user-region .om-maximenu-tabbed-content {
+  height: 90px;
+  margin-right: 32px;
+}
+
+#om-maximenu-om-user-region #om-menu-om-user-region li {
+  /*background: url('wk_img/chrome/user_tab.png') no-repeat -32px top;*/
+  padding-right: 0px;
+}
+
+#om-maximenu-om-user-region #om-menu-om-user-region li.first {
+  /*background: url('wk_img/chrome/user_tab.png') no-repeat left top;*/
+  padding-left: 4px;
+  padding-right: 0px;
+}
+
+#om-maximenu-om-user-region #om-menu-om-user-region span.om-link {
+  padding-right: 4px;
+  margin-left: 16px;
+}
+
+#om-maximenu-om-user-region #om-menu-om-user-region {
+  /*background: url('wk_img/chrome/user_tab_end.png') no-repeat right top;*/
+  padding-right: 24px;
+}
+
+#om-maximenu-om-user-region .om-maximenu-tabbed-content {
+}
+
+.block-user-id-login .form-item-name {
+  display: inline;
+}
+
+.block-user-id-login .form-actions {
+  display: inline;
+}
+
+#passwordless-help-link {
+  display: block;
+}
+
+#edit-search-block-form--2 {
+  width: 399px;
+}
+
+#om-menu-om-user-region .link-login {
+  padding-left: 32px;
+  background: url('../images/skeleton-key-sm.png') no-repeat 2px;
+}
+
+#om-maximenu-om-user-region .om-tabbed-content {
+  float: right;
+}
+
+#om-maximenu-om-user-region .block-search h3 {
+  display: block;
+  font-size: 1.1em;
+  margin: 18px 0 0 0;
+}
+
+#om-menu-om-user-region .link-search {
+  padding-left: 28px;
+  background: url('../images/search-sm.png') no-repeat 1px;
+}
+
+#om-menu-om-user-region {
+  float: right;
+  margin-bottom: -30px;
+  background-color: #f2f2f2;
+  background-color: rgba(200, 200, 200, 0.7);
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+.region-header {
+  position: absolute;
+  top: 0px;
+  right: 5px;
+  border: none;
+  background-color: #f2f2f2;
+  background-color: rgba(200, 200, 200, 0.7);
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+#om-close {
+  position: absolute;
+  top: 10px;
+  right: 0px;
+}
+
+#header .region-header {
+  margin-top: 0px;
+}
+
+/* ############# End OM MaxiMenu Search & Login Block CSS ############# */
+
 /* ############# Begin Officer Node CSS ############# */
 
 .node-type-officers h1 {
