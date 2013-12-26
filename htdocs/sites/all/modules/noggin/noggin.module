@@ -616,7 +616,27 @@ function _noggin_generate_asset_css($values, $asset_number) {
   $additional_css = $values['additional_css_' . $asset_number];
   $media_wrapper = $values['media_wrapper_' . $asset_number];
   $hover_css = $values['hover_css_' . $asset_number];
+  $important = '!important';
 
+  if (!empty($hover_css)) {
+    $additional_css .= " :hover { $hover_css }";
+  }
+
+  $additional_css_selectors = '';
+  if (preg_match_all('#([.:][a-z0-9]+) +(\{[^}]*\})#', $additional_css, $matches, PREG_SET_ORDER)) {
+    foreach ($matches as $match) {
+      $full_match = $match[0];
+      $matched_selector = $match[1];
+      $matched_css_terms = $match[2];
+      $additional_css = str_replace($full_match, '', $additional_css);
+      $modified_selector = _noggin_generate_sub_selector($selector, $matched_selector);
+      $additional_css_selectors .= "\n$modified_selector $matched_css_terms";
+      // '!important' interferes with hover
+      if (strstr($modified_selector, 'hover') !== FALSE) {
+        $important = '';
+      }
+    }
+  }
   // If the asset points to a directory instead of a file,
   // then find and return a random file from that directory.
   if (is_dir($path)) {
@@ -628,18 +648,11 @@ function _noggin_generate_asset_css($values, $asset_number) {
       $path = array_rand($images);
     }
   }
-
   // If we have a selector and an image, generate the css
   if (!empty($selector) && !empty($path)) {
     $image_path =  file_create_url($path);
     $image_path =  parse_url($image_path, PHP_URL_PATH);
-    $css = "$selector {background:url('$image_path') $all_attributes !important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;$additional_css}\n";
-    if (!empty($hover_css)) {
-      $hover_selector = _noggin_generate_sub_selector($selector, ":hover");
-      if (!empty($hover_selector)) {
-        $css .= "$hover_selector { $hover_css }\n";
-      }
-    }
+    $css = "$selector {background:url('$image_path') $all_attributes $important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;$additional_css}$additional_css_selectors\n";
     if (!empty($media_wrapper)) {
       $css = "$media_wrapper {\n$css\n}\n";
     }
@@ -655,8 +668,8 @@ function _noggin_generate_sub_selector($selector, $selector_modifier) {
     if (strpos($sel, ':') === FALSE) {
       $modified_selector = trim($sel) . $selector_modifier;
       // If the selector is 'li a', then
-      // put the modifier on the li
-      $modified_selector = str_replace("li a$selector_modifier", "li$selector_modifier a", $modified_selector);
+      // move any :hover to the li
+      $modified_selector = str_replace("li a:hover", "li:hover a", $modified_selector);
       $sub_selector[] = $modified_selector;
     }
   }
