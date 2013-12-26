@@ -166,6 +166,8 @@
     <?php endif; ?>
   </div></header> <!-- /.section, /#header -->
 
+  <div id="page-inner">
+
   <?php if ($messages): ?>
     <div id="messages"><div class="section clearfix">
       <?php print $messages; ?>
@@ -221,6 +223,8 @@
     <?php endif; ?>
 
   </div></div> <!-- /#main, /#main-wrapper -->
+
+  </div> <!-- /#page-inner -->
 
   <?php if ($page['triptych_first'] || $page['triptych_middle'] || $page['triptych_last']): ?>
     <div id="triptych-wrapper"><div id="triptych" class="clearfix">
