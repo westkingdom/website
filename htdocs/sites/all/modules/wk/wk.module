@@ -463,6 +463,21 @@ function wk_permission() {
   return $permissions;
 }
 
+function wk_menu() {
+  $items = array();
+
+  $items['officer-list/%'] = array(
+    'title' => 'Officer List',
+    'description' => 'Show all of the officers for a specified branch group.',
+    'page callback' => 'wk_officer_list',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
 function wk_menu_alter(&$items) {
   $items['admin/structure/domain']['access callback'] = '_wk_domain_view_access_callback';
   $items['admin/structure/domain']['access arguments'] = array('administer site configuration for assigned domains');
@@ -910,4 +925,105 @@ function _wk_create_branch_menu($branch_term, $homepage_path) {
     }
   }
   return $menu;
+}
+
+function wk_officer_list($branch) {
+  // Find all of the officer nodes for the specified branch
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array('officers'))
+    ->propertyCondition('status', 1)
+    ->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, '=');
+  $entities = $query->execute();
+
+  // Create a mapping from the office tid to
+  // the officer node
+  $officer_map = array();
+  foreach ($entities['node'] as $nid => $info) {
+    $e = entity_metadata_wrapper('node', $nid);
+    $office = $e->field_office->value();
+    $office = reset($office);
+    $officer_map[$office->tid] = $e;
+  }
+
+  // Iterate over the officer tree to build the page
+  $officer_tree = taxonomy_get_tree(3);
+  $page = array();
+  foreach ($officer_tree as $office_collection) {
+    // The terms that are collections of officers
+    // are those with depth == 0
+    if ($office_collection->depth == 0) {
+      $fn = '_wk_officer_list_section_' . strtolower(strtr($office_collection->name, " -", "__"));
+      if (!function_exists($fn)) {
+        $fn = '_wk_officer_list_section_officers';
+      }
+      $section_contents = $fn($branch, $officer_tree, $officer_map, $office_collection);
+      if (!empty($section_contents)) {
+        $page[$office_collection->name] = $section_contents;
+      }
+    }
+  }
+  return $page;
+}
+
+function _wk_officer_list_section_regent($branch, $officer_tree, $officer_map, $office_collection) {
+  $section_parent = $office_collection->tid;
+  return array();
+}
+
+function _wk_officer_list_section_officers($branch, $officer_tree, $officer_map, $office_collection) {
+  $section_parent = $office_collection->tid;
+  $section_contents = array();
+  foreach ($officer_tree as $office) {
+    if (in_array($section_parent, $office->parents)) {
+      $info = array('#office' => $office);
+      //$e = entity_metadata_wrapper("taxonomy_term", $office->tid);
+      $t = taxonomy_term_load($office->tid);
+      $info['badge'] = field_view_field("taxonomy_term", $t, "field_badge");
+      if (array_key_exists($office->tid, $officer_map)) {
+        $e = $officer_map[$office->tid];
+        // $info['node'] = $e;
+        $nid = $e->getIdentifier();
+        $info['#nid'] = $nid;
+        $members = _wk_group_members($nid);
+        foreach ($members as $id => $member) {
+          if (!array_key_exists('members', $info) || ($member['weight'] < 0)) {
+            $info['members'][$id]['title'] = array('#markup' => $member['title']);
+            $info['members'][$id]['name'] = array('#markup' => $member['user']->name);
+          }
+        }
+      }
+      else {
+        $info['title'] = array('#markup' => $office->name);
+        $info['name'] = array('#markup' => t('Vacant'));
+      }
+      $section_contents[$office->name] = $info;
+    }
+  }
+  return $section_contents;
+}
+
+function _wk_group_members($gid, $group_type = 'node') {
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'og_membership')
+    ->propertyCondition('gid', $gid, '=')
+    ->propertyCondition('group_type', $group_type, '=')
+    ->fieldOrderBy('field_weight', 'value')
+    ->execute();
+  $members = array();
+  if (array_key_exists('og_membership', $result)) {
+    foreach ($result['og_membership'] as $id => $info) {
+      $e = entity_metadata_wrapper("og_membership", $id);
+      $type_of_deputy = $e->field_type_of_deputy->value();
+      $weight = $e->field_weight->value(); // todo: just sort by weight
+      $user = $e->entity->value();
+      $members[$user->uid] = array(
+        'user' => $user,
+        'title' => $type_of_deputy,
+        'weight' => $weight,
+      );
+    }
+  }
+  return $members;
 }
