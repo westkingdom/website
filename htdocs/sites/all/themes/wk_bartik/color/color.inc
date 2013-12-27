@@ -19,7 +19,7 @@ $info = array(
   // Pre-defined color schemes.
   'schemes' => array(
     'default' => array(
-      'title' => t('Blue Lagoon (default)'),
+      'title' => t('Azure and Argent (default)'),
       'colors' => array(
         'top' => '#0779bf',
         'bottom' => '#48a9e4',
@@ -32,60 +32,32 @@ $info = array(
         'link' => '#0071B3',
       ),
     ),
-    'firehouse' => array(
-      'title' => t('Firehouse'),
+    'kingdom' => array(
+      'title' => t('Kingdom Or and Vert'),
       'colors' => array(
-        'top' => '#cd2d2d',
-        'bottom' => '#cf3535',
+        'top' => '#ffc43a',
+        'bottom' => '#fde1a0',
         'bg' => '#ffffff',
-        'sidebar' => '#f1f4f0',
-        'sidebarborders' => '#ededed',
+        'sidebar' => '#f6f6f2',
+        'sidebarborders' => '#f9f9f9',
         'footer' => '#1f1d1c',
         'titleslogan' => '#fffeff',
         'text' => '#3b3b3b',
-        'link' => '#d6121f',
+        'link' => '#548c36',
       ),
     ),
-    'ice' => array(
-      'title' => t('Ice'),
+    'gray' => array(
+      'title' => t('Argent and Gray'),
       'colors' => array(
-        'top' => '#d0d0d0',
-        'bottom' => '#c2c4c5',
+        'top' => '#798790',
+        'bottom' => '#c6d7e2',
         'bg' => '#ffffff',
         'sidebar' => '#ffffff',
         'sidebarborders' => '#cccccc',
         'footer' => '#24272c',
-        'titleslogan' => '#000000',
+        'titleslogan' => '#fffeff',
         'text' => '#4a4a4a',
-        'link' => '#019dbf',
-      ),
-    ),
-    'plum' => array(
-      'title' => t('Plum'),
-      'colors' => array(
-        'top' => '#4c1c58',
-        'bottom' => '#593662',
-        'bg' => '#fffdf7',
-        'sidebar' => '#edede7',
-        'sidebarborders' => '#e7e7e7',
-        'footer' => '#2c2c28',
-        'titleslogan' => '#ffffff',
-        'text' => '#301313',
-        'link' => '#9d408d',
-      ),
-    ),
-    'slate' => array(
-      'title' => t('Slate'),
-      'colors' => array(
-        'top' => '#4a4a4a',
-        'bottom' => '#4e4e4e',
-        'bg' => '#ffffff',
-        'sidebar' => '#ffffff',
-        'sidebarborders' => '#d0d0d0',
-        'footer' => '#161617',
-        'titleslogan' => '#ffffff',
-        'text' => '#3b3b3b',
-        'link' => '#0073b6',
+        'link' => '#43738f',
       ),
     ),
   ),
