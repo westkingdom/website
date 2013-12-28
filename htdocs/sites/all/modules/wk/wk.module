@@ -948,7 +948,7 @@ function wk_officer_list($branch) {
 
   // Iterate over the officer tree to build the page
   $officer_tree = taxonomy_get_tree(3);
-  $page = array();
+  $page = array('#prefix' => '<div id="officers">', '#suffix' => '</div>');
   foreach ($officer_tree as $office_collection) {
     // The terms that are collections of officers
     // are those with depth == 0
@@ -959,7 +959,8 @@ function wk_officer_list($branch) {
       }
       $section_contents = $fn($branch, $officer_tree, $officer_map, $office_collection);
       if (!empty($section_contents)) {
-        $page[$office_collection->name] = $section_contents;
+        $page[$office_collection->name]['title'] = array('#markup' => '<h2>' . $office_collection->name . '</h2>');
+        $page[$office_collection->name]['offices'] = $section_contents;
       }
     }
   }
@@ -976,33 +977,65 @@ function _wk_officer_list_section_officers($branch, $officer_tree, $officer_map,
   $section_contents = array();
   foreach ($officer_tree as $office) {
     if (in_array($section_parent, $office->parents)) {
-      $info = array('#office' => $office);
+      // TODO: Maybe label each office on a case-by-case basis as required or not required, and set $show_vacancies based on that?
+      $show_vacancies = FALSE;
+      $info = array('#prefix' => '<div class="office-summary third-width">', '#suffix' => '</div>', '#office' => $office);
       //$e = entity_metadata_wrapper("taxonomy_term", $office->tid);
       $t = taxonomy_term_load($office->tid);
       $info['badge'] = field_view_field("taxonomy_term", $t, "field_badge");
+      $info['badge']['#weight'] = -10;
       if (array_key_exists($office->tid, $officer_map)) {
         $e = $officer_map[$office->tid];
         // $info['node'] = $e;
         $nid = $e->getIdentifier();
+        $info['badge']['#prefix'] = "<a href='node/$nid'>";
+        $info['badge']['#suffix'] = "</a>";
         $info['#nid'] = $nid;
         $members = _wk_group_members($nid);
         foreach ($members as $id => $member) {
-          if (!array_key_exists('members', $info) || ($member['weight'] < 0)) {
-            $info['members'][$id]['title'] = array('#markup' => $member['title']);
-            $info['members'][$id]['name'] = array('#markup' => $member['user']->name);
+          if (!empty($member['title']) && (!array_key_exists('members', $info) || ($member['weight'] < 0))) {
+            $info['members'][$id] = _wk_build_office_member_display($member['title'], $member['user']->name, $nid);
           }
         }
+        if (!array_key_exists('members', $info)) {
+          $info['members'][] = _wk_build_office_member_display($e->title->value(), $e->author->value()->name, $nid);
+        }
       }
-      else {
-        $info['title'] = array('#markup' => $office->name);
-        $info['name'] = array('#markup' => t('Vacant'));
+      elseif ($show_vacancies) {
+        $info['members'][] = _wk_build_office_member_display($office->name, t('Vacant'));
       }
-      $section_contents[$office->name] = $info;
+      if (array_key_exists('members', $info)) {
+        $info['members']['#prefix'] = '<div class="office-members">';
+        $info['members']['#suffix'] = '</div>';
+        $section_contents[$office->name] = $info;
+      }
     }
   }
   return $section_contents;
 }
 
+function _wk_build_office_member_display($title, $name, $nid = 0) {
+  $link = '';
+  $endlink = '';
+  if ($nid) {
+    $link = "<a href='node/$nid'>";
+    $endlink = "</a>";
+  }
+  return array(
+    '#prefix' => '<div class="office-member">',
+    'title' => array(
+      '#prefix' => "<div class='officer-title'>$link",
+      '#markup' => $title,
+      '#suffix' => "$endlink</div>",
+    ),
+    'name' => array(
+      '#prefix' => "<div class='officer-name'>$link",
+      '#markup' => $name,
+      '#suffix' => "$endlink</div>",
+    ),
+    '#suffix' => '</div>',
+  );
+}
 function _wk_group_members($gid, $group_type = 'node') {
   $query = new EntityFieldQuery();
   $result = $query

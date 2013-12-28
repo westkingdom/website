@@ -11,6 +11,49 @@ h1 {
 
 /* ############# End Text Size and Style CSS ############# */
 
+/* ############# Begin General Layout CSS ############# */
+
+/* --- When things get narrow, 1/3 & 1/2 become full-width --- */
+
+.full-width,
+.half-width,
+.third-width {
+  width: 100%;
+}
+
+/* --- If we have at least 560px, 1/3 & 1/2 take up 50% --- */
+
+@media all and (min-width: 560px) {
+
+  .half-width {
+    width: 50%;
+    float: left;
+  }
+
+}
+
+@media all and (min-width: 560px) and (max-width: 900px) {
+
+  .third-width {
+    width: 50%;
+    float: left;
+  }
+
+}
+
+/* --- Once we have 900+ pixels, 1/3 becomes 33% --- */
+
+@media all and (min-width: 901px) {
+
+  .third-width {
+    width: 33%;
+    float: left;
+  }
+
+}
+
+/* ############# End General Layout CSS ############# */
+
 /* ############# Begin Image CSS ############# */
 
 .file-image .image-frame {
@@ -248,7 +291,46 @@ blockquote {
 
 /* ############# End General Field CSS ############# */
 
-/* ############# Begin Officer Node CSS ############# */
+/* ############# Begin Officer CSS ############# */
+
+/* ----- Officer summary page ----- */
+
+#officers h2 {
+  clear: both;
+}
+
+@media all and (max-width: 560px) {
+  .office-summary {
+    clear: both;
+  }
+}
+
+.office-summary .field-name-field-badge .field-label {
+  display: none;
+}
+
+.office-summary .field-name-field-badge {
+  position: relative;
+  top: 0px;
+  left: 0px;
+  height: 0px;
+}
+
+.office-summary .field-name-field-badge img {
+  width: 25%;
+}
+
+.office-summary .officer-title {
+  font-weight: bold;
+  font-size: 150%;
+}
+
+.office-members {
+  margin-left: 30%;
+  min-height: 128px;
+}
+
+/* ----- Officer nodes ----- */
 
 .node-type-officers h1 {
   margin-bottom: 0px;
