@@ -466,7 +466,7 @@ function wk_permission() {
 function wk_menu() {
   $items = array();
 
-  $items['officer-list/%'] = array(
+  $items['officers/%'] = array(
     'title' => 'Officer List',
     'description' => 'Show all of the officers for a specified branch group.',
     'page callback' => 'wk_officer_list',
