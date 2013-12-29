@@ -988,7 +988,8 @@ function _wk_officer_list_section_officers($branch, $officer_tree, $officer_map,
         $e = $officer_map[$office->tid];
         // $info['node'] = $e;
         $nid = $e->getIdentifier();
-        $info['badge']['#prefix'] = "<a href='node/$nid'>";
+        $url = url("node/$nid");
+        $info['badge']['#prefix'] = "<a href='$url'>";
         $info['badge']['#suffix'] = "</a>";
         $info['#nid'] = $nid;
         $members = _wk_group_members($nid);
@@ -1015,23 +1016,24 @@ function _wk_officer_list_section_officers($branch, $officer_tree, $officer_map,
 }
 
 function _wk_build_office_member_display($title, $name, $nid = 0) {
-  $link = '';
-  $endlink = '';
+  $linked_title = $title;
+  $linked_name = $name;
   if ($nid) {
-    $link = "<a href='node/$nid'>";
-    $endlink = "</a>";
+    $url = "node/$nid";
+    $linked_title = l($title, $url);
+    $linked_name = l($name, $url);
   }
   return array(
     '#prefix' => '<div class="office-member">',
     'title' => array(
-      '#prefix' => "<div class='officer-title'>$link",
-      '#markup' => $title,
-      '#suffix' => "$endlink</div>",
+      '#prefix' => "<div class='officer-title'>",
+      '#markup' => $linked_title,
+      '#suffix' => "</div>",
     ),
     'name' => array(
-      '#prefix' => "<div class='officer-name'>$link",
-      '#markup' => $name,
-      '#suffix' => "$endlink</div>",
+      '#prefix' => "<div class='officer-name'>",
+      '#markup' => $linked_name,
+      '#suffix' => "</div>",
     ),
     '#suffix' => '</div>',
   );

@@ -310,6 +310,7 @@ blockquote {
 }
 
 .office-summary .field-name-field-badge {
+  width: 25%;
   position: relative;
   top: 0px;
   left: 0px;
@@ -317,7 +318,7 @@ blockquote {
 }
 
 .office-summary .field-name-field-badge img {
-  width: 25%;
+  width: 100%;
 }
 
 .office-summary .officer-title {
