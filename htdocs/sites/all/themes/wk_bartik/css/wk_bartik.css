@@ -378,6 +378,68 @@ blockquote {
   font-weight: normal !important;
 }
 
+.calendar-event-branch .field-label {
+  display: none;
+}
+
+.calendar-event-branch img {
+  display: none;
+}
+
+@media all and (min-width: 901px) {
+
+  .calendar-event-type--0 .calendar-event-branch img {
+    width: 32px;
+    margin-left: 0px;
+    margin-right: 4px;
+  }
+
+  .calendar-event-branch img {
+    display: block;
+    float: left;
+    width: 24px;
+    margin-left: 4px;
+    margin-right: 8px;
+    opacity: 0.6;
+  }
+
+  div.monthview:hover .calendar-event-branch img {
+    opacity: 1.0;
+  }
+
+  /* TODO: only make these items higher when there is an image */
+
+  td.multi-day {
+    height: 38px !important;
+    max-height: 38px !important;
+  }
+
+  td.multi-day div.monthview {
+    height: 38px !important;
+  }
+
+  td.multi-day div.monthview .continues {
+    height: 38px !important;
+    padding-top: 9px !important;
+  }
+
+  td.multi-day div.monthview .continuation {
+    height: 38px !important;
+    padding-top: 9px !important;
+  }
+}
+
+td.multi-day div.monthview .continuation {
+  margin-left: -8px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
+}
+
+td.multi-day div.monthview .cutoff {
+  display: none;
+}
+
+
 /* ----- Event Node ----- */
 
 .submitted {
