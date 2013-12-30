@@ -75,13 +75,15 @@ td.multi-day div.monthview .continues {
   background-color: #4d7255 !important;
 }
 
-td.multi-day div.monthview .cutoff {
+td.multi-day div.monthview .continuation {
   background-color: #4d7255 !important;
 }
 
+td.single-day div.monthview,
 td.single-day a:link,
 td.single-day a:visited,
 td.single-day a:hover,
+td.multi-day div.monthview,
 td.multi-day a:link,
 td.multi-day a:visited,
 td.multi-day a:hover {
