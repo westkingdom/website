@@ -415,8 +415,13 @@ blockquote {
     max-height: 38px !important;
   }
 
+  td.single-day {
+    min-height: 38px !important;
+  }
+
+  td.single-day div.monthview,
   td.multi-day div.monthview {
-    height: 38px !important;
+    min-height: 38px !important;
   }
 
   td.multi-day div.monthview .continues {
