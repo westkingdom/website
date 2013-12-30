@@ -392,6 +392,7 @@ blockquote {
     width: 32px;
     margin-left: 0px;
     margin-right: 4px;
+    opacity: 0.6;
   }
 
   .calendar-event-branch img {
@@ -400,7 +401,7 @@ blockquote {
     width: 24px;
     margin-left: 4px;
     margin-right: 8px;
-    opacity: 0.6;
+    opacity: 0.3;
   }
 
   div.monthview:hover .calendar-event-branch img {
