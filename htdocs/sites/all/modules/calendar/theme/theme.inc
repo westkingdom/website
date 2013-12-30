@@ -35,6 +35,10 @@ function template_preprocess_calendar_month(&$vars) {
   $month_rows = $rows;
   foreach ($rows as $weekno => $row) {
     foreach ($row as $day => $data) {
+      // ga: silence annoying warning in empty cells
+      if (!isset($data['data'])) {
+        continue;
+      }
       $cell = $data['data'];
 
       // If this cell is already rendered, like the weekno column,
