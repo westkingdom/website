@@ -53,13 +53,10 @@ function wk_bartik_preprocess_calendar_item(&$vars) {
   }
   if (!empty($item->is_multi_day) && empty($item->continuation) && !empty($vars['rendered_fields'])) {
     array_unshift($vars['rendered_fields'], "<div class='calendar-event-branch'>$branch_output</div>");
-    if (isset($vars['rendered_fields']['province'])) {
-      $vars['rendered_fields']['province'] = "<br>" . $vars['rendered_fields']['province'];
-    }
   }
   if (!empty($vars['rendered_fields'])) {
     $event_type = $item->entity->field_event_type[LANGUAGE_NONE][0]['value'];
-    array_unshift($item->rendered_fields, "<div class='calendar-event-type--$event_type'>");
-    $item->rendered_fields[] = "</div>";
+    array_unshift($vars['rendered_fields'], "<div class='calendar-event-type--$event_type'>");
+    $vars['rendered_fields'][] = "</div>";
   }
 }
