@@ -59,41 +59,27 @@ a:active {
 
 /* ---------- Calendar Colors ----------- */
 
-.page .calendar-calendar .month-view .full td.single-day div.monthview,
-.page .calendar-calendar .week-view .full td.single-day div.weekview,
-.page .calendar-calendar .day-view .full td.single-day div.dayview {
-  color: #666;
+td.single-day div.monthview {
+  background-color: #81bd8c !important;
 }
 
-.page .calendar-calendar .month-view .full td.multi-day div.monthview,
-.page .calendar-calendar .week-view .full td.multi-day div.weekview,
-.page .calendar-calendar .day-view .full td.multi-day div.dayview {
-  color: #666;
-  background: #FEB;
+td.multi-day div.monthview {
+  background-color: #699b73 !important;
 }
 
-.page .calendar-calendar .month-view .full td.multi-day .inner div.monthview .continues,
-.page .calendar-calendar .week-view .full td.multi-day .inner div.weekview .continues,
-.page .calendar-calendar .day-view .full td.multi-day .inner div.dayview .continues {
-  color: #666;
-  background: #EDA;
+td.multi-day div.monthview .continues {
+  background-color: #4d7255 !important;
 }
 
-.page .calendar-calendar .month-view .full td.multi-day .inner div.monthview .cutoff,
-.page .calendar-calendar .week-view .full td.multi-day .inner div.weekview .cutoff,
-.page .calendar-calendar .day-view .full td.multi-day .inner div.dayview .cutoff {
-  color: #666;
-  background: #EDA;
+td.multi-day div.monthview .cutoff {
+  background-color: #4d7255 !important;
 }
 
-.page .calendar-calendar .month-view .full td.single-day .inner div.monthview a:link,
-.page .calendar-calendar .week-view .full td.single-day .inner div.weekview a:visited,
-.page .calendar-calendar .day-view .full td.single-day .inner div.dayview a:hover {
-  color: #000;
-}
-
-.page .calendar-calendar .month-view .full td.multi-day .inner div.monthview a:link,
-.page .calendar-calendar .week-view .full td.multi-day .inner div.weekview a:visited,
-.page .calendar-calendar .day-view .full td.multi-day .inner div.dayview a:hover {
-  color: #000;
+td.single-day a:link,
+td.single-day a:visited,
+td.single-day a:hover,
+td.multi-day a:link,
+td.multi-day a:visited,
+td.multi-day a:hover {
+  color: #020202 !important;
 }
