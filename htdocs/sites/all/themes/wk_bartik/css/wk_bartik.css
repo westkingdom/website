@@ -370,7 +370,15 @@ blockquote {
 
 /* ############# End Officer Node CSS ############# */
 
-/* ############# Begin Calendar Event Node CSS ############# */
+/* ############# Begin Calendar CSS ############# */
+
+/* ----- Calendar view ------ */
+
+.calendar-event-type--1 a, calendar-event-type--2 a {
+  font-weight: normal !important;
+}
+
+/* ----- Event Node ----- */
 
 .submitted {
   display: none;
@@ -496,7 +504,7 @@ blockquote {
 }
 
 
-/* ############# End Calendar Event Node CSS ############# */
+/* ############# End Calendar CSS ############# */
 
 /* ############# Begin Footer CSS ############# */
 

@@ -59,8 +59,12 @@ a:active {
 
 /* ---------- Calendar Colors ----------- */
 
-td.single-day div.monthview {
+td.single-day div.monthview .calendar-event-type--0 {
   background-color: #81bd8c !important;
+}
+
+td.single-day div.monthview {
+  background-color: #caffce !important;
 }
 
 td.multi-day div.monthview {
