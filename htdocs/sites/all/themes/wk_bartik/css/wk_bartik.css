@@ -11,6 +11,20 @@ h1 {
 
 /* ############# End Text Size and Style CSS ############# */
 
+/* ############# Begin Block CSS ############# */
+
+.block {
+  border-radius: 10px 10px 0 0;
+}
+
+.block h2 {
+  margin: -15px -20px 0 -20px;
+  padding: 15px 20px 0.5em 20px;
+  border-radius: 10px 10px 0 0;
+}
+
+/* ############# End Block CSS ############# */
+
 /* ############# Begin General Layout CSS ############# */
 
 /* --- When things get narrow, 1/3 & 1/2 become full-width --- */
@@ -384,6 +398,10 @@ blockquote {
 
 .calendar-event-branch img {
   display: none;
+}
+
+div.monthview:hover .contents {
+  background-color: rgb(255, 255, 255, 0.5);
 }
 
 @media all and (min-width: 901px) {
