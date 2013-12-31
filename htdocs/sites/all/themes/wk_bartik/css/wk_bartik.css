@@ -13,14 +13,18 @@ h1 {
 
 /* ############# Begin Block CSS ############# */
 
-.block {
+.sidebar .block {
   border-radius: 10px 10px 0 0;
 }
 
-.block h2 {
+.sidebar .block h2 {
   margin: -15px -20px 0 -20px;
   padding: 15px 20px 0.5em 20px;
   border-radius: 10px 10px 0 0;
+}
+
+#footer-wrapper .block {
+  border-radius: 5px;
 }
 
 /* ############# End Block CSS ############# */
