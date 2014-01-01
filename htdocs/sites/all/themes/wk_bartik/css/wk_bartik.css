@@ -627,6 +627,24 @@ a.site5 {
   text-align: center;
 }
 
+#site-disclosures {
+  margin-top: 48px;
+  margin-bottom: 0px;
+}
+
+#site-disclosures,
+#site-disclosures a {
+  color: rgba(255, 255, 255, 0.30);
+}
+
+#site-disclosures:hover {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+#site-disclosures:hover a {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* ############# End Footer CSS ############# */
 
 /* ############# Begin Edge & Supporters CSS ############# */
