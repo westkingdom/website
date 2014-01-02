@@ -677,9 +677,26 @@ a.site5 {
   min-height: 600px;
 }
 
+@media all and (min-width: 1400px) {
+
+  .page-with-background #page-wrapper
+  {
+    max-width: 1290px;
+  }
+
+}
+
+@media all and (max-width: 1399px) {
+
+  .page-with-background #page-wrapper
+  {
+    max-width: 1024px;
+  }
+
+}
+
 .page-with-background #page-wrapper
 {
-  max-width: 1290px;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
