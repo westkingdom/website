@@ -467,7 +467,7 @@ td.multi-day div.monthview .cutoff {
   display: none;
 }
 
-/* ----- Event Teaser ----- */
+/* ----- Event Node Teaser ----- */
 
 .node-teaser .cal-event-branch img {
   float: left;
@@ -480,7 +480,19 @@ td.multi-day div.monthview .cutoff {
   display: none;
 }
 
-/* ----- Event Node ----- */
+#content .node-cal-event.node-teaser h2 {
+  margin-bottom: 0px;
+}
+
+.node-cal-event.node-teaser .content {
+  margin-top: 0px;
+}
+
+.node-cal-event.node-teaser .content .teaser-date {
+  margin-bottom: 12px;
+}
+
+/* ----- Event Node Full View ----- */
 
 .submitted {
   display: none;
