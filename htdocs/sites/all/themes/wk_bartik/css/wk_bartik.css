@@ -467,6 +467,18 @@ td.multi-day div.monthview .cutoff {
   display: none;
 }
 
+/* ----- Event Teaser ----- */
+
+.node-teaser .cal-event-branch img {
+  float: left;
+  width: 48px;
+  margin-right: 8px;
+  margin-top: 4px;
+}
+
+.node-teaser .cal-event-branch .field-label {
+  display: none;
+}
 
 /* ----- Event Node ----- */
 
