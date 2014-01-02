@@ -196,6 +196,34 @@ function wk_preprocess_node__officers(&$variables) {
   hide($variables['content']['taxonomy_vocabulary_2']);
 }
 
+
+
+function wk_preprocess_node__cal_event(&$variables) {
+  if ($variables['teaser']) {
+    $variables['content']['body'][0]['#markup'] = text_summary($variables['content']['body'][0]['#markup'], NULL, 200);
+    $node = $variables['node'];
+    if (isset($node->taxonomy_vocabulary_2[LANGUAGE_NONE])) {
+      $branch_group_terms = $node->taxonomy_vocabulary_2[LANGUAGE_NONE];
+    }
+    if ($branch_group_terms) {
+      $branch_output = '';
+      foreach ($branch_group_terms as $index => $term) {
+        if (isset($term['tid'])) {
+          $t = taxonomy_term_load($term['tid']);
+          $view = field_view_field("taxonomy_term", $t, "field_arms");
+          if (!empty($view)) {
+            $branch_output .= render($view);
+          }
+        }
+      }
+      if (!empty($branch_output)) {
+        $variables['title'] = "<div class='cal-event-branch'>$branch_output</div>" . $variables['title'];
+      }
+    }
+  }
+}
+
+
 /**
  * Implements hook_form_alter
  */
