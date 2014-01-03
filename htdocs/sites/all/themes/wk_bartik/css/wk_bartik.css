@@ -31,6 +31,11 @@ h1 {
 
 /* ############# Begin General Layout CSS ############# */
 
+.page-node-43 #page-title {
+  text-align: center;
+  font-size: 48pt;
+}
+
 /* --- When things get narrow, 1/3 & 1/2 become full-width --- */
 
 .full-width,
@@ -91,8 +96,17 @@ h1 {
 .file-image .image-style-full,
 .file-image .image-style-half,
 .file-image .image-style-half-r,
+.file-image .image-style-half-c,
 .file-image .image-style-third,
-.file-image .image-style-third-r {
+.file-image .image-style-third-r,
+.file-image .image-style-third-c,
+.file-image .image-style-full img,
+.file-image .image-style-half img,
+.file-image .image-style-half-r img,
+.file-image .image-style-half-c img,
+.file-image .image-style-third img,
+.file-image .image-style-third-r img,
+.file-image .image-style-third-c img {
   width: 100%;
 }
 
@@ -108,6 +122,12 @@ h1 {
     width: 50%;
     float: right;
     margin-left: 12px;
+  }
+
+  .file-image .image-style-half-c {
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
   }
 
 }
@@ -126,6 +146,12 @@ h1 {
     margin-left: 12px;
   }
 
+  .file-image .image-style-third-c {
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
 }
 
 @media all and (min-width: 901px) {
@@ -140,6 +166,12 @@ h1 {
     width: 33%;
     float: right;
     margin-left: 12px;
+  }
+
+  .file-image .image-style-third-c {
+    width: 33%;
+    margin-left: auto;
+    margin-right: auto;
   }
 
 }
