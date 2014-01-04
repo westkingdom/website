@@ -1070,7 +1070,8 @@ function regnum_menu() {
     'description' => 'Approve or deny a submitted Regnum change submission.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('regnum_submission_confirm_form', 1),
-    'access callback' => TRUE
+    'access callback' => 'regnum_submission_access',
+    'access arguments' => array(1),
   );
 
   $items['regnum/%/warrant'] = array(
@@ -1078,7 +1079,8 @@ function regnum_menu() {
     'description' => 'Display warrant to be signed for Regnum Change Submission.',
     'page callback' => 'regnum_warrant',
     'page arguments' => array(1),
-    'access callback' => TRUE
+    'access callback' => 'regnum_submission_access',
+    'access arguments' => array(1),
   );
 
   $items['admin/config/regnum'] = array(
@@ -1173,7 +1175,8 @@ function regnum_warrant($submission_id) {
       body {
         font-size: 24pt;
         width: 100%;
-        margin: 60px;
+        margin: 60px auto 60px auto;
+        max-width: 1360px;
       }
 
       .block {
@@ -1195,6 +1198,10 @@ function regnum_warrant($submission_id) {
 
       .letterhead, h1 {
         text-align: center;
+      }
+
+      .letterhead img {
+        width: 95%;
       }
 
       .fields p b {
@@ -1317,6 +1324,7 @@ function regnum_warrant($submission_id) {
 }
 
 function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
+  global $user;
   $submission_entity = entityform_load($submission_id);
   $submission = new EntityDrupalWrapper('entityform', $submission_entity);
   $regnum_form_bundle = $submission->getBundle();
@@ -1347,30 +1355,33 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
     '#value' => $submission_id,
     '#attributes' => array('id' => 'submission')
   );
-  if ($effective_now) {
-    $form['approve_button'] = array(
+  $approvable = regnum_submission_is_approvable($submission, $user);
+  if ($approvable) {
+    if ($effective_now) {
+      $form['approve_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Approve'),
+        '#submit' => array('regnum_submission_confirm_form_approve'),
+      );
+    }
+    else {
+      $form['approve_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Approve Now'),
+        '#submit' => array('regnum_submission_confirm_form_approve'),
+      );
+      $form['approve_later_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Approve on Effective Date'),
+        '#submit' => array('regnum_submission_confirm_form_approve_later'),
+      );
+    }
+    $form['deny_button'] = array(
       '#type' => 'submit',
-      '#value' => t('Approve'),
-      '#submit' => array('regnum_submission_confirm_form_approve'),
+      '#value' => t('Deny'),
+      '#submit' => array('regnum_submission_confirm_form_deny'),
     );
   }
-  else {
-    $form['approve_button'] = array(
-      '#type' => 'submit',
-      '#value' => t('Approve Now'),
-      '#submit' => array('regnum_submission_confirm_form_approve'),
-    );
-    $form['approve_later_button'] = array(
-      '#type' => 'submit',
-      '#value' => t('Approve on Effective Date'),
-      '#submit' => array('regnum_submission_confirm_form_approve_later'),
-    );
-  }
-  $form['deny_button'] = array(
-    '#type' => 'submit',
-    '#value' => t('Deny'),
-    '#submit' => array('regnum_submission_confirm_form_deny'),
-  );
   $form['edit_button'] = array(
     '#type' => 'submit',
     '#value' => t('Edit'),
@@ -1386,6 +1397,23 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
 }
 
 function regnum_submission_confirm_form_validate($form, &$form_state) {
+}
+
+function regnum_submission_access($submission_id) {
+  global $user;
+  $submission = new EntityDrupalWrapper('entityform', $submission_id);
+  // Anyone who can approve the form can see it.
+  $approvable = regnum_submission_is_approvable($submission, $user);
+  if ($approvable) {
+    return TRUE;
+  }
+  // Users may also see their own form if they are logged in
+  // using an account with the same email address as the one
+  // on the form.
+  if (isset($user->mail) && ($user->mail == $submission->field_email_address->value())) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 function regnum_submission_confirm_form_approve($form, &$form_state) {
