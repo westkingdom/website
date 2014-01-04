@@ -1073,6 +1073,14 @@ function regnum_menu() {
     'access callback' => TRUE
   );
 
+  $items['regnum/%/warrant'] = array(
+    'title' => 'Warrant of Appointment to Office',
+    'description' => 'Display warrant to be signed for Regnum Change Submission.',
+    'page callback' => 'regnum_warrant',
+    'page arguments' => array(1),
+    'access callback' => TRUE
+  );
+
   $items['admin/config/regnum'] = array(
     'title' => 'Regnum change submission settings',
     'description' => 'Configure default behavior of Regnum change submissions, particularly the email confirmation templates.',
@@ -1084,6 +1092,228 @@ function regnum_menu() {
   );
 
   return $items;
+}
+
+function regnum_warrant($submission_id) {
+  $submission_entity = entityform_load($submission_id);
+  $submission = new EntityDrupalWrapper('entityform', $submission_entity);
+
+  $image_dir = drupal_get_path('module', 'regnum') . '/images';
+  $letterhead = $image_dir . '/warrant_letterhead.png';
+
+
+  $variables = array();
+  foreach ($submission->getPropertyInfo() as $varname => $info) {
+    if ((substr($varname, 0, 6) == 'field_') || (substr($varname, 0, 9) == 'taxonomy_')) {
+      $value = $submission->$varname->value();
+      if (!isset($value)) {
+        $value = '';
+      }
+      if (is_array($value)) {
+        if (array_key_exists(0, $value) && is_object($value[0])) {
+          $value = $value[0];
+        }
+        if (array_key_exists('timezone', $value)) {
+          $d = new DateTime($value['value2'], new DateTimeZone($value['timezone']));
+          $variables[$varname . '_end'] = $d->format('Y F d');
+          $d = new DateTime($value['value'], new DateTimeZone($value['timezone']));
+          $value = $d->format('Y F d');
+        }
+      }
+      if (is_object($value)) {
+        if (isset($value->tid)) {
+          $value = $value->name;
+        }
+      }
+      if (is_string($value)) {
+        $variables[$varname] = $value;
+      }
+    }
+  }
+  //$info = var_export($variables, TRUE);
+  //$info = var_export($submission_entity, TRUE);
+  //$info = var_export($submission->getPropertyInfo(), TRUE);
+  $location = $submission_entity->field_location[LANGUAGE_NONE][0];
+  //$info = var_export($location, TRUE);
+  $variables['field_address'] = $location['street'] . ' ' . $location['city'] . ' ' . $location['province'] . ' ' . $location['postal_code'];
+  extract($variables);
+  // $field_type_of_deputy
+
+  $as = $herald = $chirugeon = $chronicler =  $marshal = $other = '&nbsp;';
+  $other_office = "_____________________";
+  $check = "&#x2713;";
+  switch ($field_office) {
+    case "Marshal":
+    case "Heavy Marshal":
+      $marshal = $check;
+      break;
+    case "Arts":
+    case "Sciences":
+      $as = $check;
+      break;
+    case "Chirugeon":
+      $chirugeon = $check;
+      break;
+    case "Chronicler":
+      $chronicler = $check;
+      break;
+    case "Herald":
+      $herald = $check;
+      break;
+    default;
+      $other = $check;
+      $other_office = $field_office;
+      break;
+  }
+  echo "<html>
+  <head>
+    <title>Warrant of Appointment to Office</title>
+
+    <style type='text/css'>
+      body {
+        font-size: 24pt;
+        width: 100%;
+        margin: 60px;
+      }
+
+      .block {
+        margin: 30px;
+      }
+
+      .border {
+        border: 2px solid black;
+      }
+
+      .full {
+        width: 90%;
+      }
+
+      .half {
+        float: left;
+        width: 45%;
+      }
+
+      .letterhead, h1 {
+        text-align: center;
+      }
+
+      .fields p b {
+        font-variant: small-caps;
+      }
+
+      .fields p {
+        border-bottom: 1px solid black;
+        width: 100%;
+      }
+
+      .warrant-info {
+        padding: 10px;
+        font-size: 18pt;
+      }
+
+      .warrant-info p {
+        margin: 0;
+        padding: 0;
+      }
+
+      .office-selection {
+        margin-right: 20px;
+      }
+
+      #footer {
+        clear: both;
+        text-align: center;
+        font-style: italic;
+      }
+
+      #personal-info,
+      #office-of-appointment,
+      #footer {
+        margin-top: 120px;
+      }
+
+      .clear {
+        clear: both;
+      }
+    </style>
+  </head>
+  <body>
+    <div class='letterhead'>
+      <img src='/$letterhead' alt='Society for Creative Anachronism'>
+    </div>
+    <h1>Warrant of Appointment to Office</h1>
+
+    <div id='personal-info' class='fields full block'>
+      <p><b>Legal Name:</b> $field_real_name</p>
+      <p><b>Address:</b> $field_address</p>
+      <p><b>Telephone: (Home)</b> $field_phone_number <b>(Other)</b> $field_alternate_phone</p>
+      <p><b>EMail Address:</b> $field_email_address <b>Member Number:</b> $field_membership_number</p>
+      <p><b>SCA Reference Name:</b> $field_society_name</p>
+    </div>
+
+    <div id='office-of-appointment' class='full block'>
+      <p class='proclamation'>
+        Let it be known that the above-referenced person is hereby appointed to the office of
+      </p>
+      <p class='office-list'>
+        <span class='office-selection'>[ $as ] A & S Officer</span>
+        <span class='office-selection'>[ $herald ] Herald</span>
+        <span class='office-selection'>[ $chirugeon ] Chirugeon</span>
+        <span class='office-selection'>[ $chronicler ] Chronicler</span>
+        <span class='office-selection'>[ $marshal ] Marshal</span>
+        <span class='office-selection'>[ $other ] $other_office</span>
+      </p>
+      <div class='fields'>
+        <p class='branch'>
+          <b>For branch:</b> $taxonomy_vocabulary_2
+        </p>
+        <p class='effective-date'>
+          <b>Effective as of:</b> $field_effective_date <b>And expiring as of:</b> $field_effective_date_end
+        </p>
+      </div>
+      <p>
+        with all rights, privileges, insignia, precedence, and responsibilities
+        thereto appertaining the office while the Warrant is effective. This
+        Warrant supersedes any existing or previous Warrant for this office.
+      </p>
+    </div>
+
+    <div class='signatures-and-info'>
+      <div class='signature fields half block'>
+        <p><b>Print:</b></p>
+        <p><b>Sign:</b></p>
+        <p><b>Office:</b></p>
+      </div>
+      <div class='signature fields half block'>
+        <p><b>Print:</b></p>
+        <p><b>Sign:</b></p>
+        <p><b>Office:</b></p>
+      </div>
+      <div class='signature fields half block'>
+        <p><b>Print:</b></p>
+        <p><b>Sign:</b></p>
+        <p><b>Office:</b></p>
+      </div>
+      <div class='half block border'>
+        <div class='warrant-info'>
+          <p><b>Required signatures:</b></p>
+          <p><b>Corporate and Society Officers:</b> three members of the SCA Board of Directors</p>
+          <p><b>Deputy Corporate / Society officers:</b> two Board members and the appropriate Corporate / Society officer.</p>
+          <p><b>Kingdom Officers with Corporate Superiors:</b> Crown and the appropriate Coprorate Officer</p>
+          <p><b>Other Great Officers and Lesser Officers:</b> Crown or Coronet and the appropriate kingdom or principality officer, if any.</p>
+          <p><b>Other officers:</b> as established by Kingdom Law and custom, but must include more than one signature, and must include royalty.</p>
+        </div>
+      </div>
+
+      <div class='clear'></div>
+    </div>
+
+    <div id='footer' class='full block'>
+      This form may be photocopied or reproduced in any mechanical medium that preserves the complete text and letterhead image.
+    </div>
+  </body>
+</html>";
+  exit;
 }
 
 function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
