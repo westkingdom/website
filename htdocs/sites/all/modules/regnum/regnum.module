@@ -605,16 +605,25 @@ function _regnum_create_officer_node($group_info, $owner_uid) {
   //$node->created = strtotime($item->created_on);
   $node->uid = $owner_uid;
 
+  $description = '';
   foreach ($group_info['tids'] as $term_name => $tid) {
     $field_name = $group_info['field-map'][$term_name];
-    //$term = taxonomy_term_load($tid);
+    $term = taxonomy_term_load($tid);
+    // TODO: Need to check configuration or something to identify the
+    // taxonomy term whose description holds the origial contents of
+    // the officer node body. For now, we hardcode '3', which is right
+    // for the SCA.  If there is no term with vid 3, the node just
+    // starts out empty, is all.
+    if ($term->vid == 3) {
+      $description = $term->description;
+    }
     $node->{$field_name}[$node->language][] = array('tid' => $tid);
   }
 
   // TODO: We should add a field to $office_term that contains the
   // template text for new officer nodes that we can use here.
   $node->body[$node->language][0] = array(
-    'value' => 'Placeholde body',
+    'value' => $description,
     'format' => '1',
   );
 
