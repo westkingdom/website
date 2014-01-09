@@ -69,9 +69,8 @@ function wk_preprocess_page__officers(&$variables) {
         }
       }
     }
-    if (!empty($branch_output)) {
-      $output .= "<div class='officer-branch'>$branch_output</div>";
-    }
+    // We used to put the branch group arms in the header, but no longer.
+    // Maybe later we will put $branch_output somewhere else, more appropriate.
   }
   if ($officer_terms) {
     $officer_output = '';
