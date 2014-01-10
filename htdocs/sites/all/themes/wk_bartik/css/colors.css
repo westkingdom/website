@@ -21,6 +21,9 @@ body.overlay {
   background-color: #ffffff;
   border-bottom: 1px solid #ffffff;
 }
+tr, tr.even {
+  background: #ffffff;
+}
 #header {
   background-color: #48a9e4;
   background-image: -moz-linear-gradient(top, #0779bf 0%, #48a9e4 100%);
