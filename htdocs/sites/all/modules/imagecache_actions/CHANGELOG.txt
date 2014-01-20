@@ -3,6 +3,63 @@ Imagecache Actions
 
 Imagecache Actions 7.x-1.x-dev
 ------------------------------
+
+
+Imagecache Actions 7.x-1.4 2013-08-24
+-------------------------------------
+- [#1778214]: Remove project from image_effects_text_test.info
+- [#1854270]: Posterize action for file size/bandwidth saving on PNGs.
+- [#2060173]: Support image labels (introduced by D7.23).
+- Cleaned up the output of image style export. Id's and help texts are not used
+  on import, so don't have to be exported.
+- Repaired farbtastic colorpicker. It seems the library invocation changed
+  sometime in history. Rebuilt the color picker form to use #attached libraries
+  and simpler inline script instead. REMOVED the theme function that is now
+  redundant as #attached is a better way than drupal_add_js.
+- [#1152736]: Support tokens in text actions for images.
+- [#2025631]: Imagecache Testsuite refers to non-existent permissions.
+- Drupal.org went from http to https: changed all links in our documentation and
+  code.
+- Added ImageEffects as other image effect providing module.
+
+
+Imagecache Actions 7.x-1.3 2013-06-04
+-------------------------------------
+- Removed some errors and warnings from the test suite code (but not all).
+- [#2010560]: Fix spelling for "Update 7001".
+
+
+Imagecache Actions 7.x-1.2 2013-06-01
+-------------------------------------
+- [#1830130]: Allow file fields as referring entities in effects with context.
+- [#1446160]: Integrate with media module: Title and Alt text.
+- [#1591198]: Have dimensions calculations not ignore NULL's.
+- Refactored canvas effects: added parameter types in documentation and
+  signatures. Standardized function documentation. Comments according to Drupal
+  coding standards.
+- [#1999140]: Canvas effects using imagemagick might fail due to earlier
+  -gravity settings.
+- Refactored the image_effects_text_test module to no longer depend on features.
+- [#1998354]: Non-ASCII characters fail to display correctly on many systems
+  (when using Imagemagick).
+- Further code enhancements (messages, comments) to autorotate.
+- [#1930728]: Autorotate does not reset EXIF orientation tag.
+- [#1990620] Many config form docs missing from the D7 upgrade. Converted all
+  legacy instances of #type=markup into #markup='content..'
+- Removed deprecated functions imagecache_actions_entities_from_references() and
+  imagecache_actions_fields_from_filepath() (see [#1844298]).
+- [#1983168]: Custom text via PHP causing EntityMalformedException ...
+- Replaced lhandw.ttf font with some real free fonts that may also be
+  distributed for free. Changed all text effect tests accordingly.
+- Better text effect defaults (translated sample text, text visible by default,
+  sample font file).
+- [#1986304]: Strict warning: Only variables should be passed by reference ...
+- [#1981490]: Wrong filename imagecache_Actions.install.
+- [#1858760]: Unable to find the file 'lhandw.ttf'. Please check the path.
+
+
+Imagecache Actions 7.x-1.1 2012-12-04
+-------------------------------------
 - [#1591198]: Image dimensions callbacks should handle unknown (NULL) dimensions
   as valid input.
 - [#464092]: Aspect Switcher -- Need to Flush Presets. Side-effect: now allows
@@ -38,7 +95,7 @@ Incompatibilities:
   file. This may cause current styles to not being able to find specified files
   anymore.
 - Custom actions: custom snippets are now executed using the PHP filter module,
-  meaning that the image syle editor must have the 'Use PHP for settings'
+  meaning that the image style editor must have the 'Use PHP for settings'
   permission to be able to edit the custom action snippet.
 - Custom actions: information and variables that are available in your custom
   snippet have changed. See the README.txt of the custom actions module.
@@ -54,6 +111,6 @@ coverage".
 
 Current and past maintainers for Imagecache Actions
 ---------------------------------------------------
-- dman (http://drupal.org/user/33240)
-- sidneyshan (http://drupal.org/user/652426)
-- fietserwin (http://drupal.org/user/750928)
+- dman (https://drupal.org/user/33240)
+- sidneyshan (https://drupal.org/user/652426)
+- fietserwin (https://drupal.org/user/750928)

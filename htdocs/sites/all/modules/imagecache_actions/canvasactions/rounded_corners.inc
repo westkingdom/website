@@ -79,8 +79,7 @@ function canvasactions_roundedcorners_form($action) {
    );
    */
   $form['notes'] = array(
-    '#type' => 'markup',
-    '#value' => t('
+    '#markup' => t('
         Note: the rounded corners effect uses true alpha transparency masking.
         This means that this effect <b>will fail to be saved</b> on jpegs
         <em>unless</em> you either <ul>
@@ -97,7 +96,7 @@ function canvasactions_roundedcorners_form($action) {
   return $form;
 }
 
-function canvasactions_roundedcorners_image($image, $action = array()) {
+function canvasactions_roundedcorners_effect($image, $action = array()) {
   $independent_corners = !empty($action['independent_corners_set']['independent_corners']);
   if (!$independent_corners) {
     // set the independant corners to all be the same.

@@ -23,7 +23,7 @@ function imagecache_testsuite_menu() {
   $items['admin/config/media/image-styles/testsuite'] = array(
     'title' => 'Test Suite',
     'page callback' => 'imagecache_testsuite_generate',
-    'access arguments' => array('administer imagecache'),
+    'access arguments' => array('administer image styles'),
     'type' => MENU_LOCAL_TASK,
     'weight' => 10,
   );
@@ -31,13 +31,13 @@ function imagecache_testsuite_menu() {
     'title' => 'Test Suite Image',
     'page callback' => 'imagecache_testsuite_generate',
     'page arguments' => array(5, 6),
-    'access arguments' => array('administer imagecache'),
+    'access arguments' => array('administer image styles'),
     'type' => MENU_CALLBACK,
   );
   $items['admin/config/media/image-styles/testsuite/positioning_test'] = array(
     'title' => 'Positioning Test',
     'page callback' => 'imagecache_testsuite_positioning',
-    'access arguments' => array('administer imagecache'),
+    'access arguments' => array('administer image styles'),
     'type' => MENU_LOCAL_TASK,
   );
   return $items;
@@ -48,12 +48,31 @@ function imagecache_testsuite_menu() {
  */
 function imagecache_testsuite_help($path, $arg) {
   switch ($path) {
+    // @todo: this path does not exist anymore.
     case 'admin/build/imagecache/test' :
       $output = file_get_contents(drupal_get_path('module', 'imagecache_testsuite') ."/README.txt");
       return _filter_autop($output);
     break;
-    case 'admin/build/imagecache/test' :
-      return t('This displays a number of examples of keyword positioning. This positioning algorithm is used when placing image overlays, such as watermarks or text on a base image canvas. Illustrated are both the expected result and the actual result. This page is just for debugging to confirm that this behavior doesnt change as the code gets updated. If the two illustrations do not match, there is probably something wrong with the calculation logic.');
+    case 'admin/config/media/image-styles/testsuite' :
+      return t("<p>
+        This page displays a number of examples of image effects.
+        Illustrated are both the expected result and the actual result.
+        </p><p>
+        This page is just for debugging to confirm that this behavior doesn't
+        change as the code gets updated.
+        If the two illustrations do not match, there is probably something
+        that needs fixing.
+        </p><p>
+        More actions are provided by each of the imagecache actions submodules
+        and will be shown as you enable them.
+        </p>");
+    break;
+    case 'admin/config/media/image-styles' :
+      return t('
+        A number of styles here are provided by the Imagecache
+        Testsuite module as examples.
+        Disable this module to make them go away.
+      ');
     break;
   }
 }
@@ -76,44 +95,49 @@ function imagecache_testsuite_generate($test_id = '', $toolkit = 'gd') {
 
   $sample_path = drupal_get_path('module' , 'imagecache_testsuite') ;
   $target = $sample_path .'/sample.jpg';
-  $tests = image_styles() + imagecache_testsuite_get_tests();
+  $tests = array_merge(image_styles(), imagecache_testsuite_get_tests());
   $toolkits = module_invoke_all('image_toolkits');
 
   if (empty($test_id)) {
     // Present the all-in-one overview page
     $sample_folders = imagecache_testsuite_get_folders();
 
-    // Firstly, remove any previous images
-    image_style_flush('testsuite');
-
     // Draw the admin table
     $test_table = array();
     foreach ($tests as $style_name => $style) {
+      // Firstly, remove any previous images for the current style
+      image_style_flush($style);
+
       $row = array();
       $row_class = 'test';
-      $details = '';
+      $details_list = array();
+
       // Render the details
       foreach ($style['effects'] as $i => $effect) {
         if (! isset($effect['name'])) {
           // badness
           watchdog('imagecache_testsuite', 'invalid testcase within %style_name. No effect name', array('%style_name' => $style_name), WATCHDOG_ERROR);
-          $details .= '<div>Unidentified effect</div>';
+          $details_list[] = '<div>Unidentified effect</div>';
+          $row_class = 'error';
           continue;
         }
-        #$effect_definition = image_effect_definition_load($effect['name'], $style['name']);
         $effect_definition = image_effect_definition_load($effect['name']);
         if (function_exists($effect_definition['effect callback'])) {
           $description = "<strong>{$effect_definition['label']}</strong> ";
       		$description .= isset($effect_definition['summary theme']) ? theme($effect_definition['summary theme'], array('data' => $effect['data'])) : '';
-          $details .= "<div>$description</div>";
+          $details_list[] = "<div>$description</div>";
         }
         else {
           // Probably an action that requires a module that is not installed.
-          $details .= t("<div><b>Action %action Unavailable</b></div>", array('%action' => $effect['name']));
+          $strings = array(
+            '%action' => $effect['name'],
+            '%module' => $effect['module'],
+          );
+          $details_list[$effect['name']] = t("<div><b>%action unavailable</b>. Please enable %module module.</div>", $strings);
           $row_class = 'error';
         }
       }
-      $row['details'] = "<h3>{$style['name']}</h3><p>$details</p>";
+      $row['details'] = "<h3>{$style['name']}</h3><p>" . implode($details_list) . "</p>";
 
       // Look for a sample image. May also be defined by the definition itself,
       // but normally assume a file named after the presetname, in the preset file path.
@@ -155,6 +179,9 @@ function imagecache_testsuite_generate($test_id = '', $toolkit = 'gd') {
 
     // Default system zebra-striping fails to show my transparency on white
     drupal_add_html_head('<style  type="text/css" >#imagecache-testsuite tr.even{background-color:#EEEEEE !important;} #imagecache-testsuite td{vertical-align:top;}  #imagecache-testsuite tr.error{background-color:#FFCCCC !important;}</style>');
+
+   # $output .= imagecache_testsuite_positioning();
+
     return $output;
   }
   else {
@@ -180,7 +207,8 @@ function imagecache_testsuite_generate($test_id = '', $toolkit = 'gd') {
     // Need to save the result before returning it - to stay compatible with imagemagick
     $filename = "$test_id-$toolkit.{$image->info['extension']}";
     $derivative_uri = image_style_path($style['name'], $filename);
-    file_prepare_directory(dirname($derivative_uri), FILE_CREATE_DIRECTORY);
+    $directory = dirname($derivative_uri);
+    file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
     watchdog('imagecache_testsuite', 'Checking a save dir %dir', array('%dir' => dirname($derivative_uri)), WATCHDOG_DEBUG);
 
     // Imagemagick is not quite right? place a file where the file is supposed to go
@@ -191,20 +219,18 @@ function imagecache_testsuite_generate($test_id = '', $toolkit = 'gd') {
       // Need to load the full effect definitions, our test ones don't know all the callback info
       $effect_definition = image_effect_definition_load($effect['name']);
       if (empty($effect_definition)) {
-        watchdog('imagecache_testsuite', 'I have no idea what %name is', array('%name' => $full_effect['name']), WATCHDOG_ERROR);
+        watchdog('imagecache_testsuite', 'I have no idea what %name is', array('%name' => $effect['name']), WATCHDOG_ERROR);
         continue;
       }
       $full_effect = array_merge($effect_definition, array('data' => $effect['data']));
 
+      // @todo: effects that involve other images (overlay, underlay) will load that image with the default toolkit which may differ from the toolkit tested here.
       if (! image_effect_apply($image, $full_effect)) {
         watchdog('imagecache_testsuite', 'action: %action (%callback) failed for %src', array('%action' => $full_effect['label'], '%src' => $target, '%callback' => $full_effect['effect callback']), WATCHDOG_ERROR);
         #return FALSE;
       }
     }
 
-    #watchdog('imagecache_testsuite', "processed $test_id-$toolkit, ready to save", array(), WATCHDOG_DEBUG);
-    #watchdog('imagecache_testsuite', print_r($image, 1));
-    #dpm(get_defined_vars());
     if (!image_save($image, $derivative_uri)) {
       watchdog('imagecache_testsuite', 'saving image %label failed for %derivative_uri', array('%derivative_uri' => $derivative_uri, '%label' => $effect['label']), WATCHDOG_ERROR);
       return FALSE;
@@ -223,10 +249,26 @@ function imagecache_testsuite_generate($test_id = '', $toolkit = 'gd') {
 /**
  * Implements hook_image_default_styles().
  *
- * Loads the individual test cases and makes them available as enabled styles
+ * Lists all our individual test cases and makes them available
+ * as enabled styles
  */
 function imagecache_testsuite_image_default_styles() {
-  return imagecache_testsuite_get_tests();
+  $styles = imagecache_testsuite_get_tests();
+  # The below filter seems to not help.
+  return $styles;
+
+  // Need to filter out the invalid test cases
+  // (ones that use unavailable actions)
+  // or the core complains with notices.
+  foreach ($styles as $id => $style) {
+    foreach ($style['effects'] as $delta => $action) {
+      if (!empty($action['module']) && ($action['module'] != 'imagecache') && ! module_exists($action['module'])) {
+        unset($styles[$id]);
+        break;
+      }
+    }
+  }
+  return $styles;
 }
 
 /**
@@ -280,6 +322,7 @@ function imagecache_testsuite_get_folders() {
  * pls the css-like left=, top= version also.
  */
 function imagecache_testsuite_positioning() {
+  module_load_include('inc', 'imagecache_actions', 'utility');
   drupal_set_title("Testing the positioning algorithm");
   $tests = imagecache_testsuite_positioning_get_tests();
   $table = array();

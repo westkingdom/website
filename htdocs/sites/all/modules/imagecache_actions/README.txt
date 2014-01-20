@@ -1,15 +1,25 @@
 README for the Imagecache Actions Drupal module
 -----------------------------------------------
 
-Project page: http://drupal.org/project/imagecache_actions
+Project page: https://drupal.org/project/imagecache_actions
 
 Current and past maintainers for Imagecache Actions:
-- dman (http://drupal.org/user/33240)
-- sidneyshan (http://drupal.org/user/652426)
-- fietserwin (http://drupal.org/user/750928)
+- dman (https://drupal.org/user/33240)
+- sidneyshan (https://drupal.org/user/652426)
+- fietserwin (https://drupal.org/user/750928)
+
+
+Release notes for 7.x-1.4
+-------------------------
+- This release supports image labels as introduced by Drupal 7.23.
+- See CHANGELOG.txt for a full overview of changes.
+
 
 Release notes for 7.x-1.1
 -------------------------
+- If you use the module:// notation anywhere in an image effect, you must now
+  install the System Stream Wrapper module
+  (https://drupal.org/project/system_stream_wrapper).
 - Clear the cache after updating.
 
 
@@ -57,27 +67,28 @@ The additional effects that Imagecache Actions provides include:
 - Text overlay: add e.g. a copyright notice to your image.
 - Color-shifting: colorize images.
 - Brighten/Darken.
-- Alpha blending: use a grayscale image to define the transparency layer of an
+- Alpha blending: use a gray scale image to define the transparency layer of an
   image.
-- Canvas manipulation: resize the canvas and add a backgroundcolor or image.
-- File Format switcher: if you need tranparency in JPGs, make them PNG. If your
+- Canvas manipulation: resize the canvas and add a background color or image.
+- File Format switcher: if you need transparency in JPGs, make them PNG. If your
   PNG thumbnails are 30K each, save them as JPGs.
 - Rounded corners.
-- TODO: complete list, check short descrptions
+- TODO: complete list, check short descriptions
 
-These effects are grouped in submodules. Just enable the ones you want to use.
-TODO: list submodules and their sets of effects.
+These effects are grouped in sub-modules. Just enable the ones you want to use.
+TODO: list sub-modules and their sets of effects.
 
 Imagecache Actions supports both the GD toolkit from Drupal core and the
 Imagemagick toolkit. However, please note that Imagemagick support is not yet
 complete. Please file an issue if you encounter problems in using Imagemagick.
 
+
 What is imagecache_action not?
 ------------------------------
 Imagecache Actions does not provide a new UI or new menu items. It hooks into
 the already existing image styles system (from Drupal core). See
-http://drupal.org/documentation/modules/image for more information about working
-with images.
+https://drupal.org/documentation/modules/image for more information about
+working with images.
 
 
 A note about the name of this module
@@ -90,7 +101,7 @@ porting to D7, that name has not been changed (yet).
 
 Which toolkit to use?
 ---------------------
-Personally, I (fieterwin) prefer the imagemagick toolkit:
+Personally, I (fietserwin) prefer the imagemagick toolkit:
 - It is better in anti-aliasing. Try to rotate an image using both toolkits and
   you will see what I mean.
 - It does not execute in the PHP memory space, so is not restricted by the
@@ -108,20 +119,21 @@ toolkit used.
 
 Hard Dependencies
 -----------------
-- Drupal 7.x
 - Image module from Drupal core
 
 At least 1 of the available image toolkits:
-- GD toolkit from Drupal core
-- Imagemagick toolkit: http://drupal.org/project/imagemagick
+- GD toolkit from Drupal core.
+- Imagemagick toolkit: https://drupal.org/project/imagemagick.
+
 
 Soft Dependencies
 -----------------
-- System stream wrapper (http://drupal.org/project/system_stream_wrapper)
-- Remote stream wrapper (http://drupal.org/project/remote_stream_wrapper)
+- System stream wrapper (https://drupal.org/project/system_stream_wrapper)
+- Remote stream wrapper (https://drupal.org/project/remote_stream_wrapper)
 These modules provide additional stream wrappers. Especially the system stream
 wrapper is very handy as it provides, among others, a module:// and theme://
 wrapper.
+
 
 Installing
 ----------
@@ -175,7 +187,6 @@ be defined using either:
 - A relative (to the current directory, probably Drupal root) or absolute path.
 
 
-
 Support
 -------
 Via the issue queue of this project at Drupal.org.
@@ -194,3 +205,8 @@ well).
 - Brightness values outside the -250 .. 250 range are accepted.
 - Check color fields that allow a transparency component or allow to be empty to
   specify fully transparent.
+
+Known problems: Imagemagick
+---------------------------
+- Define canvas using offsets may bot work on older versions. We have an error
+  report for version 6.5.4.7 (2009-07) (https://drupal.org/node/888644).

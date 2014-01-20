@@ -23,7 +23,7 @@ class location_handler_argument_location_province extends views_handler_argument
     );
   }
 
-  function query() {
+  function query($group_by = FALSE) {
     $this->ensure_my_table();
     if (!empty($this->options['break_phrase'])) {
       if ($this->argument != '') {
@@ -43,7 +43,7 @@ class location_handler_argument_location_province extends views_handler_argument
     }
     else {
       $operator = empty($this->options['not']) ? '=' : '!=';
-      $this->query->add_where(0, "$this->table_alias.$this->real_field $operator \"%s\"", $this->argument);
+      $this->query->add_where(0, "$this->table_alias.$this->real_field $operator", $this->argument);
     }
   }
 
@@ -60,9 +60,9 @@ class location_handler_argument_location_province extends views_handler_argument
     $title = "";
     $values = explode(',', $this->argument);
     foreach ($values as $value) {
-      $title .= location_province_name($country, $value).", ";
+      $title .= location_province_name($country, $value) . ", ";
     }
-    return substr($title,0,-2);
+    return substr($title, 0, -2);
   }
 
   function summary_name($data) {

@@ -3,7 +3,7 @@
  * @file Provide text manipulation effects for image styles.
  *
  * Ported by dman
- * from http://drupal.org/node/264862#comment-865490 by patrickharris
+ * from https://drupal.org/node/264862#comment-865490 by patrickharris
  *
  * Ported to D7 by fietserwin
  * from imagecache_textactions 6.x-1.8.
@@ -16,6 +16,34 @@
  * - Function and parameter naming has been changed to match the image effects
  *   in the core image module.
  */
+
+/**
+ * Implements hook_exit().
+ *
+ * For imagemagick we place the text in a temporary file as this prevents
+ * problems with non-ASCII characters. This hook deletes files created during
+ * execution of the text effect. As a style may contain multiple text effects,
+ * there may be multiple files to delete.
+ *
+ * To keep track of temporary files created by this effect, the image effect
+ * function itself also calls this hook, but places the file name in a
+ *
+ * @param string|null $destination
+ */
+function image_effects_text_exit($destination = NULL) {
+  static $tmp_file_names = NULL;
+
+  if (isset($destination) && substr($destination, 0 , strlen('temporary://')) === 'temporary://') {
+    // Called by the effect function. Add to our static list of files ot delete.
+    $tmp_file_names[] = $destination;
+  }
+  else if (is_array($tmp_file_names)) {
+    // Normal invocation and we do have files to delete.
+    foreach ($tmp_file_names as $tmp_file_name) {
+      unlink($tmp_file_name);
+    }
+  }
+}
 
 /**
  * Implements hook_image_effect_info().
@@ -51,12 +79,13 @@ function image_effects_text_help($path, $arg) {
     // link to it.
     return ' ';
   }
+  return '';
 }
 
 /**
  * Implements hook_theme().
  *
- * We register theme functions for the effect summaries.
+ * Registers theme functions for the effect summaries.
  */
 function image_effects_text_theme() {
   return array(

@@ -12,7 +12,7 @@
  */
 function imagecache_actions_file_field_description() {
   return t('File is either a file with one of the valid schemes, an absolute path, or a relative path (relative to the current directory, probably the Drupal site root). Valid schemes are a.o. private://, public://, and if the !module module has been installed, also module:// and theme://.',
-   array('!module' => l('System Stream Wrapper', 'http://drupal.org/project/system_stream_wrapper', array('external' => TRUE))));
+   array('!module' => l('System Stream Wrapper', 'https://drupal.org/project/system_stream_wrapper', array('external' => TRUE))));
 }
 
 /**
@@ -32,22 +32,16 @@ function imagecache_actions_validate_file(&$element, &$form_status) {
 /**
  * Looks up and returns the full path of the given file.
  *
- * We accept files with the following schemes:
- * - private://
- * - public://
- * - temporary://
- * - module://{module}/{component}
- *
- * Files without a scheme are looked up as are:
- * - relative: relative to the current directory (probably $drupal_root).
- * - absolute: as is.
- *
  * @param string $file
- *   A file name, with a scheme, relative, or absolute.
+ *   A file name. We accept:
+ *   - stream wrapper notation like: private://, public://, temporary:// and
+ *     module:// (the latter provided by the system stream wrapper module).
+ *   - relative: relative to the current directory (probably DRUPAL_ROOT).
+ *   - absolute: as is.
  *
  * @return string|false
  *   The full file path of the file, so the image toolkit knows exactly where it
- *   is.
+ *   is. False if the file cannot be found or is not readable.
  */
 function imagecache_actions_find_file($file) {
   $result = FALSE;
@@ -86,12 +80,43 @@ function imagecache_actions_image_load($file, $toolkit = FALSE) {
 }
 
 /**
+ * Returns the label for the given style name.
+ *
+ * As of D7.23 image styles can also have a human readable label besides their
+ * machine readable name. This function returns that label if available, or the
+ * name if the label is absent.
+ *
+ * @param string|null $style_name
+ *   The name of the image style.
+ *
+ * @return string
+ *   The label for the image style.
+ */
+function imagecache_actions_get_style_label($style_name) {
+  if (!empty($style_name)) {
+    $style = image_style_load($style_name);
+    $label = isset($style['label']) ? $style['label'] : $style['name'];
+    if (!empty($style)) {
+      return $label;
+    }
+    else {
+      return $label . ' ' . t('<span class="error">Invalid reference. The referenced image style may have been deleted!</span>');
+    }
+  }
+  else {
+    return t('none');
+  }
+}
+
+/**
  * Return an array with context information about the image.
  *
- * This information can e.g. be used by effects that allow custom PHP like
+ * This information is called by effects that need contextual information or
+ * that allow custom PHP:
  * - Custom action.
+ * - Text from image alt or title.
+ * - Text with tokens.
  * - Text from PHP code.
- * - Text from alt or title.
  *
  * @param object $image
  *   The image object.
@@ -99,7 +124,18 @@ function imagecache_actions_image_load($file, $toolkit = FALSE) {
  *   An associative array with the effect options.
  *
  * @return array
- *   An associative array with context information about the image.
+ *   An associative array with context information about the image. It contains
+ *   the following keys:
+ *   - effect_data: array with the effect data.
+ *   - managed_file: object|null, a managed file object for the current image.
+ *     This may be (an extended) media/file_entity file object.
+ *   - referring_entities: array, list of (loaded) entities that have an image
+ *       field referring to the managed file.
+ *   - entity: object|null, the 1st (and often only) entity that has an image
+ *       field referring to the managed file.
+ *   - image_field: array|null, the (1st and often only) image field item of
+ *       entity that refers to the managed file (single field item, not the
+ *       whole field value).
  */
 function imagecache_actions_get_image_context($image, $data) {
   // Store context about the image.
@@ -112,11 +148,15 @@ function imagecache_actions_get_image_context($image, $data) {
   );
 
   // Find the managed file object (at most 1 object as 'uri' is a unique index).
-  $managed_file = reset(file_load_multiple(array(), array('uri' => $image->source)));
+  $managed_file = file_load_multiple(array(), array('uri' => $image->source));
+  $managed_file = reset($managed_file);
   if ($managed_file !== FALSE) {
     $image_context['managed_file'] = $managed_file;
-    // And find the entities referring to this managed file.
-    $references = file_get_file_references($managed_file, NULL, FIELD_LOAD_CURRENT, 'image');
+    // And find the entities referring to this managed file, image fields first,
+    // then file fields (very specific use cases).
+    $references = file_get_file_references($managed_file, NULL, FIELD_LOAD_CURRENT, 'image')
+      + file_get_file_references($managed_file, NULL, FIELD_LOAD_CURRENT, 'file');
+
     if ($references) {
       // Load referring entities.
       foreach ($references as $field_name => $field_references) {
@@ -133,18 +173,19 @@ function imagecache_actions_get_image_context($image, $data) {
       reset($entities);
       list(, $image_context['entity']) = each($entities);
       $image_field = field_get_items($entity_type, $image_context['entity'], $field_name);
-      if ($image_field !== FALSE) {
-        // Get referring item
+      if ($image_field) {
+        // Get referring item.
         foreach ($image_field as $image_field_value) {
           if ($image_field_value['fid'] === $managed_file->fid) {
+            // @todo: file_field as well or just ignore the type of field?
             $image_context['image_field'] = $image_field_value;
+            break;
           }
         }
       }
     }
   }
 
-  // @todo: support for media module, or is that based upon managed files?
   return $image_context;
 }
 
@@ -368,83 +409,23 @@ function imagecache_actions_keyword_filter($value, $base_size, $layer_size) {
 }
 
 /**
- * @deprecated
+ * Computes a length based on a length specification and an actual length.
  *
- * Given a file path relative the default file scheme, tries to locate it and,
- * is successful, finds all fields that use it.
+ * Examples:
+ *  (50, 400) returns 50; (50%, 400) returns 200;
+ *  (50, null) returns 50; (50%, null) returns null;
+ *  (null, null) returns null; (null, 100) returns null.
  *
- * @param string $filepath
- *   Actually a Drupal file URI, probably.
- * @param bool $load_entity
- *   Whether to return whole entities or just the identifying fields of them.
- *
- * @return array
- *   A nested array of basic entity data, grouped by entity type and field name.
- *   Empty array if no file fields are referring the given path.
- */
-function imagecache_actions_fields_from_filepath($filepath, $load_entity = TRUE) {
-  if (!module_exists('file')) {
-    return array();
-  }
-
-  // Unsure if we are given a real filepath (the normal assumption) or a
-  // Drupal scheme URI. Resolve either.
-  if (!file_valid_uri($filepath)) {
-    $filepath = file_build_uri($filepath);
-  }
-
-  $files = file_load_multiple(array(), array('uri' => $filepath));
-
-  if ($files) {
-    $fields = array();
-    foreach ($files as $fid => $file) {
-      $references = file_get_file_references($file, NULL, FIELD_LOAD_CURRENT, 'image');
-      $fields[$fid] = $references;
-    }
-
-    if ($load_entity) {
-      // These references are pretty low on information. Load the actual nodes/entities too.
-      imagecache_actions_entities_from_references($fields);
-    }
-
-    return $fields;
-  }
-  return array();
-}
-
-/**
- * @deprecated
- *
- * Load additional data - Fully load the entities that actually use the given file, with all their data.
- *
- * Replaces the full entity object in place of the placeholder object that file_get_file_references() gives us.
- */
-function imagecache_actions_entities_from_references(&$fields) {
-  foreach ($fields as $fid => $field_ids) {
-    foreach ($field_ids as $field_id => $entity_types) {
-      foreach ($entity_types as $entity_type => $entity_instances) {
-        #$entities = entity_load($entity_type, array_keys($entity_instances));
-        foreach ($entity_instances as $entity_id => $entity) {
-          $entities = entity_load($entity_type, array($entity_id));
-          $entity = reset($entities);
-
-          // Add this extra data to the return info, replacing the lightweight version
-          $fields[$fid][$field_id][$entity_type][$entity_id] = $entity;
-        } // All actual entities
-      } // All types of entity that ref the file
-    } // All references to this file
-  } // All entries for this file found in the db (expected to be only 1)
-}
-
-/**
- * @param string $value
- * @param int|null $current_pixels
+ * @param string|null $length_specification
+ *   The length specification. An integer constant or a % specification.
+ * @param int|null $current_length
+ *   The current length. May be null.
  *
  * @return int|null
  */
-function imagecache_actions_percent_filter($value, $current_pixels) {
-  if (strpos($value, '%') !== FALSE) {
-    $value =  $current_pixels !== NULL ? str_replace('%', '', $value) * 0.01 * $current_pixels : NULL;
+function imagecache_actions_percent_filter($length_specification, $current_length) {
+  if (strpos($length_specification, '%') !== FALSE) {
+    $length_specification =  $current_length !== NULL ? str_replace('%', '', $length_specification) * 0.01 * $current_length : NULL;
   }
-  return $value;
+  return $length_specification;
 }

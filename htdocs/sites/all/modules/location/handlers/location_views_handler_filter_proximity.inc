@@ -86,13 +86,13 @@ class location_views_handler_filter_proximity extends views_handler_filter {
         'nid_arg' => t("Node's Latitude / Longitude from views nid argument"),
         'uid_arg' => t("User's Latitude / Longitude from views uid argument"),
       ),
-      '#description' => t('This will be the way the latitude/longitude of origin is determined.  If this filter is exposed, this will determine the default values. NOTE: The PHP code, nid argument and uid argument options will not be available when the filter is exposed and the use of map is only available when the filter is exposed.  To use the visitor\'s IP address, you must have the geoip module with the MaxMind GeoLiteCity installed.'),
+      '#description' => t('This will be the way the latitude/longitude of origin is determined.  If this filter is exposed, this will determine the default values. NOTE: The PHP code, nid argument and uid argument options will not be available when the filter is exposed and the use of map is only available when the filter is exposed.  To use the visitor\'s IP address, you must have a supported geolocation module installed.'),
       '#default_value' => $this->options['origin'] ? $this->options['origin'] : 'user',
     );
     if (module_exists('gmap')) {
       $form['origin']['#options']['latlon_gmap'] = t('Latitude / Longitude input (use map)');
     }
-    if (module_exists('geoip')) {
+    if (module_exists('geoip') || module_exists('smart_ip')) {
       $form['origin']['#options']['geoip'] = t("IP Address of visitor (fall back to static if unset)");
     }
 
@@ -243,35 +243,40 @@ class location_views_handler_filter_proximity extends views_handler_filter {
       }
       else {
         $form[$key]['proximity_map'] = array(
-          '#markup' => gmap_set_location($this->options['expose']['gmap_macro'], $form[$key], array('latitude' => 'latitude', 'longitude' => 'longitude')),
+          '#markup' => gmap_set_location($this->options['expose']['gmap_macro'], $form[$key], array(
+            'latitude' => 'latitude',
+            'longitude' => 'longitude'
+          )),
           '#weight' => 0,
         );
       }
     }
-    else if (($origin == 'user' || $origin == 'hybrid') && $this->options['expose']['user_location_choose']) {
-      global $user;
-      $user_locations = isset($user->locations) ? $user->locations : location_load_locations($user->uid, 'uid');
-      $location_options = array();
-      if (!empty($user_locations)) {
-        foreach ($user_locations as $i => $location) {
-          if (isset($location['latitude']) && isset($location['longitude'])) {
-            if (!empty($location['name'])) {
-              $location_options[$i] = t(check_plain($location['name']));
-            }
-            else {
-              $location_options[$i] = t('Location #@num', array('@num' => $i + 1));
+    else {
+      if (($origin == 'user' || $origin == 'hybrid') && $this->options['expose']['user_location_choose']) {
+        global $user;
+        $user_locations = isset($user->locations) ? $user->locations : location_load_locations($user->uid, 'uid');
+        $location_options = array();
+        if (!empty($user_locations)) {
+          foreach ($user_locations as $i => $location) {
+            if (isset($location['latitude']) && isset($location['longitude'])) {
+              if (!empty($location['name'])) {
+                $location_options[$i] = t(check_plain($location['name']));
+              }
+              else {
+                $location_options[$i] = t('Location #@num', array('@num' => $i + 1));
+              }
             }
           }
         }
-      }
 
-      $form[$key]['user_location_delta'] = array(
-        '#type' => 'select',
-        '#title' => t('Location'),
-        '#options' => $location_options,
-        '#description' => t('Select which of your locations to use.'),
-        '#weight' => 0,
-      );
+        $form[$key]['user_location_delta'] = array(
+          '#type' => 'select',
+          '#title' => t('Location'),
+          '#options' => $location_options,
+          '#description' => t('Select which of your locations to use.'),
+          '#weight' => 0,
+        );
+      }
     }
 
     // Remove unneeded fields when exposing the form.
@@ -330,11 +335,16 @@ class location_views_handler_filter_proximity extends views_handler_filter {
     else {
       $where = "$this->table_alias.latitude > :minlat AND $this->table_alias.latitude < :maxlat AND $this->table_alias.longitude > :minlon AND $this->table_alias.longitude < :maxlon";
     }
-    $this->query->add_where_expression($this->options['group'], $where, array(':minlat' => $latrange[0], ':maxlat' => $latrange[1], ':minlon' => $lonrange[0], ':maxlon' => $lonrange[1]));
+    $this->query->add_where_expression($this->options['group'], $where, array(
+      ':minlat' => $latrange[0],
+      ':maxlat' => $latrange[1],
+      ':minlon' => $lonrange[0],
+      ':maxlon' => $lonrange[1]
+    ));
 
     if ($this->operator == 'dist') {
       // Add radius check.
-      $this->query->add_where_expression($this->options['group'], earth_distance_sql($lon, $lat, $this->table_alias) .' < :distance', array(':distance' => $distance_meters));
+      $this->query->add_where_expression($this->options['group'], earth_distance_sql($lon, $lat, $this->table_alias) . ' < :distance', array(':distance' => $distance_meters));
     }
   }
 }

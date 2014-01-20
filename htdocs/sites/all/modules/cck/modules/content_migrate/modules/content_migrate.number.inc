@@ -1,8 +1,7 @@
 <?php
 /**
  * @file content_migrate.number.inc
- * Code to implement hook_content_migrate_field_alter, content_migrate_instance_alter() and content_migrate_data_record_alter()
- * on behalf of the former number module, moved into a separate file for efficiency.
+ * Code to implement Content Migrate hooks on behalf of the Number module.
  */
 
 /**
@@ -13,7 +12,7 @@
  * situations not handled by basic conversion,
  * as when field types or settings are changed.
  */
-function content_migrate_number_field_alter(&$field_value, $instance_value) {
+function number_content_migrate_field_alter(&$field_value, $instance_value) {
   switch ($field_value['type']) {
    
     case 'number_integer':
@@ -72,7 +71,7 @@ function content_migrate_number_field_alter(&$field_value, $instance_value) {
  * situations not handled by basic conversion, as when
  * formatter or widget names or settings are changed.
  */
-function content_migrate_number_instance_alter(&$instance_value, $field_value) {
+function number_content_migrate_instance_alter(&$instance_value, $field_value) {
   switch ($field_value['module']) {
     case 'number':
       // The number formatters and formatter settings
