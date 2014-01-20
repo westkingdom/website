@@ -42,22 +42,101 @@ function location_map_link($location = array(), $link_text = 'See map: ') {
 
   location_load_country($location['country']);
 
-  $default_func = 'location_map_link_'. $location['country'] .'_default_providers';
-  $providers_func = 'location_map_link_'. $location['country'] .'_providers';
-  $providers = function_exists($providers_func) ? $providers_func() : array();
-  $selected_providers = variable_get('location_map_link_'. $location['country'], function_exists($default_func) ? $default_func() : array());
+  $default_func = 'location_map_link_' . $location['country'] . '_default_providers';
+  $providers_func = 'location_map_link_' . $location['country'] . '_providers';
+  // Merge the global providers with country specific ones so that countries
+  // can add to or override the defaults.
+  $providers = function_exists($providers_func) ? array_merge(location_map_link_providers(), $providers_func()) : location_map_link_providers();
+  // Default providers will be taken from the country specific default providers
+  // function if it exists, otherwise it will use the global function.
+  $selected_providers = variable_get('location_map_link_' . $location['country'], function_exists($default_func) ? $default_func() : location_map_link_default_providers());
 
   $links = array();
   foreach ($selected_providers as $mapper) {
-    $link_func = 'location_map_link_'. $location['country'] .'_'. $mapper;
+    $link_func = 'location_map_link_' . $location['country'] . '_' . $mapper;
+    // If there is no country function try for a global one.
+    $link_func = function_exists($link_func) ? $link_func : 'location_map_link_' . $mapper;
     if (function_exists($link_func)) {
       if ($link = $link_func($location)) {
-        $links[] = '<a href="'. $link .'"'. (variable_get('location_maplink_external', 0) ? ' '. variable_get('location_maplink_external_method', 'target="_blank"') : '') .'>'. $providers[$mapper]['name'] .'</a>';
+        $links[] = '<a href="' . $link . '"' . (variable_get('location_maplink_external', 0) ? ' ' . variable_get('location_maplink_external_method', 'target="_blank"') : '') . '>' . $providers[$mapper]['name'] . '</a>';
       }
     }
   }
   if (count($links)) {
-    return '<div class="location map-link">'. t($link_text) . implode($links, ", ") .'</div>';
+    return '<div class="location map-link">' . t($link_text) . implode($links, ", ") . '</div>';
+  }
+  else {
+    return NULL;
+  }
+}
+
+/**
+ * Provide default map link providers.
+ * By implementing location_map_link_COUNTRYCODE_providers, individual
+ * countries can add to this (they will be merged so this default can also be
+ * overridden using those functions).
+ *
+ * @return
+ *   An array where
+ *    - the key is the a descriptive key for the provider.
+ *      The key is also used in the function name of the function that
+ *      generates the map links for that provider. For example, a key of
+ *      'google' means the name of the function that builds a link to a map
+ *      Google Maps would be 'location_map_link_google', or
+ *      'location_map_link_COUNTRYCODE_google' for country overrides.
+ *    - the value is itself an array with 3 key/value pairs:
+ *      - 'name' => points to the name of the mapping service.  For 'google',
+ *        this would be 'Google Maps'
+ *      - 'url' => the url of the main page of the mapping service.  For
+ *        'google', this would be 'http://maps.google.com'
+ *      - 'tos' => the url of the page that explains the map providers Terms of
+ *        Service, or Terms of Use. For 'google', this would be
+ *        'http://www.google.com/help/terms_local.html'
+ */
+function location_map_link_providers() {
+  return array(
+    'google' => array(
+      'name' => t('Google Maps'),
+      'url' => 'http://maps.google.com',
+      'tos' => 'http://www.google.com/help/terms_local.html',
+    ),
+  );
+}
+
+/**
+ * Provide the default map link providers.
+ * This can be overridden by implementing
+ * location_map_link_COUNTRYCODE_default_providers for a given country.
+ *
+ * @return
+ *   An array of values that work as keys to the array returned by
+ *   location_map_link_providers (and country versions of that function).
+ *   The idea is that if the administrator of the site has not yet had a chance
+ *   to visit the "Map Links" subtab on the location module's settings page,
+ *   that we can provide deep-linking to a relatively safe default.
+ *   By 'relatively safe', we mean that the Terms Of Service of the provider
+ *   of the maps are flexible enough for most parties.
+ *
+ *   For example, in the case of the U.S., 'google' has relatively flexible
+ *   Terms Of Service, whereas Yahoo! Maps and MapQuest have more restrictive
+ *   Terms Of Service.
+ *
+ */
+function location_map_link_default_providers() {
+  return array('google');
+}
+
+function location_map_link_google($location = array()) {
+  $query_params = array();
+
+  foreach (array('street', 'city', 'province', 'postal_code', 'country') as $field) {
+    if (isset($location[$field])) {
+      $query_params[] = $location[$field];
+    }
+  }
+
+  if (count($query_params)) {
+    return ('http://maps.google.com?q=' . urlencode(implode(", ", $query_params)));
   }
   else {
     return NULL;
@@ -94,7 +173,7 @@ function location_get_postalcode_data($location = array()) {
     return NULL;
   }
   location_load_country($location['country']);
-  $country_specific_function = 'location_get_postalcode_data_'. $location['country'];
+  $country_specific_function = 'location_get_postalcode_data_' . $location['country'];
   if (function_exists($country_specific_function)) {
     return $country_specific_function($location);
   }
@@ -141,7 +220,10 @@ function location_distance_between($latlon_a = array(), $latlon_b = array(), $di
   //$conversion_factor = ($distance_unit == 'km') ? 1000.0 : 1609.347;
 
   $meters = earth_distance($latlon_a['lon'], $latlon_a['lat'], $latlon_b['lon'], $latlon_b['lat']);
-  return array('scalar' => round($meters/(($distance_unit == 'km') ? 1000.0 : 1609.347), 1), 'distance_unit' => $distance_unit);
+  return array(
+    'scalar' => round($meters / (($distance_unit == 'km') ? 1000.0 : 1609.347), 1),
+    'distance_unit' => $distance_unit
+  );
 }
 
 /**
@@ -194,11 +276,11 @@ function location_driving_directions_link($location_a = array(), $location_b = a
   // what it will do with driving destination locationes from other countries.  As an example, Yahoo! Maps supports driving
   // direction queries for locations between the U.S. and Canada.
 
-  $driving_direction_function = 'location_driving_directions_link_'. $location_a['country'];
+  $driving_direction_function = 'location_driving_directions_link_' . $location_a['country'];
   if (function_exists($driving_direction_function)) {
     $http_link = $driving_direction_function($location_a, $location_b);
     if (strlen($http_link)) {
-      return '<a href="'. $http_link .'">'. $link_text .'</a>';
+      return '<a href="' . $http_link . '">' . $link_text . '</a>';
     }
     else {
       return '';
@@ -264,7 +346,7 @@ function location_latlon_rough($location = array()) {
 
   location_load_country($location['country']);
 
-  $latlon_function = 'location_latlon_rough_'. $location['country'];
+  $latlon_function = 'location_latlon_rough_' . $location['country'];
   if (function_exists($latlon_function) && $result = $latlon_function($location)) {
     return $result;
   }
@@ -392,7 +474,7 @@ function location_country_bounds($location = array()) {
 function location_latlon_exact($location = array()) {
   $country = $location['country'];
   location_standardize_country_code($country);
-  $service = variable_get('location_geocode_'. $country, 'none');
+  $service = variable_get('location_geocode_' . $country, 'none');
   if (!empty($country) && $service != 'none') {
     // figure out what the exact function should be
     if (strpos($service, '|')) {
@@ -400,11 +482,11 @@ function location_latlon_exact($location = array()) {
       // The code change below fixes the problem of the country specific
       // function for geocoding not being correctly called (it removes any
       // text from the pipe (|) onwards)
-      $exact_latlon_function = 'location_geocode_'. $country .'_'. substr($service, 0, strpos($service, '|'));
+      $exact_latlon_function = 'location_geocode_' . $country . '_' . substr($service, 0, strpos($service, '|'));
     }
     else {
       location_load_geocoder($service);
-      $exact_latlon_function = $service .'_geocode_location';
+      $exact_latlon_function = $service . '_geocode_location';
     }
     if (function_exists($exact_latlon_function)) {
       return $exact_latlon_function($location);
@@ -431,7 +513,7 @@ function location_latlon_exact($location = array()) {
  * @ingroup Location
  */
 function _location_supported_countries() {
-  $supported_countries = &drupal_static(__FUNCTION__, array());
+  $supported_countries = & drupal_static(__FUNCTION__, array());
 
 
   // If this function has already been called this request, we can avoid a DB hit.
@@ -446,9 +528,9 @@ function _location_supported_countries() {
   else {
     // '<ISO two-letter code>' => '<English name for country>'
     $iso_list = location_get_iso3166_list();
-    $path = drupal_get_path('module', 'location') .'/supported/location.';
+    $path = drupal_get_path('module', 'location') . '/supported/location.';
     foreach ($iso_list as $cc => $name) {
-      if (file_exists($path . $cc .'.inc')) {
+      if (file_exists($path . $cc . '.inc')) {
         $supported_countries[$cc] = $name;
       }
     }
@@ -462,7 +544,7 @@ function _location_supported_countries() {
  * Fetch the provinces for a country.
  */
 function location_get_provinces($country = 'us') {
-  $provinces = &drupal_static(__FUNCTION__, array());
+  $provinces = & drupal_static(__FUNCTION__, array());
 
   location_standardize_country_code($country);
   if (isset($provinces[$country])) {
@@ -473,7 +555,7 @@ function location_get_provinces($country = 'us') {
     return $provinces[$country];
   }
   location_load_country($country);
-  $func = 'location_province_list_'. $country;
+  $func = 'location_province_list_' . $country;
   if (function_exists($func)) {
     $provinces[$country] = $func();
     cache_set("provinces:$country", $provinces[$country], 'cache_location');
@@ -527,6 +609,9 @@ function location_province_code($country = 'us', $province = 'xx') {
 
   $p = strtoupper($province);
   foreach ($country as $c) {
+    if ($c == 'xx') {
+      return $province;
+    }
     $provinces = location_get_provinces($c);
     foreach ($provinces as $k => $v) {
       if ($p == strtoupper($k) || $p == strtoupper($v)) {
@@ -617,7 +702,7 @@ function location_address2singleline($location = array()) {
     }
 
     // @@@ Fix this!
-    if (substr($location['province'], 0, 3) == $location['country'] .'-') {
+    if (substr($location['province'], 0, 3) == $location['country'] . '-') {
       $address .= substr($location['province'], 3);
       watchdog('Location', 'BUG: Country found in province attribute.');
     }
@@ -634,14 +719,14 @@ function location_address2singleline($location = array()) {
   }
 
   if (!empty($location['country'])) {
-    $address .= ', '. $location['country'];
+    $address .= ', ' . $location['country'];
   }
 
   return $address;
 }
 
 function location_get_general_geocoder_list() {
-  $list = &drupal_static(__FUNCTION__, array());
+  $list = & drupal_static(__FUNCTION__, array());
 
   if (!count($list)) {
     $files = file_scan_directory(drupal_get_path('module', 'location') . '/geocoding', '/\.inc$/', array('nomask' => '/(\.\.?|CVS|\.svn)$/'));
@@ -663,7 +748,7 @@ function location_get_iso3166_list($upper = FALSE) {
 
   // Statically cache a version of the core Drupal list of countries
   // with lower case country codes for use by this module.
-  $countries = &drupal_static(__FUNCTION__);
+  $countries = & drupal_static(__FUNCTION__);
 
   if ($upper) {
     // Drupal core stores ISO 3166-1 alpha2 codes in upper case, as

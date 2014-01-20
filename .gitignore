@@ -7,6 +7,9 @@
 **/Gemfile.lock
 **/.rspec_system
 
+# Ignore the devel mail log on dev / staging systems
+devel-mail-log
+
 # Ignore the error log
 htdocs/error_log
 htdocs/moving.page

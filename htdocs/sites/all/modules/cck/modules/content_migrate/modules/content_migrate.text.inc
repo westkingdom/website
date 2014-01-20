@@ -1,8 +1,7 @@
 <?php
 /**
  * @file content_migrate.text.inc
- * Code to implement hook_content_migrate_field_alter, content_migrate_instance_alter() and content_migrate_data_record_alter()
- * on behalf of the former text module, moved into a separate file for efficiency.
+ * Code to implement Content Migrate hooks on behalf of the Text module.
  */
 
 /**
@@ -13,7 +12,7 @@
  * situations not handled by basic conversion,
  * as when field types or settings are changed.
  */
-function content_migrate_text_field_alter(&$field_value, $instance_value) {
+function text_content_migrate_field_alter(&$field_value, $instance_value) {
   switch ($field_value['type']) {
     case 'text':
 
@@ -78,10 +77,17 @@ function content_migrate_text_field_alter(&$field_value, $instance_value) {
         case 'list_text':
         case 'list_boolean':
           $allowed_values = array();
+          $legacy_values = array();
           if (!empty($field_value['settings']['allowed_values'])) {
             $allowed_values = content_migrate_extract_allowed_values($field_value['settings']['allowed_values'], $field_value['type']);
+            // Keep a copy of the legacy values.
+            if (isset($allowed_values['legacy_values'])) {
+              $legacy_values = $allowed_values['legacy_values'];
+            }
+            unset($allowed_values['legacy_values']);
           }
           $field_value['settings']['allowed_values'] = $allowed_values;
+          $field_value['settings']['legacy_values'] = $legacy_values;
           break;
 
       }
@@ -99,7 +105,7 @@ function content_migrate_text_field_alter(&$field_value, $instance_value) {
  * situations not handled by basic conversion, as when
  * formatter or widget names or settings are changed.
  */
-function content_migrate_text_instance_alter(&$instance_value, $field_value) {
+function text_content_migrate_instance_alter(&$instance_value, $field_value) {
   switch ($field_value['module']) {
     case 'text':
 
@@ -122,13 +128,13 @@ function content_migrate_text_instance_alter(&$instance_value, $field_value) {
  *
  * Tweaks individual records in a field.
  */
-function content_migrate_text_data_record_alter(&$record, $field, $instance) {
+function text_content_migrate_data_record_alter(&$record, $field, $instance) {
   $existing_formats = &drupal_static(__FUNCTION__);
   if (empty($existing_formats)) {
     $existing_formats = db_query("SELECT format FROM {filter_format}")->fetchCol();
   }
 
-  switch($field_value['module']) {
+  switch($field['module']) {
     case 'text':
       if (!empty($instance['settings']['text_processing'])) {
         // Adapted from node_update_7006(), to adjust the filter format values 
@@ -137,5 +143,47 @@ function content_migrate_text_data_record_alter(&$record, $field, $instance) {
           $record[$field['field_name'] . '_format'] = variable_get('filter_default_format', 1);
         }
       }
+      break;
+  }
+
+  switch ($field['type']) {
+    case 'list_boolean':
+      static $legacy_values;
+
+      if (is_null($legacy_values)) {
+        $legacy_values = array();
+      }
+
+      // D6 only supported SQL storage, so it's ok to do this.
+      $field_name = $field['field_name'] . '_value';
+
+      // Replace the legacy value with the new values, which are always numeric.
+      // The legacy values are inserted via content_migrate_text_field_alter().
+      if (!empty($record[$field_name])) {
+        if (!isset($legacy_values[$field['field_name']])) {
+          // Default to an empty array.
+          $legacy_values[$field['field_name']] = array();
+
+          // Load the D6 field's specs.
+          $field_specs = db_select('content_node_field', 'nf')
+            ->fields('nf')
+            ->condition('nf.field_name', $field['field_name'])
+            ->execute()
+            ->fetchObject();
+          $field_specs->global_settings = unserialize($results->global_settings);
+
+          // Convert the legacy allowed values.
+          if (!empty($field_specs->global_settings['allowed_values'])) {
+            $legacy = content_migrate_extract_allowed_values($field_specs->global_settings['allowed_values'], NULL);
+            $legacy_values[$field['field_name']] = $legacy;
+          }
+        }
+        $legacy_keys = array_keys($legacy_values[$field['field_name']]);
+
+        // Casting this as an integer ensures the value is always either 0 or 1.
+        $record[$field_name] = (int) array_search($record[$field_name], $legacy_keys);
+      }
+
+      break;
   }
 }

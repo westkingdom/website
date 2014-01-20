@@ -62,7 +62,7 @@ To ease your task, this effect makes some information regarding the image being
 processed available in 2 variables: $image and $image_context. These variables
 are readily available in your snippet.
 
-$image is an associative array containing:
+$image is an object containing the following properties:
 - source: string, the source of the image, e.g. public://photo.jpg
 - info: array, example data:
    - width (int) 180
