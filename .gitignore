@@ -10,6 +10,9 @@
 # Ignore the devel mail log on dev / staging systems
 devel-mail-log
 
+# Don't track phpstorm files
+.idea
+
 # Ignore the error log
 htdocs/error_log
 htdocs/moving.page
