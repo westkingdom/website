@@ -104,45 +104,47 @@ function wk_preprocess_page__officers(&$variables) {
 }
 
 function wk_preprocess_page__cal_event(&$variables) {
-  $node = $variables['node'];
-  // Output device arms before the page title
-  $output = '';
-  foreach ($node->taxonomy_vocabulary_2[LANGUAGE_NONE] as $index => $term) {
-    if (isset($term['taxonomy_term'])) {
-      $view = field_view_field('taxonomy_term', $term['taxonomy_term'], 'field_arms');
-      if (!empty($view)) {
-        $output .= render($view);
+  // Inelegant, but we need to filter out "edit" page (and others) somehow.
+  if (empty(arg(2))) {
+    $node = $variables['node'];
+    // Output device arms before the page title
+    $output = '';
+    foreach ($node->taxonomy_vocabulary_2[LANGUAGE_NONE] as $index => $term) {
+      if (isset($term['taxonomy_term'])) {
+        $view = field_view_field('taxonomy_term', $term['taxonomy_term'], 'field_arms');
+        if (!empty($view)) {
+          $output .= render($view);
+        }
       }
     }
-  }
-  if (!empty($output)) {
-    $variables['title_prefix']['#markup'] = "
-<div class='calendar-event-arms'>
-  <div class='left-arms'>$output</div>
-  <div class='right-arms'>$output</div>
-</div>";
-  }
-  // Output additional information about the event below the page title
-  $cal_event_location_long_summary_markup = '';
-  $cal_event_date = wk_node_field_date_render_array($node);
-  $variables['cal_event_date'] = $cal_event_date;
-  $variables['cal_event_branch'] = field_view_field('node', $node, 'taxonomy_vocabulary_2', 'default'); // $node->taxonomy_vocabulary_2;
-  if (isset($node->field_event_site[LANGUAGE_NONE][0]['node']) && isset($node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0])) {
-    $city = $node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0]['city'];
-    $province = $node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0]['province'];
-    $province_name = $node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0]['province_name'];
-    if (!empty($city) && !empty($province)) {
-      $variables['cal_event_location_summary'] = '(' . $city . ', ' . $province . ')';
-      $variables['cal_event_location_long_summary'] =  $city . ', ' . $province_name;
-      $cal_event_location_long_summary_markup = '<div class="cal-event-location-long-summary">' . $variables['cal_event_location_long_summary'] . '</div>';
+    if (!empty($output)) {
+      $variables['title_prefix']['#markup'] = "
+  <div class='calendar-event-arms'>
+    <div class='left-arms'>$output</div>
+    <div class='right-arms'>$output</div>
+  </div>";
     }
+    // Output additional information about the event below the page title
+    $cal_event_location_long_summary_markup = '';
+    $cal_event_date = wk_node_field_date_render_array($node);
+    $variables['cal_event_date'] = $cal_event_date;
+    $variables['cal_event_branch'] = field_view_field('node', $node, 'taxonomy_vocabulary_2', 'default'); // $node->taxonomy_vocabulary_2;
+    if (isset($node->field_event_site[LANGUAGE_NONE][0]['node']) && isset($node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0])) {
+      $city = $node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0]['city'];
+      $province = $node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0]['province'];
+      $province_name = $node->field_event_site[LANGUAGE_NONE][0]['node']->field_location[LANGUAGE_NONE][0]['province_name'];
+      if (!empty($city) && !empty($province)) {
+        $variables['cal_event_location_summary'] = '(' . $city . ', ' . $province . ')';
+        $variables['cal_event_location_long_summary'] =  $city . ', ' . $province_name;
+        $cal_event_location_long_summary_markup = '<div class="cal-event-location-long-summary">' . $variables['cal_event_location_long_summary'] . '</div>';
+      }
+    }
+    $variables['title_suffix']['#markup'] = '
+    <div class="event-info">
+      ' . render($cal_event_date) . $cal_event_location_long_summary_markup . render($variables['cal_event_branch']) . '
+    </div>
+  ';
   }
-  $variables['title_suffix']['#markup'] = '
-  <div class="event-info">
-    ' . render($cal_event_date) . $cal_event_location_long_summary_markup . render($variables['cal_event_branch']) . '
-  </div>
-';
-
 }
 
 /**
