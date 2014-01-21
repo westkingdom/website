@@ -4,6 +4,8 @@ base theme = 'responsive_bartik'
 version = 0.1
 core = 7.x
 
+screenshot = wk_bartik_screenshot.png
+
 stylesheets[all][] = css/wk_bartik.css
 stylesheets[all][] = css/colors.css
 
