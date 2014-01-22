@@ -105,7 +105,8 @@ function wk_preprocess_page__officers(&$variables) {
 
 function wk_preprocess_page__cal_event(&$variables) {
   // Inelegant, but we need to filter out "edit" page (and others) somehow.
-  if (empty(arg(2))) {
+  $value = arg(2);
+  if (empty($value)) {
     $node = $variables['node'];
     // Output device arms before the page title
     $output = '';
