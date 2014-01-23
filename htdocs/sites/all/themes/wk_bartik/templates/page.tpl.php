@@ -260,3 +260,7 @@
       </div>
     </div>
 </div> <!-- /#page-wrapper -->
+
+<!--[if lt IE 9]>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.js"></script>
+<![endif]-->
