@@ -211,6 +211,57 @@ function wk_preprocess_node__cal_event(&$variables) {
   }
 }
 
+function wk_taxonomy_tree_form_element_alter(&$element) {
+  $has_selected_elements = FALSE;
+  foreach ($element as $tid => $data) {
+    if (($tid[0] != '#') && is_numeric($tid)) {
+      $is_selected = FALSE;
+      wk_taxonomy_tree_form_element_term_alter($element[$tid][$tid], $tid);
+      $is_selected = $element[$tid][$tid]['#value'];
+      if (array_key_exists($tid . '-children', $element[$tid])) {
+        $is_selected |= wk_taxonomy_tree_form_element_alter($element[$tid][$tid . '-children']);
+        if (!$is_selected) {
+          $element[$tid][$tid . '-children']['#start_minimized'] = TRUE;
+          $element[$tid][$tid . '-children']['#level_start_minimized'] = TRUE;
+        }
+      }
+      if (!$is_selected) {
+        $element[$tid]['#level_start_minimized'] = TRUE;
+      }
+      $has_selected_elements |= $is_selected;
+    }
+  }
+  return $has_selected_elements;
+}
+
+/**
+ * Alter the data built by term_reference_tree.widget.inc.
+ * @see: _term_reference_tree_build_item()
+ */
+function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
+  $term = taxonomy_term_load($tid);
+  $term_render_array = taxonomy_term_view($term, 'term_with_icon');
+  // Probably better to just do this:
+  //   $element['#title'] = drupal_render($term_render_array);
+  // We would need to re-order the title and remove the link from it, though.
+  $output = '';
+  foreach ($term_render_array as $key => $child) {
+    if ($key[0] != '#') {
+      $output .= drupal_render($child);
+    }
+  }
+  $element['#title'] = $output . $element['#title'];
+}
+
+function wk_branch_group_form_element_after_build($form_element, &$form_state) {
+  wk_taxonomy_tree_form_element_alter($form_element[0]);
+  return $form_element;
+}
+
+function wk_form_alter__cal_event_node_form(&$form, &$form_state) {
+  $language = $form['taxonomy_vocabulary_2']['#language'];
+  $form['taxonomy_vocabulary_2'][$language]['#after_build'][] = 'wk_branch_group_form_element_after_build';
+}
 
 /**
  * Implements hook_form_alter
