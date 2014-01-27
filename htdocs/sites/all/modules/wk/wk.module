@@ -211,6 +211,27 @@ function wk_preprocess_node__cal_event(&$variables) {
   }
 }
 
+function wk_taxonomy_tree_initial_minimized_state(&$element) {
+  $has_selected_elements = FALSE;
+  foreach ($element as $tid => $data) {
+    if (($tid[0] != '#') && is_numeric($tid)) {
+      $is_selected = $element[$tid][$tid]['#value'];
+      if (array_key_exists($tid . '-children', $element[$tid])) {
+        $is_selected |= wk_taxonomy_tree_initial_minimized_state($element[$tid][$tid . '-children']);
+        if (!$is_selected) {
+          $element[$tid][$tid . '-children']['#start_minimized'] = TRUE;
+          $element[$tid][$tid . '-children']['#level_start_minimized'] = TRUE;
+        }
+      }
+      if (!$is_selected) {
+        $element[$tid]['#level_start_minimized'] = TRUE;
+      }
+      $has_selected_elements |= $is_selected;
+    }
+  }
+  return $has_selected_elements;
+}
+
 function wk_taxonomy_tree_form_element_alter(&$element) {
   $has_selected_elements = FALSE;
   foreach ($element as $tid => $data) {
@@ -266,10 +287,16 @@ function wk_branch_group_form_element_after_build($form_element, &$form_state) {
     $form_element[0][$primary_kingdom] = $corpora_element[$sca_corpora . '-children'][$primary_kingdom];
     unset($corpora_element[$sca_corpora . '-children'][$primary_kingdom]);
     $form_element[0][$sca_corpora] = $corpora_element;
-    if ($corpora_element['#level_start_minimized']) {
-      $form_element[0][$primary_kingdom]['#level_start_minimized'] = FALSE;
-      $form_element[0][$primary_kingdom][$primary_kingdom . '-children']['#start_minimized'] = FALSE;
-      $form_element[0][$primary_kingdom][$primary_kingdom . '-children']['#level_start_minimized'] = FALSE;
+  }
+  $has_selected = wk_taxonomy_tree_initial_minimized_state($form_element[0]);
+  if (!$has_selected) {
+    foreach ($form_element[0] as $tid => $data) {
+      if (($tid[0] != '#') && is_numeric($tid)) {
+        $form_element[0][$tid]['#level_start_minimized'] = FALSE;
+        $form_element[0][$tid][$tid . '-children']['#start_minimized'] = FALSE;
+        $form_element[0][$tid][$tid . '-children']['#level_start_minimized'] = FALSE;
+        break;
+      }
     }
   }
   return $form_element;
@@ -284,11 +311,15 @@ function wk_form_alter(&$form, &$form_state) {
     $fn($form, $form_state);
   }
 
-  if (array_key_exists('taxonomy_vocabulary_2', $form)) {
-    $language = $form['taxonomy_vocabulary_2']['#language'];
-    if ($form['taxonomy_vocabulary_2'][$language]['#type'] == 'checkbox_tree') {
-      $form['taxonomy_vocabulary_2']['#attributes']['class'][] = 'term-with-icon-variant';
-      $form['taxonomy_vocabulary_2'][$language]['#after_build'][] = 'wk_branch_group_form_element_after_build';
+  // TODO: We should probably make this a recursive function, so that
+  // we catch these fields when they appear inside of a field group.
+  foreach (array('taxonomy_vocabulary_2', 'field_office') as $term_tree_with_icon) {
+    if (array_key_exists($term_tree_with_icon, $form)) {
+      $language = $form[$term_tree_with_icon]['#language'];
+      if ($form[$term_tree_with_icon][$language]['#type'] == 'checkbox_tree') {
+        $form[$term_tree_with_icon]['#attributes']['class'][] = 'term-with-icon-variant';
+        $form[$term_tree_with_icon][$language]['#after_build'][] = 'wk_branch_group_form_element_after_build';
+      }
     }
   }
 
