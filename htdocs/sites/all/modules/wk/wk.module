@@ -254,6 +254,7 @@ function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
 }
 
 function wk_branch_group_form_element_after_build($form_element, &$form_state) {
+  wk_taxonomy_tree_form_element_alter($form_element[0]);
   // Reorganize the tree under the term "The Society for Creative Anachronism"
   $sca_corpora = 75;
   $primary_kingdom = 2; // The West
@@ -265,8 +266,12 @@ function wk_branch_group_form_element_after_build($form_element, &$form_state) {
     $form_element[0][$primary_kingdom] = $corpora_element[$sca_corpora . '-children'][$primary_kingdom];
     unset($corpora_element[$sca_corpora . '-children'][$primary_kingdom]);
     $form_element[0][$sca_corpora] = $corpora_element;
+    if ($corpora_element['#level_start_minimized']) {
+      $form_element[0][$primary_kingdom]['#level_start_minimized'] = FALSE;
+      $form_element[0][$primary_kingdom][$primary_kingdom . '-children']['#start_minimized'] = FALSE;
+      $form_element[0][$primary_kingdom][$primary_kingdom . '-children']['#level_start_minimized'] = FALSE;
+    }
   }
-  wk_taxonomy_tree_form_element_alter($form_element[0]);
   return $form_element;
 }
 
