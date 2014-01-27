@@ -1,5 +1,5 @@
 
-.page-node-add-cal-event #edit-taxonomy-vocabulary-2 {
+.page-node-add-cal-event-DISABLE #edit-taxonomy-vocabulary-2 {
   float: right;
   width: 60%;
   border: solid 1px #ccc;
@@ -7,12 +7,38 @@
   padding-left: 8px;
 }
 
-.page-node-add-cal-event #edit-field-event-type {
+.page-node-add-cal-event-DISABLE #edit-field-event-type {
   width: 40%;
 }
 
-.page-node-add-cal-event #edit-field-event-type .form-type-radios {
+.page-node-add-cal-event-DISABLE #edit-field-event-type .form-type-radios {
   padding-left: 8px;
   margin-right: 16px;
   border: solid 1px #ccc;
+}
+
+
+/* ----- Taxonomy tree with icon ----- */
+
+.term-with-icon-variant .term-reference-tree-button,
+.term-with-icon-variant .no-term-reference-tree-button {
+  float: left;
+  margin-top: 4px;
+}
+
+.term-with-icon-variant .form-checkbox {
+  float: left;
+  margin-top: 6px;
+  margin-right: 8px;
+}
+
+.term-with-icon-variant .field-type-image {
+  float: left;
+  margin-top: 4px;
+  margin-right: 8px;
+}
+
+.term-with-icon-variant img {
+  width: 24px;
+  height: auto;
 }

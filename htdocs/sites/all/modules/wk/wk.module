@@ -258,11 +258,6 @@ function wk_branch_group_form_element_after_build($form_element, &$form_state) {
   return $form_element;
 }
 
-function wk_form_alter__cal_event_node_form(&$form, &$form_state) {
-  $language = $form['taxonomy_vocabulary_2']['#language'];
-  $form['taxonomy_vocabulary_2'][$language]['#after_build'][] = 'wk_branch_group_form_element_after_build';
-}
-
 /**
  * Implements hook_form_alter
  */
@@ -272,6 +267,13 @@ function wk_form_alter(&$form, &$form_state) {
     $fn($form, $form_state);
   }
 
+  if (array_key_exists('taxonomy_vocabulary_2', $form)) {
+    $language = $form['taxonomy_vocabulary_2']['#language'];
+    if ($form['taxonomy_vocabulary_2'][$language]['#type'] == 'checkbox_tree') {
+      $form['taxonomy_vocabulary_2']['#attributes']['class'][] = 'term-with-icon-variant';
+      $form['taxonomy_vocabulary_2'][$language]['#after_build'][] = 'wk_branch_group_form_element_after_build';
+    }
+  }
 
   if (($form['#form_id'] == 'contact_personal_form') || ($form['#form_id'] == 'og_contact_mail_page') || ($form['#form_id'] == 'contact_site_form')) {
     if (!empty($form['mail']['#default_value'])) {
