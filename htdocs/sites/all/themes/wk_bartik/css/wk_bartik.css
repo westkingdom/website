@@ -340,6 +340,33 @@ blockquote {
 }
 
 
+/* ----- Taxonomy tree with icon ----- */
+/*     (also exists in wk_seven)      */
+
+.term-with-icon-variant .term-reference-tree-button,
+.term-with-icon-variant .no-term-reference-tree-button {
+  float: left;
+  margin-top: 4px;
+}
+
+.term-with-icon-variant .form-checkbox {
+  float: left;
+  margin-top: 6px;
+  margin-right: 8px;
+}
+
+.term-with-icon-variant .field-type-image {
+  float: left;
+  margin-top: 4px;
+  margin-right: 8px;
+}
+
+.term-with-icon-variant img {
+  width: 24px;
+  height: auto;
+}
+
+
 /* ############# End General Field CSS ############# */
 
 /* ############# Begin Officer CSS ############# */
