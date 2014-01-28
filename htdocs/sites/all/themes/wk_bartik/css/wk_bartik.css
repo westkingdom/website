@@ -346,11 +346,16 @@ blockquote {
   #entityform_who_s_who_update_form_group_id {
     float: left;
     width: 50%;
+    margin-right: 1%;
   }
 
   .entitytype-who_s_who_update-form .field-name-taxonomy-vocabulary-2 {
     float: left;
-    width: 50%;
+    width: 48%;
+  }
+
+  .entitytype-who_s_who_update-form #edit-field-awards-from-other-kingdoms {
+    clear: both;
   }
 
 }
