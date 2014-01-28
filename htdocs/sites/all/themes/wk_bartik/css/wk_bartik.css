@@ -339,6 +339,21 @@ blockquote {
   clear: both;
 }
 
+/* ----- Who's who form ----- */
+
+@media all and (min-width: 901px) {
+
+  #entityform_who_s_who_update_form_group_id {
+    float: left;
+    width: 50%;
+  }
+
+  .entitytype-who_s_who_update-form .field-name-taxonomy-vocabulary-2 {
+    float: left;
+    width: 50%;
+  }
+
+}
 
 /* ----- Taxonomy tree with icon ----- */
 /*     (also exists in wk_seven)      */
@@ -380,7 +395,7 @@ blockquote {
   display: none;
 }
 
-@media all and (max-width: 901px) {
+@media all and (max-width: 900px) {
   #regnum-change-entityform-edit-form #edit-taxonomy-vocabulary-2 {
     float: none;
     width: auto;
