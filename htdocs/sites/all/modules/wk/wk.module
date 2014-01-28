@@ -274,7 +274,7 @@ function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
   $element['#title'] = $output . $element['#title'];
 }
 
-function wk_branch_group_form_element_after_build($form_element, &$form_state) {
+function wk_term_with_icon_form_element_after_build($form_element, &$form_state) {
   wk_taxonomy_tree_form_element_alter($form_element[0]);
   // Reorganize the tree under the term "The Society for Creative Anachronism"
   $sca_corpora = 75;
@@ -302,6 +302,25 @@ function wk_branch_group_form_element_after_build($form_element, &$form_state) {
   return $form_element;
 }
 
+function wk_form_alter_taxonomy_tree_with_icon_fields(&$element) {
+  if (is_array($element)) {
+    foreach ($element as $key => $data) {
+      if ($key[0] != '#') {
+        if (!is_numeric($key) && in_array($key, array('taxonomy_vocabulary_2', 'field_office'))) {
+          $language = $element[$key]['#language'];
+          if ($element[$key][$language]['#type'] == 'checkbox_tree') {
+            $element[$key]['#attributes']['class'][] = 'term-with-icon-variant';
+            $element[$key][$language]['#after_build'][] = 'wk_term_with_icon_form_element_after_build';
+          }
+        }
+        else {
+          wk_form_alter_taxonomy_tree_with_icon_fields($element[$key]);
+        }
+      }
+    }
+  }
+}
+
 /**
  * Implements hook_form_alter
  */
@@ -311,17 +330,8 @@ function wk_form_alter(&$form, &$form_state) {
     $fn($form, $form_state);
   }
 
-  // TODO: We should probably make this a recursive function, so that
-  // we catch these fields when they appear inside of a field group.
-  foreach (array('taxonomy_vocabulary_2', 'field_office') as $term_tree_with_icon) {
-    if (array_key_exists($term_tree_with_icon, $form)) {
-      $language = $form[$term_tree_with_icon]['#language'];
-      if ($form[$term_tree_with_icon][$language]['#type'] == 'checkbox_tree') {
-        $form[$term_tree_with_icon]['#attributes']['class'][] = 'term-with-icon-variant';
-        $form[$term_tree_with_icon][$language]['#after_build'][] = 'wk_branch_group_form_element_after_build';
-      }
-    }
-  }
+  // Search for occurances of checkbox_tree fields that we want to alter.
+  wk_form_alter_taxonomy_tree_with_icon_fields($form);
 
   if (($form['#form_id'] == 'contact_personal_form') || ($form['#form_id'] == 'og_contact_mail_page') || ($form['#form_id'] == 'contact_site_form')) {
     if (!empty($form['mail']['#default_value'])) {

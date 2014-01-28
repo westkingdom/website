@@ -366,6 +366,57 @@ blockquote {
   height: auto;
 }
 
+#regnum-change-entityform-edit-form #edit-taxonomy-vocabulary-2 {
+  float: right;
+  width: 50%;
+}
+
+#regnum-change-entityform-edit-form #entityform_regnum_change_form_group_office {
+  float: left;
+  width: 50%;
+}
+
+#regnum-change-entityform-edit-form #entityform_regnum_change_form_group_office h3 {
+  display: none;
+}
+
+@media all and (max-width: 901px) {
+  #regnum-change-entityform-edit-form #edit-taxonomy-vocabulary-2 {
+    float: none;
+    width: auto;
+  }
+
+  #regnum-change-entityform-edit-form #entityform_regnum_change_form_group_office {
+    float: none;
+    width: auto;
+  }
+}
+
+#regnum-change-entityform-edit-form #edit-field-effective-date {
+  clear: both;
+}
+
+#regnum-change-entityform-edit-form .start-date-wrapper {
+  float: left;
+  width: auto;
+  clear: none;
+}
+
+#regnum-change-entityform-edit-form .end-date-wrapper {
+  float: left;
+  width: auto;
+  clear: none;
+}
+
+#regnum-change-entityform-edit-form .end-date-wrapper label {
+  float: left;
+  width: auto;
+  padding: 20px;
+}
+
+#regnum-change-entityform-edit-form .form-item-field-effective-date-und-0-value2-date label {
+  padding: 0;
+}
 
 /* ############# End General Field CSS ############# */
 
