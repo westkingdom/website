@@ -653,7 +653,7 @@ function wk_token_info() {
   // These tokens are only available for nodes of type 'cal_event'
   $node['as_year'] = array(
     'name' => t("Anno Societatis Year"),
-    'description' => t('Year in Anno Societatis (AS). See http://www.sca.org/links/calendar.html.'),
+    'description' => t('Year in Anno Societatis (AS) notation. See http://www.sca.org/links/calendar.html.'),
   );
   $node['event_month'] = array(
     'name' => t("Event Month"),
@@ -707,9 +707,13 @@ function wk_token_info() {
     'name' => t("Full Parentage"),
     'description' => t("The full list of parent domains for the current domain within a site hierarchy."),
   );
+  $date['as_year'] = array(
+    'name' => t("AS year"),
+    'description' => t("The date (year) in Anno Societatis (AS) notation. See http://www.sca.org/links/calendar.html."),
+  );
 
   return array(
-    'tokens' => array('node' => $node, 'site' => $site),
+    'tokens' => array('node' => $node, 'site' => $site, 'date' => $date),
   );
 }
 
@@ -738,6 +742,17 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
 
         case 'full-parentage':
           $replacements[$original] = _wk_full_parentage();
+          break;
+      }
+    }
+  }
+  if ($type == 'date') {
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'as_year':
+          $the_date = time();
+          $as = wk_timestamp_to_as($the_date);
+          $replacements[$original] = 'AS' . $as;
           break;
       }
     }
