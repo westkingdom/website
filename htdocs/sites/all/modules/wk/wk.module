@@ -276,7 +276,6 @@ function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
 }
 
 function wk_term_with_icon_form_element_after_build($form_element, &$form_state) {
-  dpm($form_element);
   wk_taxonomy_tree_form_element_alter($form_element[0]);
   // Reorganize the tree under the term "The Society for Creative Anachronism"
   $sca_corpora = 75;
