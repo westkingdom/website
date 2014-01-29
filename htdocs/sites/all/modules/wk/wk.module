@@ -283,7 +283,8 @@ function wk_term_with_icon_form_element_after_build($form_element, &$form_state)
   if (array_key_exists($sca_corpora, $form_element[0]) && array_key_exists($primary_kingdom, $form_element[0][$sca_corpora][$sca_corpora . '-children'][$primary_kingdom])) {
     $corpora_element = $form_element[0][$sca_corpora];
     $corpora_element['#term-name'] = t("Other Kingdoms");
-    $corpora_element[$sca_corpora]['#title'] = $corpora_element['#term-name'];
+    $label_key = $corpora_element[$sca_corpora]['#type'] == 'checkbox_tree_label' ? '#value' : '#title';
+    $corpora_element[$sca_corpora][$label_key] = $corpora_element['#term-name'];
     unset($form_element[0][$sca_corpora]);
     $form_element[0][$primary_kingdom] = $corpora_element[$sca_corpora . '-children'][$primary_kingdom];
     unset($corpora_element[$sca_corpora . '-children'][$primary_kingdom]);
