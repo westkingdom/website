@@ -27,7 +27,8 @@
   margin-top: 4px;
 }
 
-.term-with-icon-variant .form-checkbox {
+.term-with-icon-variant .form-checkbox,
+ .term-with-icon-variant .type-checkbox-tree-label .parent-term {
   float: left;
   margin-top: 6px;
   margin-right: 8px;
