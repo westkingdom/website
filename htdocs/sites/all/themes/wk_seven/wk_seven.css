@@ -55,3 +55,6 @@
   font-style: italic;
 }
 
+.term-with-icon-variant .form-type-checkbox {
+  width: 90%;
+}
