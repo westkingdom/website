@@ -394,7 +394,13 @@ blockquote {
   color: #AAA;
   font-size: 80%;
   font-style: italic;
+  height: 1.3em;
   text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.term-with-icon-variant .taxonomy-term-description:hover {
+  overflow: visible;
 }
 
 .term-with-icon-variant .form-type-checkbox {
