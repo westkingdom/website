@@ -265,14 +265,20 @@ function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
   // Probably better to just do this:
   //   $element['#title'] = drupal_render($term_render_array);
   // We would need to re-order the title and remove the link from it, though.
-  $output = '';
+  $label_prefix = '';
+  $suffix = '';
   foreach ($term_render_array as $key => $child) {
     if ($key[0] != '#') {
-      $output .= drupal_render($child);
+      if (array_key_exists('#field_type', $child) && ($child['#field_type'] == 'image')) {
+        $label_prefix .= drupal_render($child);
+      }
+      else {
+        $suffix .= strip_tags(drupal_render($child), '<div>');
+      }
     }
   }
   $label_key = $element['#type'] == 'checkbox_tree_label' ? '#value' : '#title';
-  $element[$label_key] = $output . $element[$label_key];
+  $element[$label_key] = $label_prefix . $element[$label_key] . $suffix;
 }
 
 function wk_term_with_icon_form_element_after_build($form_element, &$form_state) {
