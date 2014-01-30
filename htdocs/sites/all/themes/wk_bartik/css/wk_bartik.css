@@ -386,6 +386,17 @@ blockquote {
   height: auto;
 }
 
+.term-with-icon-variant .form-type-checkbox label {
+  margin-left: 0px;
+}
+
+.term-with-icon-variant .taxonomy-term-description {
+  color: #AAA;
+  font-size: 80%;
+  font-style: italic;
+  text-overflow: ellipsis;
+}
+
 #regnum-change-entityform-edit-form #edit-taxonomy-vocabulary-2 {
   float: right;
   width: 50%;
