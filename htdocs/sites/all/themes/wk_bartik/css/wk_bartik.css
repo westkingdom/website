@@ -397,6 +397,12 @@ blockquote {
   text-overflow: ellipsis;
 }
 
+.term-with-icon-variant .form-type-checkbox {
+  width: 90%;
+}
+
+/* ----- Regnum change form ----- */
+
 #regnum-change-entityform-edit-form #edit-taxonomy-vocabulary-2 {
   float: right;
   width: 50%;
