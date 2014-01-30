@@ -37,30 +37,31 @@ function _regnum_configured_entityforms() {
 function regnum_form_alter(&$form, &$form_state) {
   global $user;
   if ($form['#form_id'] == 'regnum_change_entityform_edit_form') {
-    //dpm($form);
-    //dpm($form_state);
-    //dpm($user);
-    foreach ($form as $key => $item) {
-      if ($key == 'field_society_name') {
-        $form[$key][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
-      }
-      elseif ($key == 'field_email_address') {
-        $form[$key][LANGUAGE_NONE][0]['value']['#default_value'] = $user->mail;
-      }
-      /*
-          TODO: store location in user record; restore it here.
-      elseif ($key == 'field_location') {
-        $form[$key][LANGUAGE_NONE][0]['#default_value']['street'] = '123 Somewhere st.';
-      }
-      */
-      else {
-        foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
-          $field_map = _regnum_user_info_update_field_map($entityform_bundle);
-          $user_wrapper = entity_metadata_wrapper('user', $user);
-          foreach ($field_map as $key => $variable) {
-            $form_item = $variable;
-            if (array_key_exists($form_item, $form)) {
-              $form[$form_item][LANGUAGE_NONE][0]['value']['#default_value'] = $user_wrapper->$variable->value();
+    if (!isset($form['#entity']->uid)) {
+      //dpm($form_state);
+      //dpm($user);
+      foreach ($form as $key => $item) {
+        if ($key == 'field_society_name') {
+          $form[$key][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
+        }
+        elseif ($key == 'field_email_address') {
+          $form[$key][LANGUAGE_NONE][0]['value']['#default_value'] = $user->mail;
+        }
+        /*
+            TODO: store location in user record; restore it here.
+        elseif ($key == 'field_location') {
+          $form[$key][LANGUAGE_NONE][0]['#default_value']['street'] = '123 Somewhere st.';
+        }
+        */
+        else {
+          foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
+            $field_map = _regnum_user_info_update_field_map($entityform_bundle);
+            $user_wrapper = entity_metadata_wrapper('user', $user);
+            foreach ($field_map as $key => $variable) {
+              $form_item = $variable;
+              if (array_key_exists($form_item, $form)) {
+                $form[$form_item][LANGUAGE_NONE][0]['value']['#default_value'] = $user_wrapper->$variable->value();
+              }
             }
           }
         }
