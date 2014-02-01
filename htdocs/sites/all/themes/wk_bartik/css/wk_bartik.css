@@ -461,6 +461,46 @@ blockquote {
   padding: 0;
 }
 
+/* ----- Calendar Date Submission form ----- */
+
+.entitytype-calendar_date_request-form #edit-taxonomy-vocabulary-2 {
+  float: right;
+  width: 50%;
+}
+
+@media all and (max-width: 900px) {
+  .entitytype-calendar_date_request-form #edit-taxonomy-vocabulary-2 {
+    float: none;
+    width: auto;
+  }
+}
+
+.entitytype-calendar_date_request-form .field-name-field-additional-information {
+  clear: both;
+}
+
+.entitytype-calendar_date_request-form .start-date-wrapper {
+  float: left;
+  width: auto;
+  clear: none;
+}
+
+.entitytype-calendar_date_request-form .end-date-wrapper {
+  float: left;
+  width: auto;
+  clear: none;
+}
+
+.entitytype-calendar_date_request-form .end-date-wrapper label {
+  float: left;
+  width: auto;
+  padding: 20px;
+}
+
+.entitytype-calendar_date_request-form .form-item-field-first-choice-date-und-0-value2-date label {
+  padding: 0;
+}
+
 /* ############# End General Field CSS ############# */
 
 /* ############# Begin Officer CSS ############# */
