@@ -93,6 +93,12 @@ if (!$is_front && isset($field_image_style[LANGUAGE_NONE][0]['value'])) {
     $image_style_css = 'image-style-' . $field_image_style[LANGUAGE_NONE][0]['value'];
   }
 }
+$link_prefix = '';
+$link_suffix = '';
+if(isset($field_link[LANGUAGE_NONE][0]['url'])) {
+  $link_suffix = '</a>';
+  $link_prefix = '<a href="' . $field_link[LANGUAGE_NONE][0]['url'] . '">';
+}
 ?>
 <div id="file-<?php print $file->fid ?>" class="<?php print $classes ?>"<?php print $attributes; ?>>
 
@@ -113,6 +119,9 @@ if (!$is_front && isset($field_image_style[LANGUAGE_NONE][0]['value'])) {
     <?php
       // We hide the links now so that we can render them later.
       hide($content['links']);
+      $content['file']['#prefix'] = $link_prefix;
+      $content['file']['#suffix'] = $link_suffix;
+      $content['field_file_image_title_text'][0]['#markup'] = $link_prefix . $content['field_file_image_title_text'][0]['#markup'] . $link_suffix;
       print render($content);
     ?>
   </div>
