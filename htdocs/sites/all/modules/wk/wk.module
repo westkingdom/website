@@ -46,8 +46,22 @@ function wk_preprocess_page(&$variables) {
   }
 
   // http://rickmanelius.com/article/tell-facebook-which-image-share
+  $img = FALSE;
+  // If there is a page picture, use that.
   if(isset($variables['node']->field_page_picture[LANGUAGE_NONE][0]['uri'])) {
     $img = file_create_url($variables['node']->field_page_picture[LANGUAGE_NONE][0]['uri']);
+  }
+  // If there is no page picture, but there is a branch group
+  // associated with the page, then use that.
+  elseif(isset($variables['node']->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['taxonomy_term']->field_arms[LANGUAGE_NONE][0]['uri'])) {
+    $img = file_create_url($variables['node']->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['taxonomy_term']->field_arms[LANGUAGE_NONE][0]['uri']);
+  }
+  // If someone is sharing an officer page, then use the
+  // officer badge as the thumbnail image for Facebook.
+  elseif(isset($variables['node']->field_office[LANGUAGE_NONE][0]['taxonomy_term']->field_badge[LANGUAGE_NONE][0]['uri'])) {
+    $img = file_create_url($variables['node']->field_office[LANGUAGE_NONE][0]['taxonomy_term']->field_badge[LANGUAGE_NONE][0]['uri']);
+  }
+  if ($img) {
     $element = array(
       '#tag' => 'meta',
       '#attributes' => array(
@@ -71,21 +85,6 @@ function wk_preprocess_page__officers(&$variables) {
   }
   if (isset($node->field_office[LANGUAGE_NONE])) {
     $officer_terms = $node->field_office[LANGUAGE_NONE];
-
-    // If someone is sharing an officer page, then use the
-    // officer badge as the thumbnail image for Facebook.
-    if(isset($officer_terms[0]['taxonomy_term']->field_badge[LANGUAGE_NONE][0]['uri'])) {
-      $img = file_create_url($officer_terms[0]['taxonomy_term']->field_badge[LANGUAGE_NONE][0]['uri']);
-      $element = array(
-        '#tag' => 'meta',
-        '#attributes' => array(
-          "property" => "og:image",
-          "content" => $img,
-        ),
-      );
-      drupal_add_html_head($element,'facebook_share_image');
-    }
-
   }
   if ($branch_group_terms) {
     $branch_output = '';
