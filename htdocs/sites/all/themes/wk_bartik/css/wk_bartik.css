@@ -501,6 +501,14 @@ blockquote {
   padding: 0;
 }
 
+@media all and (min-width: 500px) {
+  .field-name-field-alternate-date,
+  .field-name-field-second-alternate-date {
+    float: left;
+    width: 50%;
+  }
+}
+
 /* ############# End General Field CSS ############# */
 
 /* ############# Begin Officer CSS ############# */
