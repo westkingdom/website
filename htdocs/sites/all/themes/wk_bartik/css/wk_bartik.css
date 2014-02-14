@@ -509,6 +509,10 @@ blockquote {
   }
 }
 
+.field-name-field-first-choice-date {
+  clear: both;
+}
+
 /* ############# End General Field CSS ############# */
 
 /* ############# Begin Officer CSS ############# */
