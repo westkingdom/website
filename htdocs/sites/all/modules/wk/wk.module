@@ -343,7 +343,7 @@ function wk_form_alter_taxonomy_tree_with_icon_fields(&$element) {
       if ($key[0] != '#') {
         if (!is_numeric($key) && in_array($key, array('taxonomy_vocabulary_2', 'field_office'))) {
           $language = $element[$key]['#language'];
-          if ($element[$key][$language]['#type'] == 'checkbox_tree') {
+          if ((isset($element[$key][$language])) && ($element[$key][$language]['#type'] == 'checkbox_tree')) {
             $element[$key]['#attributes']['class'][] = 'term-with-icon-variant';
             $element[$key][$language]['#after_build'][] = 'wk_term_with_icon_form_element_after_build';
           }
@@ -704,6 +704,9 @@ function wk_permission() {
   return $permissions;
 }
 
+/**
+ * Implements hook_menu
+ */
 function wk_menu() {
   $items = array();
 
@@ -715,8 +718,119 @@ function wk_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
+  $items['approve-date-requests'] = array(
+    'title' => 'Approve Calendar Date Requests',
+    'description' => 'Approve or deny all submitted calendar date requests.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_date_request_multiple_approval_form'),
+    'access callback' => 'wk_approve_date_requests_access',
+    // 'access arguments' => array(1),
+  );
+  $items['approve-date-request/%'] = array(
+    'title' => 'Approve Calendar Date Request',
+    'description' => 'Approve or deny a specific submitted calendar date requests.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_date_request_approval_form', 1),
+    'access callback' => 'wk_approve_date_requests_access',
+  );
 
   return $items;
+}
+
+function wk_approve_date_requests_access() {
+  // TODO: Kingdom Web Minister, Kingdom Seneschal, or Calendar Deputy
+  return TRUE;
+}
+
+function wk_date_request_multiple_approval_form($form, &$form_state) {
+  $all_ids = _wk_date_request_all_ids();
+  $date_requests = array();
+  foreach ($all_ids as $id => $info) {
+    $date_request_entity = entityform_load($id);
+    $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+    $date_requests[$id] = $date_request_entity;
+  }
+  if (count($date_requests) == 1) {
+    $form = _wk_date_request_approval_form_singular($form, $form_state, array_shift($date_requests));
+  }
+  else {
+
+  }
+  return $form;
+}
+
+function wk_date_request_approval_form($form, &$form_state, $request_id) {
+  $date_request_entity = entityform_load($request_id);
+  return _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity);
+}
+
+function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity) {
+  $request_id = $date_request_entity->entityform_id;
+  $request_render_array = entityform_page_view($date_request_entity);
+  $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+//  $request_id = $date_request->entityform_id->value();
+
+  $form['info'] = $request_render_array;
+  $form['date_request-id'] = array(
+    '#type' => 'hidden',
+    '#value' => $request_id,
+    '#attributes' => array('id' => 'submission')
+  );
+  $format_string = 'd F';
+  $dv = $date_request->field_first_choice_date->value();
+  $first_choice = _wk_format_date($dv, $format_string);
+  $form['approve_first_choice_date'] = array(
+    '#type' => 'submit',
+    '#value' => t('Approve !d', array('!d' => $first_choice)),
+    '#submit' => array('_wk_process_approve_date_request'),
+  );
+  $dv = $date_request->field_alternate_date->value();
+  $alternate_choice = _wk_format_date($dv, $format_string);
+  if ($alternate_choice != $first_choice) {
+    $form['approve_alternate_choice_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Approve !d', array('!d' => $alternate_choice)),
+      '#submit' => array('_wk_process_approve_date_request'),
+    );
+  }
+  $dv = $date_request->field_second_alternate_date->value();
+  $second_alternate = _wk_format_date($dv, $format_string);
+  if (($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
+    $form['approve_second_alternate_choice_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Approve !d', array('!d' => $second_alternate)),
+      '#submit' => array('_wk_process_approve_date_request'),
+    );
+  }
+  return $form;
+}
+
+function _wk_format_date($dv, $format_string) {
+  if (is_array($dv)) {
+    $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+    return $d->format($format_string);
+  }
+  else {
+    return date($format_string, $dv);
+  }
+}
+
+function _wk_process_approve_date_request($form, &$form_state) {
+  dpm($form);
+  dpm($form_state);
+  drupal_goto("user");
+}
+
+function _wk_date_request_all_ids() {
+  $date_requests = array();
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', "entityform");
+  $query->propertyCondition('type', 'calendar_date_request');
+  $result = $query->execute();
+  if (isset($result['entityform'])) {
+    $date_requests = $result['entityform'];
+  }
+  return $date_requests;
 }
 
 function wk_menu_alter(&$items) {
