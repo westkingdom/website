@@ -357,16 +357,16 @@ function wk_form_alter_taxonomy_tree_with_icon_fields(&$element) {
 }
 
 function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$form_state) {
-  dpm($form);
+  //dpm($form);
   global $user;
   $menu = menu_get_item();
-  dpm($menu);
+  //dpm($menu);
   if (count($menu['page_arguments']) > 2) {
     $nid = $menu['page_arguments'][2];
     $node = node_load($nid);
     // TODO: Error checking and error display
     if ($node) {
-      dpm($node);
+      //dpm($node);
       // Copy the title
       $form['field_event_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $node->title;
       // Copy the branch group or branch groups
@@ -382,6 +382,9 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
       $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
       $duration = $start_date->diff($end_date);
+      $previous_event_date = $start_date->format("d F, Y");
+      $previous_event_title = l($node->title, 'node/' . $node->nid);
+
       // Add one year, and then find the nearest
       // date that starts on the same day of the week
       // as the original event.
@@ -400,6 +403,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       $form['field_first_choice_date'][LANGUAGE_NONE][0]['#default_value'] =  $dv;
       $form['field_first_choice_date'][LANGUAGE_NONE][0]['#default_value']['value'] = $start_date->format("Y-m-d H:i:s");
       $form['field_first_choice_date'][LANGUAGE_NONE][0]['#default_value']['value2'] = $end_date->format("Y-m-d H:i:s");
+      $nextyear = $start_date->format("Y");
 
       // Make the first alternate the week after
       $alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
@@ -409,7 +413,13 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       $second_alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
       $second_alternate->modify("-1 week");
       $form['field_second_alternate_date'][LANGUAGE_NONE][0]['#default_value']['value'] = $second_alternate->format("Y-m-d H:i:s");
-
+      // Inform the user that this form is related to an existing
+      // event description node.
+      drupal_set_message(t("Submit a calendar date request below to re-hold the event !previous from !prevdate again in !nextyear. <a href='/calendar-date-request'>Cancel</a>", array(
+          '!previous' => $previous_event_title,
+          '!prevdate' => $previous_event_date,
+          '!nextyear' => $nextyear,
+          '!cancelurl' => '/calendar-date-request')));
     }
   }
   else {
