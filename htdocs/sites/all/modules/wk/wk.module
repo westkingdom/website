@@ -364,6 +364,10 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
   if (count($menu['page_arguments']) > 2) {
     $nid = $menu['page_arguments'][2];
     $node = node_load($nid);
+    $additional_delta = 0;
+    if (count($menu['page_arguments']) > 3) {
+      $additional_delta = $menu['page_arguments'][3];
+    }
     // TODO: Error checking and error display
     if ($node) {
       //dpm($node);
@@ -396,6 +400,9 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
         $days_interval->invert = 1;
       }
       $start_date->add($days_interval);
+      if ($additional_delta) {
+        $start_date->modify("$additional_delta weeks");
+      }
       // Calculate a new end date at the same duration
       // as the original event
       $end_date = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
