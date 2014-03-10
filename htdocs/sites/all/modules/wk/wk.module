@@ -356,6 +356,68 @@ function wk_form_alter_taxonomy_tree_with_icon_fields(&$element) {
   }
 }
 
+function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$form_state) {
+  dpm($form);
+  global $user;
+  $menu = menu_get_item();
+  dpm($menu);
+  if (count($menu['page_arguments']) > 2) {
+    $nid = $menu['page_arguments'][2];
+    $node = node_load($nid);
+    // TODO: Error checking and error display
+    if ($node) {
+      dpm($node);
+      // Copy the title
+      $form['field_event_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $node->title;
+      // Copy the branch group or branch groups
+      $group_ids = array();
+      foreach ($node->taxonomy_vocabulary_2[LANGUAGE_NONE] as $index => $info) {
+        $tid = $info['tid'];
+        $group_ids[$tid] = $tid;
+        // TODO: look up seneschal for this branch group
+      }
+      $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = $group_ids;
+      // Find the start and end date of the original event
+      $dv = $node->field_date[LANGUAGE_NONE][0];
+      $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+      $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
+      $duration = $start_date->diff($end_date);
+      // Add one year, and then find the nearest
+      // date that starts on the same day of the week
+      // as the original event.
+      $original_dow = $start_date->format("w");
+      $start_date->modify("+1 year");
+      $delta_dow = ($original_dow - $start_date->format("w")) % 7;
+      $days_interval = new DateInterval( "P" . abs($delta_dow) . "D" );
+      if ($delta_dow < 0) {
+        $days_interval->invert = 1;
+      }
+      $start_date->add($days_interval);
+      // Calculate a new end date at the same duration
+      // as the original event
+      $end_date = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+      $end_date->add($duration);
+      $form['field_first_choice_date'][LANGUAGE_NONE][0]['#default_value'] =  $dv;
+      $form['field_first_choice_date'][LANGUAGE_NONE][0]['#default_value']['value'] = $start_date->format("Y-m-d H:i:s");
+      $form['field_first_choice_date'][LANGUAGE_NONE][0]['#default_value']['value2'] = $end_date->format("Y-m-d H:i:s");
+
+      // Make the first alternate the week after
+      $alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+      $alternate->modify("+1 week");
+      $form['field_alternate_date'][LANGUAGE_NONE][0]['#default_value']['value'] = $alternate->format("Y-m-d H:i:s");
+      // Make the second alternate the week before
+      $second_alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+      $second_alternate->modify("-1 week");
+      $form['field_second_alternate_date'][LANGUAGE_NONE][0]['#default_value']['value'] = $second_alternate->format("Y-m-d H:i:s");
+
+    }
+  }
+  else {
+    // TODO: Only fill this in if the current user is a seneschal
+    $form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
+  }
+}
+
 /**
  * Implements hook_form_alter
  */
