@@ -757,12 +757,21 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
   }
   else {
     foreach ($date_requests as $id => $date_request_entity) {
+      //dpm($date_request_entity);
+      $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+      $title = $date_request->field_event_name->value();
+      $collapsed = FALSE;
+      $approved_date = $date_request->field_approved_date->value();
+      if (!empty($approved_date)) {
+        $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date, 'Y F d')));
+        $collapsed = TRUE;
+      }
       $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity);
       $form['date_request_' . $id] = array(
         '#type' => 'fieldset',
-        '#title' => $date_request_entity->field_event_name[LANGUAGE_NONE][0]['value'],
+        '#title' => $title,
         '#collapsible' => TRUE,
-        '#collapsed' => FALSE,
+        '#collapsed' => $collapsed,
       ) + $subform;
     }
   }
@@ -781,34 +790,38 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
 //  $request_id = $date_request->entityform_id->value();
 
   $subform['info_' . $request_id] = $request_render_array;
-  $format_string = 'd F';
-  $dv = $date_request->field_first_choice_date->value();
-  $first_choice = _wk_format_date($dv, $format_string);
-  $subform['approve_first_choice_date_' . $request_id] = array(
-    '#type' => 'submit',
-    '#value' => t('Approve !d', array('!d' => $first_choice)),
-    '#submit' => array('_wk_process_approve_date_request'),
-    '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
-  );
-  $dv = $date_request->field_alternate_date->value();
-  $alternate_choice = _wk_format_date($dv, $format_string);
-  if ($alternate_choice != $first_choice) {
-    $subform['approve_alternate_choice_button_' . $request_id] = array(
+  $approved_date = $date_request->field_approved_date->value();
+  //dpm($approved_date);
+  if (empty($approved_date)) {
+    $format_string = 'd F';
+    $dv = $date_request->field_first_choice_date->value();
+    $first_choice = _wk_format_date($dv, $format_string);
+    $subform['approve_first_choice_date_' . $request_id] = array(
       '#type' => 'submit',
-      '#value' => t('Approve !d', array('!d' => $alternate_choice)),
+      '#value' => t('Approve !d', array('!d' => $first_choice)),
       '#submit' => array('_wk_process_approve_date_request'),
-      '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
+      '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
     );
-  }
-  $dv = $date_request->field_second_alternate_date->value();
-  $second_alternate = _wk_format_date($dv, $format_string);
-  if (($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
-    $subform['approve_second_alternate_choice_button_' . $request_id] = array(
-      '#type' => 'submit',
-      '#value' => t('Approve !d', array('!d' => $second_alternate)),
-      '#submit' => array('_wk_process_approve_date_request'),
-      '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
-    );
+    $dv = $date_request->field_alternate_date->value();
+    $alternate_choice = _wk_format_date($dv, $format_string);
+    if ($alternate_choice != $first_choice) {
+      $subform['approve_alternate_choice_button_' . $request_id] = array(
+        '#type' => 'submit',
+        '#value' => t('Approve !d', array('!d' => $alternate_choice)),
+        '#submit' => array('_wk_process_approve_date_request'),
+        '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
+      );
+    }
+    $dv = $date_request->field_second_alternate_date->value();
+    $second_alternate = _wk_format_date($dv, $format_string);
+    if (($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
+      $subform['approve_second_alternate_choice_button_' . $request_id] = array(
+        '#type' => 'submit',
+        '#value' => t('Approve !d', array('!d' => $second_alternate)),
+        '#submit' => array('_wk_process_approve_date_request'),
+        '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
+      );
+    }
   }
   return $subform;
 }
@@ -863,7 +876,11 @@ function _wk_process_approve_date_request($form, &$form_state) {
     'format' => '1',
   );
   node_save($node);
-  // TODO: mark date request as approved
+
+  // Mark date request as approved
+  $date_request->field_approved_date->set(strtotime($selected_date . 'T12:00:00'));
+  $date_request->save();
+
   drupal_goto("node/" . $node->nid);
 }
 
