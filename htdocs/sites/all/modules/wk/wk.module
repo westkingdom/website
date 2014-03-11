@@ -5,6 +5,8 @@
  * West Kingdom customizations
  */
 
+define("SENESCHAL_TID", 84);
+
 /**
  * Implements hook_module_implements_alter
  *
@@ -779,33 +781,36 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
   $format_string = 'd F';
   $dv = $date_request->field_first_choice_date->value();
   $first_choice = _wk_format_date($dv, $format_string);
-  $form['approve_first_choice_date'] = array(
+  $form['approve_first_choice_date_' . $request_id] = array(
     '#type' => 'submit',
     '#value' => t('Approve !d', array('!d' => $first_choice)),
     '#submit' => array('_wk_process_approve_date_request'),
+    '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
   );
   $dv = $date_request->field_alternate_date->value();
   $alternate_choice = _wk_format_date($dv, $format_string);
   if ($alternate_choice != $first_choice) {
-    $form['approve_alternate_choice_button'] = array(
+    $form['approve_alternate_choice_button_' . $request_id] = array(
       '#type' => 'submit',
       '#value' => t('Approve !d', array('!d' => $alternate_choice)),
       '#submit' => array('_wk_process_approve_date_request'),
+      '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
     );
   }
   $dv = $date_request->field_second_alternate_date->value();
   $second_alternate = _wk_format_date($dv, $format_string);
   if (($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
-    $form['approve_second_alternate_choice_button'] = array(
+    $form['approve_second_alternate_choice_button_' . $request_id] = array(
       '#type' => 'submit',
       '#value' => t('Approve !d', array('!d' => $second_alternate)),
       '#submit' => array('_wk_process_approve_date_request'),
+      '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
     );
   }
   return $form;
 }
 
-function _wk_format_date($dv, $format_string) {
+function _wk_format_date($dv, $format_string = 'Y-m-d') {
   if (is_array($dv)) {
     $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
     return $d->format($format_string);
@@ -816,9 +821,65 @@ function _wk_format_date($dv, $format_string) {
 }
 
 function _wk_process_approve_date_request($form, &$form_state) {
-  dpm($form);
-  dpm($form_state);
-  drupal_goto("user");
+  $id = $form_state['clicked_button']['#attributes']['date-request-id'];
+  $date_request_entity = entityform_load($id);
+  dpm($date_request_entity);
+  $choice = $form_state['clicked_button']['#attributes']['date-choice'];
+  $date_request = new EntityDrupalWrapper('entityform', $id);
+  $selected_date = _wk_format_date($date_request->$choice->value());
+  $end_date = $selected_date;
+
+  $node = new stdClass();
+  $node->type = 'cal_event';
+  node_object_prepare($node);
+  $node->title = $date_request->field_event_name->value();
+  $node->language = LANGUAGE_NONE;
+
+  $v = $date_request->taxonomy_vocabulary_2->value();
+  $branch_group_tid = $v[0]->tid;
+
+  $node->taxonomy_vocabulary_2[$node->language][] = array('tid' => $branch_group_tid);
+
+  // TODO: Better way to build this record?
+  $node->field_date[$node->language][0] = array(
+    'value' => $selected_date . "T12:00:00",
+    'value2' => $end_date . "T22:00:00",
+    'offset' => -25200,
+    'offset2' => -25200,
+    'timezone' => "America/Los_Angeles",
+    'date_type' => 'date',
+  );
+  $body = t("More information will be posted as it becomes available.");
+  $seneschal = _wk_get_officer($branch_group_tid, SENESCHAL_TID);
+  if ($seneschal) {
+    $body = t("<b>Autocrat:</b> <a href='!uri'>!name</a><br><br>", array('!uri' => 'user/' . $seneschal->uid . '/contact', '!name' => $seneschal->name)) . $body;
+    $node->uid = $seneschal->uid;
+  }
+  $node->body[$node->language][] = array(
+    'value' => $body,
+    'format' => '1',
+  );
+  node_save($node);
+  // TODO: mark date request as approved
+  drupal_goto("node/" . $node->nid);
+}
+
+function _wk_get_officer($branch, $office) {
+  $user_info = FALSE;
+  $node = _wk_get_officer_node($branch, $office);
+  if ($node) {
+    $user_info = user_load($node->uid);
+  }
+  return $user_info;
+}
+
+function _wk_get_officer_node($branch, $office) {
+  // $field_map = array(
+  //    'office' => 'field_office',
+  //    'branch' => 'taxonomy_vocabulary_2',
+  //  )
+  $field_map = _regnum_group_field_map("regnum_change", "officers");
+  return _regnum_get_officer_node('officers', $field_map, array('branch' => $branch, 'office' => $office));
 }
 
 function _wk_date_request_all_ids() {
