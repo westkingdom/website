@@ -65,3 +65,19 @@
 .term-with-icon-variant .form-type-checkbox {
   width: 90%;
 }
+
+/* ----- Calendar Event edit form ----- */
+
+@media all and (min-width: 901px) {
+
+  #cal-event-node-form #edit-taxonomy-vocabulary-2 {
+    float: left;
+    width: 50%;
+  }
+
+  #cal-event-node-form #edit-field-activities {
+    float: left;
+    width: 50%;
+  }
+
+}
