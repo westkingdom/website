@@ -687,6 +687,9 @@ function wk_domain_conf() {
  */
 function wk_permission() {
   $permissions = array(
+    'configure calendar requests' => array(
+      'title' => t('Configure settings for calendar date requests'),
+    ),
     'administer site configuration for assigned domains' => array(
       'title' => t('Administer site configuration for assigned domains'),
       'restrict access' => TRUE,
@@ -735,8 +738,107 @@ function wk_menu() {
     'page arguments' => array('wk_date_request_approval_form', 1),
     'access callback' => 'wk_approve_date_requests_access',
   );
-
+  $items['calendar-status'] = array(
+    'title' => 'Calendar Status',
+    'description' => 'Show whether the calendar is open for new date requests',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_calendar_status'),
+    'access callback' => TRUE,
+  );
+  $items['admin/config/calendar-requests'] = array(
+    'title' => 'Calendar Status Settings',
+    'description' => 'Configure calendar date request settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_calendar_request_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('configure calendar requests'),
+  );
   return $items;
+}
+
+function wk_calendar_request_settings($form, &$form_state) {
+  $activity_tree = taxonomy_get_tree(4);
+  $form += _wk_calendar_request_settings_subtree($activity_tree, 0);
+  $form['save'] = array(
+  '#type' => 'submit',
+  '#value' => t('Save'),
+  '#submit' => array('_wk_save_calendar_request_settings'),
+);
+
+  return $form;
+}
+
+function _wk_save_calendar_request_settings($form, &$form_state) {
+  $new_settings = array();
+  foreach ($form_state['values'] as $id => $value) {
+    // Handle the 'k-###' and 'p-###' checkboxes
+    if ($id[1] == '-') {
+      if ($value) {
+        $kind = $id[0];
+        $tid = substr($id, 2);
+        $new_settings[$kind][$tid] = $tid;
+      }
+    }
+  }
+  variable_set('wk-calendar-request-settings', $new_settings);
+}
+
+function _wk_calendar_request_settings_subtree($activity_tree, $parent, $level = 0) {
+  $items = array();
+  $calendar_request_settings = _wk_calendar_request_get_settings();
+  foreach ($activity_tree as $index => $item) {
+    if (in_array($parent, $item->parents)) {
+
+      $items['k-' . $item->tid] = array(
+        '#type' => 'checkbox',
+        '#attributes' => array('class' => array('kingdom-cal-req-setting')),
+        '#checked' => isset($calendar_request_settings['k'][$item->tid]),
+        '#default_value' => isset($calendar_request_settings['k'][$item->tid]),
+        '#prefix' => "",
+        '#suffix' => "",
+      );
+      $items['p-' . $item->tid] = array(
+        '#title' => str_pad('', $level * 18, '&nbsp;', STR_PAD_LEFT) . $item->name,
+        '#type' => 'checkbox',
+        '#attributes' => array('class' => array('principality-cal-req-setting')),
+        '#checked' => isset($calendar_request_settings['p'][$item->tid]),
+        '#default_value' => isset($calendar_request_settings['p'][$item->tid]),
+        '#prefix' => "",
+        '#suffix' => "<div class='after-cal-req-setting'></div>",
+      );
+      $items += _wk_calendar_request_settings_subtree($activity_tree, $item->tid, $level + 1);
+    }
+  }
+  return $items;
+}
+
+function _wk_calendar_request_get_settings() {
+  return variable_get('wk-calendar-request-settings',
+    array(
+      /*
+      'k' => array(141 => 141),
+      'p' => array(141 => 141),
+      */
+    ));
+}
+
+function _wk_get_calendar_event_nids($year, $branch = FALSE) {
+  $nids = FALSE;
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array('cal_event'))
+    ->propertyCondition('status', 1)
+    ->fieldCondition('field_date', 'value', $year . '-01-01T00:00:00', '>')
+    ->fieldCondition('field_date', 'value', $year + 1 . '-01-01T00:00:00', '<');
+  if ($branch) {
+    $query = $query->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, '=');
+  }
+  $entities = $query->execute();
+
+  if (!empty($entities)) {
+    $nids = array_keys($entities['node']);
+  }
+  return $nids;
 }
 
 function wk_approve_date_requests_access() {
