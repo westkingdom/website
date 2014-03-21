@@ -829,7 +829,7 @@ function _wk_calendar_request_get_settings() {
 }
 
 function _wk_get_calendar_event_nids($year, $branch = FALSE) {
-  $nids = FALSE;
+  $nids = array();
   $query = new EntityFieldQuery();
   $query = $query->entityCondition('entity_type','node')
     ->entityCondition('bundle', array('cal_event'))
@@ -857,6 +857,42 @@ function wk_user_access_or_group_member($permission, $group_list) {
     }
   }
   return FALSE;
+}
+
+// Return the list of nodes that should go on next year's
+// calendar during the initial planning phase, prior to opening
+// the calendar to branch groups.
+function wk_events_for_next_years_calendar($year) {
+  $result = array();
+  $kingdom_of_the_west_tid = 2;
+  $principalities = wk_children_of_branch_tids($kingdom_of_the_west_tid);
+  $event_nids = _wk_get_calendar_event_nids($year, $kingdom_of_the_west_tid);
+  foreach ($principalities as $principality_tid) {
+    $principality_nids = _wk_get_calendar_event_nids($year, $principality_tid);
+    $event_nids = array_merge($event_nids, $principality_nids);
+  }
+
+  foreach ($event_nids as $nid) {
+    $carryover = FALSE;
+    $node = node_load($nid);
+    $kingdom_or_principality = _wk_kingdom_or_principality_event($node);
+    if ($kingdom_or_principality && isset($node->field_activities[$node->language])) {
+      foreach ($node->field_activities[$node->language] as $index => $tid_info) {
+        $tid = $tid_info['tid'];
+        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
+          $carryover = TRUE;
+        }
+      }
+    }
+    if ($carryover) {
+      $result[$nid] = $node;
+    }
+  }
+  return $result;
+}
+
+function wk_calendar_status($form, &$form_state) {
+  $events_for_next_year = wk_events_for_next_years_calendar('2014');
 }
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
@@ -1031,19 +1067,31 @@ function _wk_is_carryover_activity($tid, $kingdom_or_principality) {
   return array_key_exists($tid, $activity_settings[$kingdom_or_principality]);
 }
 
+function wk_children_of_branch_tids($parent_tid) {
+  $branch_group_tree = taxonomy_get_tree(2);
+  $result = array();
+  foreach ($branch_group_tree as $term) {
+    if (in_array($parent_tid, $term->parents)) {
+      $result[$term->tid] = $term->tid;
+    }
+  }
+  return $result;
+}
+
 // Return 'k' for Kingdom, 'p' for Principality, or FALSE.
 function _wk_kingdom_or_principality_event($node) {
+  $kingdom_of_the_west_tid = 2;
+  $principalities = wk_children_of_branch_tids($kingdom_of_the_west_tid);
   $branch_info = $node->taxonomy_vocabulary_2[$node->language];
   $result = FALSE;
 
   foreach ($branch_info as $index => $tid_info) {
     $tid = $tid_info['tid'];
-    if ($tid == 2) {
+    if ($tid == $kingdom_of_the_west_tid) {
       $result = 'k';
     }
     else {
-      $term = taxonomy_term_load($tid);
-      if (in_array(2, $term->parents)) {
+      if (in_array($tid, $principalities)) {
         $result = 'p';
       }
       else {
