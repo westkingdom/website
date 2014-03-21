@@ -688,6 +688,9 @@ function wk_domain_conf() {
  */
 function wk_permission() {
   $permissions = array(
+    'approve calendar requests' => array(
+      'title' => t('Approve calendar date requests'),
+    ),
     'configure calendar requests' => array(
       'title' => t('Configure settings for calendar date requests'),
     ),
@@ -729,15 +732,17 @@ function wk_menu() {
     'description' => 'Approve or deny all submitted calendar date requests.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_multiple_approval_form'),
-    'access callback' => 'wk_approve_date_requests_access',
-    // 'access arguments' => array(1),
+    'access callback' => 'wk_user_access_or_group_member',
+    // TODO: 851 = kingdom web minister, 989 = kingdom seneschal
+    'access arguments' => array('approve calendar requests', array(851, 989)),
   );
   $items['approve-date-request/%'] = array(
     'title' => 'Approve Calendar Date Request',
     'description' => 'Approve or deny a specific submitted calendar date requests.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_approval_form', 1),
-    'access callback' => 'wk_approve_date_requests_access',
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(851, 989)),
   );
   $items['calendar-status'] = array(
     'title' => 'Calendar Status',
@@ -842,9 +847,16 @@ function _wk_get_calendar_event_nids($year, $branch = FALSE) {
   return $nids;
 }
 
-function wk_approve_date_requests_access() {
-  // TODO: Kingdom Web Minister, Kingdom Seneschal, or Calendar Deputy
-  return TRUE;
+function wk_user_access_or_group_member($permission, $group_list) {
+  if (user_access($permission)) {
+    return TRUE;
+  }
+  foreach ($group_list as $gid) {
+    if (og_is_member('node', $gid)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
