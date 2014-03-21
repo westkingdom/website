@@ -375,6 +375,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       //dpm($node);
       // Copy the title
       $form['field_event_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $node->title;
+      $form['field_repeat_of_event'][LANGUAGE_NONE][0]['nid']['#default_value'] = $node->nid;
       // Copy the branch group or branch groups
       $group_ids = array();
       foreach ($node->taxonomy_vocabulary_2[LANGUAGE_NONE] as $index => $info) {
@@ -967,7 +968,7 @@ function _wk_process_approve_date_request($form, &$form_state) {
     'timezone' => "America/Los_Angeles",
     'date_type' => 'date',
   );
-  $body = t("More information will be posted as it becomes available.");
+  $body = $date_request->field_placeholder_event_descript->value();
   $seneschal = _wk_get_officer($branch_group_tid, SENESCHAL_TID);
   if ($seneschal) {
     $body = t("<b>Autocrat:</b> <a href='!uri'>!name</a><br><br>", array('!uri' => 'user/' . $seneschal->uid . '/contact', '!name' => $seneschal->name)) . $body;
@@ -977,6 +978,25 @@ function _wk_process_approve_date_request($form, &$form_state) {
     'value' => $body,
     'format' => '1',
   );
+  $node->revision_moderation = FALSE;
+  $node->is_pending = FALSE;
+  $node->status = TRUE;
+  // If this is a repeat of some previous event, copy over
+  // certain activities.
+  $repeat_of_node = $date_request->field_repeat_of_event->value();
+  if ($repeat_of_node && isset($repeat_of_node->field_activities[$repeat_of_node->language])) {
+    $kingdom_or_principality = _wk_kingdom_or_principality_event($repeat_of_node);
+    if ($kingdom_or_principality) {
+      $carryover_activities = array();
+      foreach ($repeat_of_node->field_activities[$repeat_of_node->language] as $index => $tid_info) {
+        $tid = $tid_info['tid'];
+        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
+          $carryover_activities[] = $tid_info;
+        }
+      }
+    }
+    $node->field_activities[$node->language] = $carryover_activities;
+  }
   node_save($node);
 
   // Mark date request as approved
@@ -984,6 +1004,43 @@ function _wk_process_approve_date_request($form, &$form_state) {
   $date_request->save();
 
   drupal_goto("node/" . $node->nid);
+}
+
+// TODO:  How do we decide if an activity is a carryover activity
+// or not?  A crown will always be a crown, and a coronation will
+// always be a coronation, but other than that...
+// For now, this is only called for Kingdom and Principality events;
+// local events never have any carryover activities.  Also, the only
+// activities that we carry over are those that are used in selecting
+// the event as one that is added to the calendar during the planning
+// phase in April.  All other activities must be re-selected each year.
+function _wk_is_carryover_activity($tid, $kingdom_or_principality) {
+  $activity_settings = _wk_calendar_request_get_settings();
+  return array_key_exists($tid, $activity_settings[$kingdom_or_principality]);
+}
+
+// Return 'k' for Kingdom, 'p' for Principality, or FALSE.
+function _wk_kingdom_or_principality_event($node) {
+  $branch_info = $node->taxonomy_vocabulary_2[$node->language];
+  $result = FALSE;
+
+  foreach ($branch_info as $index => $tid_info) {
+    $tid = $tid_info['tid'];
+    if ($tid == 2) {
+      $result = 'k';
+    }
+    else {
+      $term = taxonomy_term_load($tid);
+      if (in_array(2, $term->parents)) {
+        $result = 'p';
+      }
+      else {
+        return FALSE;
+      }
+    }
+  }
+
+  return $result;
 }
 
 function _wk_get_officer($branch, $office) {
