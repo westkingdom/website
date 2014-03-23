@@ -375,6 +375,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       //dpm($node);
       // Copy the title
       $form['field_event_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $node->title;
+      $form['field_repeat_of_event'][LANGUAGE_NONE][0]['nid']['#default_value'] = $node->nid;
       // Copy the branch group or branch groups
       $group_ids = array();
       foreach ($node->taxonomy_vocabulary_2[LANGUAGE_NONE] as $index => $info) {
@@ -687,6 +688,9 @@ function wk_domain_conf() {
  */
 function wk_permission() {
   $permissions = array(
+    'approve calendar requests' => array(
+      'title' => t('Approve calendar date requests'),
+    ),
     'configure calendar requests' => array(
       'title' => t('Configure settings for calendar date requests'),
     ),
@@ -728,15 +732,17 @@ function wk_menu() {
     'description' => 'Approve or deny all submitted calendar date requests.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_multiple_approval_form'),
-    'access callback' => 'wk_approve_date_requests_access',
-    // 'access arguments' => array(1),
+    'access callback' => 'wk_user_access_or_group_member',
+    // TODO: 851 = kingdom web minister, 989 = kingdom seneschal
+    'access arguments' => array('approve calendar requests', array(851, 989)),
   );
   $items['approve-date-request/%'] = array(
     'title' => 'Approve Calendar Date Request',
     'description' => 'Approve or deny a specific submitted calendar date requests.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_approval_form', 1),
-    'access callback' => 'wk_approve_date_requests_access',
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(851, 989)),
   );
   $items['calendar-status'] = array(
     'title' => 'Calendar Status',
@@ -823,7 +829,7 @@ function _wk_calendar_request_get_settings() {
 }
 
 function _wk_get_calendar_event_nids($year, $branch = FALSE) {
-  $nids = FALSE;
+  $nids = array();
   $query = new EntityFieldQuery();
   $query = $query->entityCondition('entity_type','node')
     ->entityCondition('bundle', array('cal_event'))
@@ -841,9 +847,52 @@ function _wk_get_calendar_event_nids($year, $branch = FALSE) {
   return $nids;
 }
 
-function wk_approve_date_requests_access() {
-  // TODO: Kingdom Web Minister, Kingdom Seneschal, or Calendar Deputy
-  return TRUE;
+function wk_user_access_or_group_member($permission, $group_list) {
+  if (user_access($permission)) {
+    return TRUE;
+  }
+  foreach ($group_list as $gid) {
+    if (og_is_member('node', $gid)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+// Return the list of nodes that should go on next year's
+// calendar during the initial planning phase, prior to opening
+// the calendar to branch groups.
+function wk_events_for_next_years_calendar($year) {
+  $result = array();
+  $kingdom_of_the_west_tid = 2;
+  $principalities = wk_children_of_branch_tids($kingdom_of_the_west_tid);
+  $event_nids = _wk_get_calendar_event_nids($year, $kingdom_of_the_west_tid);
+  foreach ($principalities as $principality_tid) {
+    $principality_nids = _wk_get_calendar_event_nids($year, $principality_tid);
+    $event_nids = array_merge($event_nids, $principality_nids);
+  }
+
+  foreach ($event_nids as $nid) {
+    $carryover = FALSE;
+    $node = node_load($nid);
+    $kingdom_or_principality = _wk_kingdom_or_principality_event($node);
+    if ($kingdom_or_principality && isset($node->field_activities[$node->language])) {
+      foreach ($node->field_activities[$node->language] as $index => $tid_info) {
+        $tid = $tid_info['tid'];
+        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
+          $carryover = TRUE;
+        }
+      }
+    }
+    if ($carryover) {
+      $result[$nid] = $node;
+    }
+  }
+  return $result;
+}
+
+function wk_calendar_status($form, &$form_state) {
+  $events_for_next_year = wk_events_for_next_years_calendar('2014');
 }
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
@@ -967,7 +1016,7 @@ function _wk_process_approve_date_request($form, &$form_state) {
     'timezone' => "America/Los_Angeles",
     'date_type' => 'date',
   );
-  $body = t("More information will be posted as it becomes available.");
+  $body = $date_request->field_placeholder_event_descript->value();
   $seneschal = _wk_get_officer($branch_group_tid, SENESCHAL_TID);
   if ($seneschal) {
     $body = t("<b>Autocrat:</b> <a href='!uri'>!name</a><br><br>", array('!uri' => 'user/' . $seneschal->uid . '/contact', '!name' => $seneschal->name)) . $body;
@@ -977,6 +1026,25 @@ function _wk_process_approve_date_request($form, &$form_state) {
     'value' => $body,
     'format' => '1',
   );
+  $node->revision_moderation = FALSE;
+  $node->is_pending = FALSE;
+  $node->status = TRUE;
+  // If this is a repeat of some previous event, copy over
+  // certain activities.
+  $repeat_of_node = $date_request->field_repeat_of_event->value();
+  if ($repeat_of_node && isset($repeat_of_node->field_activities[$repeat_of_node->language])) {
+    $kingdom_or_principality = _wk_kingdom_or_principality_event($repeat_of_node);
+    if ($kingdom_or_principality) {
+      $carryover_activities = array();
+      foreach ($repeat_of_node->field_activities[$repeat_of_node->language] as $index => $tid_info) {
+        $tid = $tid_info['tid'];
+        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
+          $carryover_activities[] = $tid_info;
+        }
+      }
+    }
+    $node->field_activities[$node->language] = $carryover_activities;
+  }
   node_save($node);
 
   // Mark date request as approved
@@ -984,6 +1052,55 @@ function _wk_process_approve_date_request($form, &$form_state) {
   $date_request->save();
 
   drupal_goto("node/" . $node->nid);
+}
+
+// TODO:  How do we decide if an activity is a carryover activity
+// or not?  A crown will always be a crown, and a coronation will
+// always be a coronation, but other than that...
+// For now, this is only called for Kingdom and Principality events;
+// local events never have any carryover activities.  Also, the only
+// activities that we carry over are those that are used in selecting
+// the event as one that is added to the calendar during the planning
+// phase in April.  All other activities must be re-selected each year.
+function _wk_is_carryover_activity($tid, $kingdom_or_principality) {
+  $activity_settings = _wk_calendar_request_get_settings();
+  return array_key_exists($tid, $activity_settings[$kingdom_or_principality]);
+}
+
+function wk_children_of_branch_tids($parent_tid) {
+  $branch_group_tree = taxonomy_get_tree(2);
+  $result = array();
+  foreach ($branch_group_tree as $term) {
+    if (in_array($parent_tid, $term->parents)) {
+      $result[$term->tid] = $term->tid;
+    }
+  }
+  return $result;
+}
+
+// Return 'k' for Kingdom, 'p' for Principality, or FALSE.
+function _wk_kingdom_or_principality_event($node) {
+  $kingdom_of_the_west_tid = 2;
+  $principalities = wk_children_of_branch_tids($kingdom_of_the_west_tid);
+  $branch_info = $node->taxonomy_vocabulary_2[$node->language];
+  $result = FALSE;
+
+  foreach ($branch_info as $index => $tid_info) {
+    $tid = $tid_info['tid'];
+    if ($tid == $kingdom_of_the_west_tid) {
+      $result = 'k';
+    }
+    else {
+      if (in_array($tid, $principalities)) {
+        $result = 'p';
+      }
+      else {
+        return FALSE;
+      }
+    }
+  }
+
+  return $result;
 }
 
 function _wk_get_officer($branch, $office) {
