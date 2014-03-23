@@ -5,7 +5,15 @@
  * West Kingdom customizations
  */
 
+// Some magic numbers.  TODO: move to configuration
+
+define("SOCIETY_TID", 75);
+define("KINGDOM_OF_THE_WEST_TID", 2);
+
 define("SENESCHAL_TID", 84);
+
+define("KINGDOM_WEBMINISTER_GID", 851);
+define("KINGDOM_SENESCHAL_GID", 989);
 
 /**
  * Implements hook_module_implements_alter
@@ -313,17 +321,15 @@ function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
 function wk_term_with_icon_form_element_after_build($form_element, &$form_state) {
   wk_taxonomy_tree_form_element_alter($form_element[0]);
   // Reorganize the tree under the term "The Society for Creative Anachronism"
-  $sca_corpora = 75;
-  $primary_kingdom = 2; // The West
-  if (array_key_exists($sca_corpora, $form_element[0]) && array_key_exists($primary_kingdom, $form_element[0][$sca_corpora][$sca_corpora . '-children'][$primary_kingdom])) {
-    $corpora_element = $form_element[0][$sca_corpora];
+  if (array_key_exists(SOCIETY_TID, $form_element[0]) && array_key_exists(KINGDOM_OF_THE_WEST_TID, $form_element[0][SOCIETY_TID][SOCIETY_TID . '-children'][KINGDOM_OF_THE_WEST_TID])) {
+    $corpora_element = $form_element[0][SOCIETY_TID];
     $corpora_element['#term-name'] = t("Other Kingdoms");
-    $label_key = $corpora_element[$sca_corpora]['#type'] == 'checkbox_tree_label' ? '#value' : '#title';
-    $corpora_element[$sca_corpora][$label_key] = $corpora_element['#term-name'];
-    unset($form_element[0][$sca_corpora]);
-    $form_element[0][$primary_kingdom] = $corpora_element[$sca_corpora . '-children'][$primary_kingdom];
-    unset($corpora_element[$sca_corpora . '-children'][$primary_kingdom]);
-    $form_element[0][$sca_corpora] = $corpora_element;
+    $label_key = $corpora_element[SOCIETY_TID]['#type'] == 'checkbox_tree_label' ? '#value' : '#title';
+    $corpora_element[SOCIETY_TID][$label_key] = $corpora_element['#term-name'];
+    unset($form_element[0][SOCIETY_TID]);
+    $form_element[0][KINGDOM_OF_THE_WEST_TID] = $corpora_element[SOCIETY_TID . '-children'][KINGDOM_OF_THE_WEST_TID];
+    unset($corpora_element[SOCIETY_TID . '-children'][KINGDOM_OF_THE_WEST_TID]);
+    $form_element[0][SOCIETY_TID] = $corpora_element;
   }
   $has_selected = wk_taxonomy_tree_initial_minimized_state($form_element[0]);
   if (!$has_selected) {
@@ -733,8 +739,7 @@ function wk_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_multiple_approval_form'),
     'access callback' => 'wk_user_access_or_group_member',
-    // TODO: 851 = kingdom web minister, 989 = kingdom seneschal
-    'access arguments' => array('approve calendar requests', array(851, 989)),
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
   $items['approve-date-request/%'] = array(
     'title' => 'Approve Calendar Date Request',
@@ -742,7 +747,7 @@ function wk_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_approval_form', 1),
     'access callback' => 'wk_user_access_or_group_member',
-    'access arguments' => array('approve calendar requests', array(851, 989)),
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
   $items['calendar-status'] = array(
     'title' => 'Calendar Status',
@@ -766,10 +771,10 @@ function wk_calendar_request_settings($form, &$form_state) {
   $activity_tree = taxonomy_get_tree(4);
   $form += _wk_calendar_request_settings_subtree($activity_tree, 0);
   $form['save'] = array(
-  '#type' => 'submit',
-  '#value' => t('Save'),
-  '#submit' => array('_wk_save_calendar_request_settings'),
-);
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#submit' => array('_wk_save_calendar_request_settings'),
+  );
 
   return $form;
 }
@@ -804,11 +809,19 @@ function _wk_calendar_request_settings_subtree($activity_tree, $parent, $level =
         '#suffix' => "",
       );
       $items['p-' . $item->tid] = array(
-        '#title' => str_pad('', $level * 18, '&nbsp;', STR_PAD_LEFT) . $item->name,
         '#type' => 'checkbox',
         '#attributes' => array('class' => array('principality-cal-req-setting')),
         '#checked' => isset($calendar_request_settings['p'][$item->tid]),
         '#default_value' => isset($calendar_request_settings['p'][$item->tid]),
+        '#prefix' => "",
+        '#suffix' => "",
+      );
+      $items['x-' . $item->tid] = array(
+        '#title' => str_pad('', $level * 18, '&nbsp;', STR_PAD_LEFT) . $item->name,
+        '#type' => 'checkbox',
+        '#attributes' => array('class' => array('other-kingdoms-cal-req-setting')),
+        '#checked' => isset($calendar_request_settings['x'][$item->tid]),
+        '#default_value' => isset($calendar_request_settings['x'][$item->tid]),
         '#prefix' => "",
         '#suffix' => "<div class='after-cal-req-setting'></div>",
       );
@@ -824,6 +837,7 @@ function _wk_calendar_request_get_settings() {
       /*
       'k' => array(141 => 141),
       'p' => array(141 => 141),
+      'x' => array(141 => 141),
       */
     ));
 }
@@ -864,14 +878,21 @@ function wk_user_access_or_group_member($permission, $group_list) {
 // the calendar to branch groups.
 function wk_events_for_next_years_calendar($year) {
   $result = array();
-  $kingdom_of_the_west_tid = 2;
-  $principalities = wk_children_of_branch_tids($kingdom_of_the_west_tid);
-  $event_nids = _wk_get_calendar_event_nids($year, $kingdom_of_the_west_tid);
+  $principalities = wk_children_of_branch_tids(KINGDOM_OF_THE_WEST_TID);
+  $other_kingdoms = wk_children_of_branch_tids(SOCIETY_TID);
+  $event_nids = _wk_get_calendar_event_nids($year, KINGDOM_OF_THE_WEST_TID);
   foreach ($principalities as $principality_tid) {
     $principality_nids = _wk_get_calendar_event_nids($year, $principality_tid);
     $event_nids = array_merge($event_nids, $principality_nids);
   }
+  foreach ($other_kingdoms as $other_kingdom_tid) {
+    $other_kingdom_nids = _wk_get_calendar_event_nids($year, $other_kingdom_tid);
+    $event_nids = array_merge($event_nids, $other_kingdom_nids);
+  }
+  return wk_load_nodes($event_nids);
+}
 
+function x() {
   foreach ($event_nids as $nid) {
     $carryover = FALSE;
     $node = node_load($nid);
@@ -892,7 +913,44 @@ function wk_events_for_next_years_calendar($year) {
 }
 
 function wk_calendar_status($form, &$form_state) {
+  $editable = wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID));
   $events_for_next_year = wk_events_for_next_years_calendar('2014');
+  $non_carryover = array();
+  foreach ($events_for_next_year as $nid => $node) {
+    $carryover = FALSE;
+    $kingdom_or_principality = _wk_kingdom_or_principality_event($node);
+    if ($kingdom_or_principality && isset($node->field_activities[$node->language])) {
+      foreach ($node->field_activities[$node->language] as $index => $tid_info) {
+        $tid = $tid_info['tid'];
+        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
+          $carryover = TRUE;
+        }
+      }
+    }
+    $checkbox = array(
+      '#type' => 'checkbox',
+      '#attributes' => array('class' => array('carryover-selection')),
+      '#checked' => $carryover,
+      '#default_value' => $carryover,
+      '#title' => l($node->title, 'node/' . $nid),
+      '#disabled' => !$editable,
+      '#prefix' => "",
+      '#suffix' => "",
+    );
+    if ($carryover) {
+      $form['c-' . $nid] = $checkbox;
+    }
+    else {
+      $non_carryover['c-' . $nid] = $checkbox;
+    }
+  }
+  $form['non-carryover'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Other events'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  ) + $non_carryover;
+  return $form;
 }
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
@@ -1067,6 +1125,15 @@ function _wk_is_carryover_activity($tid, $kingdom_or_principality) {
   return array_key_exists($tid, $activity_settings[$kingdom_or_principality]);
 }
 
+// Given an array of nids, return an array of nid => node.
+function wk_load_nodes($node_list) {
+  $result = array();
+  foreach ($node_list as $nid) {
+    $result[$nid] = node_load($nid);
+  }
+  return $result;
+}
+
 function wk_children_of_branch_tids($parent_tid) {
   $branch_group_tree = taxonomy_get_tree(2);
   $result = array();
@@ -1080,23 +1147,24 @@ function wk_children_of_branch_tids($parent_tid) {
 
 // Return 'k' for Kingdom, 'p' for Principality, or FALSE.
 function _wk_kingdom_or_principality_event($node) {
-  $kingdom_of_the_west_tid = 2;
-  $principalities = wk_children_of_branch_tids($kingdom_of_the_west_tid);
+  $principalities = wk_children_of_branch_tids(KINGDOM_OF_THE_WEST_TID);
+  $other_kingdoms = wk_children_of_branch_tids(SOCIETY_TID);
   $branch_info = $node->taxonomy_vocabulary_2[$node->language];
   $result = FALSE;
 
   foreach ($branch_info as $index => $tid_info) {
     $tid = $tid_info['tid'];
-    if ($tid == $kingdom_of_the_west_tid) {
+    if ($tid == KINGDOM_OF_THE_WEST_TID) {
       $result = 'k';
     }
+    elseif (in_array($tid, $other_kingdoms)) {
+      $result = 'x';
+    }
+    elseif (in_array($tid, $principalities)) {
+      $result = 'p';
+    }
     else {
-      if (in_array($tid, $principalities)) {
-        $result = 'p';
-      }
-      else {
-        return FALSE;
-      }
+      return FALSE;
     }
   }
 
