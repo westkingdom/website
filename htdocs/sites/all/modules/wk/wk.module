@@ -995,7 +995,28 @@ function wk_calendar_status($form, &$form_state) {
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   ) + $non_carryover;
+  if ($editable) {
+    $form['prepare_calendar'] = array(
+      '#type' => 'submit',
+      '#value' => t('Prepare Calendar'),
+      '#submit' => array('_wk_prepare_calendar'),
+    );
+  }
   return $form;
+}
+
+function _wk_prepare_calendar($form, &$form_state) {
+  foreach ($form_state['values'] as $key => $value) {
+    if (substr($key,0,2) == 'c-') {
+      if ($value) {
+        $nid = substr($key,2);
+        $node = node_load($nid);
+        wk_create_calendar_date_request($node);
+      }
+    }
+  }
+
+  drupal_goto('approve-date-requests');
 }
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
