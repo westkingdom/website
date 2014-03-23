@@ -892,26 +892,6 @@ function wk_events_for_next_years_calendar($year) {
   return wk_load_nodes($event_nids);
 }
 
-function x() {
-  foreach ($event_nids as $nid) {
-    $carryover = FALSE;
-    $node = node_load($nid);
-    $kingdom_or_principality = _wk_kingdom_or_principality_event($node);
-    if ($kingdom_or_principality && isset($node->field_activities[$node->language])) {
-      foreach ($node->field_activities[$node->language] as $index => $tid_info) {
-        $tid = $tid_info['tid'];
-        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
-          $carryover = TRUE;
-        }
-      }
-    }
-    if ($carryover) {
-      $result[$nid] = $node;
-    }
-  }
-  return $result;
-}
-
 function wk_calendar_status($form, &$form_state) {
   $editable = wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID));
   $events_for_next_year = wk_events_for_next_years_calendar('2014');
