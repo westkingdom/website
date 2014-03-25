@@ -370,76 +370,82 @@ function wk_form_alter_taxonomy_tree_with_icon_fields(&$element) {
 // process for the next year.  At that time, date requests for all of
 // the "carryover" events are created by repeatedly calling this function.
 function wk_create_calendar_date_request($node, $additional_delta = 0) {
-  global $user;
+  // Just ignore this event if we have already made
+  // a date request to re-hold it next year.
+  $date_request_info = _wk_find_date_request_for_event($node->nid);
+  if (empty($date_request_info)) {
+    global $user;
 
-  // Create an entity and set the time and user who created it
-  $date_request_entity = entityform_create(array("type" => "calendar_date_request"));
-  $date_request_entity->uid = $user->uid;
-  $date_request_endity->created = time();
+    // Create an entity and set the time and user who created it
+    $date_request_entity = entityform_create(array("type" => "calendar_date_request"));
+    $date_request_entity->uid = $user->uid;
+    $date_request_entity->changed = time();
 
-  // The rest of our manipulations will be with an entity wrapper
-  $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
-  $date_request->field_event_name->set($node->title);
-  $date_request->field_placeholder_event_descript->set(t("More information will be provided as it becomes available."));
-  $date_request->field_repeat_of_event->set($node->nid);
-  $date_request->field_society_name->set($user->name);
-  $date_request->field_email_address->set($user->mail);
+    // The rest of our manipulations will be with an entity wrapper
+    $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+    $date_request->created = time();
+    $date_request->field_event_name->set($node->title);
+    $date_request->field_placeholder_event_descript->set(t("More information will be provided as it becomes available."));
+    $date_request->field_repeat_of_event->set($node->nid);
+    $date_request->field_society_name->set($user->name);
+    $date_request->field_email_address->set($user->mail);
 
-  $v = $node->taxonomy_vocabulary_2[$node->language];
-  if (!empty($v)) {
-    $branch_tids = array();
-    foreach ($v as $index => $info) {
-      $branch_tids[] = $info['tid'];
+    $v = $node->taxonomy_vocabulary_2[$node->language];
+    if (!empty($v)) {
+      $branch_tids = array();
+      foreach ($v as $index => $info) {
+        $branch_tids[] = $info['tid'];
+      }
+      $date_request->taxonomy_vocabulary_2->set($branch_tids);
     }
-    $date_request->taxonomy_vocabulary_2->set($branch_tids);
+
+    $dv = $node->field_date[LANGUAGE_NONE][0];
+    $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+    $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
+    $duration = $start_date->diff($end_date);
+
+    // Add one year, and then find the nearest
+    // date that starts on the same day of the week
+    // as the original event.
+    $original_dow = $start_date->format("w");
+    $start_date->modify("+1 year");
+    $delta_dow = ($original_dow - $start_date->format("w")) % 7;
+    $days_interval = new DateInterval( "P" . abs($delta_dow) . "D" );
+    if ($delta_dow < 0) {
+      $days_interval->invert = 1;
+    }
+    $start_date->add($days_interval);
+    if ($additional_delta) {
+      $start_date->modify("$additional_delta weeks");
+    }
+    // Calculate a new end date at the same duration
+    // as the original event
+    $end_date = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+    $end_date->add($duration);
+
+    $start_date_formatted = $start_date->format('Y-m-d');
+    $end_date_formatted = $end_date->format('Y-m-d');
+    $v = $date_request->field_first_choice_date->value();
+    $v['value'] = $start_date_formatted . 'T12:00:00';
+    $v['value2'] = $end_date_formatted . 'T12:00:00';
+    $date_request->field_first_choice_date->set($v);
+
+    // Make the first alternate the week after
+    $alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+    $alternate->modify("+1 week");
+
+    $alternate_formatted = $alternate->format('Y-m-d');
+    $date_request->field_alternate_date->set(strtotime($alternate_formatted . 'T12:00:00'));
+
+    // Make the second alternate the week before
+    $second_alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+    $second_alternate->modify("-1 week");
+
+    $second_alternate_formatted = $second_alternate->format('Y-m-d');
+    $date_request->field_second_alternate_date->set(strtotime($second_alternate_formatted . 'T12:00:00'));
+
+    $date_request->save();
   }
-
-  $dv = $node->field_date[LANGUAGE_NONE][0];
-  $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
-  $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
-  $duration = $start_date->diff($end_date);
-
-  // Add one year, and then find the nearest
-  // date that starts on the same day of the week
-  // as the original event.
-  $original_dow = $start_date->format("w");
-  $start_date->modify("+1 year");
-  $delta_dow = ($original_dow - $start_date->format("w")) % 7;
-  $days_interval = new DateInterval( "P" . abs($delta_dow) . "D" );
-  if ($delta_dow < 0) {
-    $days_interval->invert = 1;
-  }
-  $start_date->add($days_interval);
-  if ($additional_delta) {
-    $start_date->modify("$additional_delta weeks");
-  }
-  // Calculate a new end date at the same duration
-  // as the original event
-  $end_date = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
-  $end_date->add($duration);
-
-  $start_date_formatted = $start_date->format('Y-m-d');
-  $end_date_formatted = $end_date->format('Y-m-d');
-  $v = $date_request->field_first_choice_date->value();
-  $v['value'] = $start_date_formatted . 'T12:00:00';
-  $v['value2'] = $end_date_formatted . 'T12:00:00';
-  $date_request->field_first_choice_date->set($v);
-
-  // Make the first alternate the week after
-  $alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
-  $alternate->modify("+1 week");
-
-  $alternate_formatted = $alternate->format('Y-m-d');
-  $date_request->field_alternate_date->set(strtotime($alternate_formatted . 'T12:00:00'));
-
-  // Make the second alternate the week before
-  $second_alternate = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
-  $second_alternate->modify("-1 week");
-
-  $second_alternate_formatted = $second_alternate->format('Y-m-d');
-  $date_request->field_second_alternate_date->set(strtotime($second_alternate_formatted . 'T12:00:00'));
-
-  $date_request->save();
 }
 
 function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$form_state) {
@@ -1073,7 +1079,7 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
       if (!empty($approved_event_node)) {
         $approved_node = entity_metadata_wrapper('node',$approved_event_node);
         $approved_date = $approved_node->field_date->value();
-        $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date, 'Y F d')));
+        $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date[0], 'Y F d')));
         $collapsed = TRUE;
       }
       $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity);
@@ -1097,7 +1103,6 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
   $request_id = $date_request_entity->entityform_id;
   $request_render_array = entityform_page_view($date_request_entity);
   $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
-//  $request_id = $date_request->entityform_id->value();
 
   $subform['info_' . $request_id] = $request_render_array;
   $approved_event_node = $date_request->field_approved_event->value();
@@ -1137,6 +1142,9 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
 
 function _wk_format_date($dv, $format_string = 'Y-m-d') {
   if (is_array($dv)) {
+    if (!array_key_exists('value', $dv) || !array_key_exists('timezone', $dv)) {
+      return "";
+    }
     $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
     return $d->format($format_string);
   }
