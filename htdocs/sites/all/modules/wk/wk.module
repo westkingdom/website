@@ -372,14 +372,27 @@ function wk_form_alter_taxonomy_tree_with_icon_fields(&$element) {
 function wk_create_calendar_date_request($node, $additional_delta = 0) {
   global $user;
 
+  // Create an entity and set the time and user who created it
   $date_request_entity = entityform_create(array("type" => "calendar_date_request"));
-  $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+  $date_request_entity->uid = $user->uid;
+  $date_request_endity->created = time();
 
-  // $date_request->??? = $user->uid; TODO: set entity owner
-  // $date_request-> TODO: set created date
+  // The rest of our manipulations will be with an entity wrapper
+  $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
   $date_request->field_event_name->set($node->title);
   $date_request->field_placeholder_event_descript->set(t("More information will be provided as it becomes available."));
   $date_request->field_repeat_of_event->set($node->nid);
+  $date_request->field_society_name->set($user->name);
+  $date_request->field_email_address->set($user->mail);
+
+  $v = $node->taxonomy_vocabulary_2[$node->language];
+  if (!empty($v)) {
+    $branch_tids = array();
+    foreach ($v as $index => $info) {
+      $branch_tids[] = $info['tid'];
+    }
+    $date_request->taxonomy_vocabulary_2->set($branch_tids);
+  }
 
   $dv = $node->field_date[LANGUAGE_NONE][0];
   $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
@@ -982,6 +995,25 @@ function wk_calendar_status($form, &$form_state) {
       '#prefix' => "",
       '#suffix' => "",
     );
+    $date_request_info = _wk_find_date_request_for_event($nid);
+    if ($date_request_info) {
+      $list = array_keys($date_request_info);
+      $entityform_id = reset($list);
+      $date_request_entity = entityform_load($entityform_id);
+      $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+      $url = 'approve-date-request/' .  $date_request->entityform_id->value();
+      $approved_event_node = $date_request->field_approved_event->value();
+      if (!empty($approved_event_node)) {
+        $approved_node = entity_metadata_wrapper('node',$approved_event_node);
+        $approved_date = $approved_node->field_date->value();
+        // TODO: link to the event listing
+        $checkbox['#title'] .= ' ' . t("Approved for !when", array('!when' => l(_wk_format_date($approved_date[0], 'Y F d'), 'node/' . $approved_event_node->nid)));
+      }
+      else {
+        $requested_date = $date_request->field_first_choice_date->value();
+        $checkbox['#title'] .= ' ' . t("Requested for !when", array('!when' => l(_wk_format_date($requested_date, 'Y F d'), $url)));
+      }
+    }
     if ($carryover) {
       $form['c-' . $nid] = $checkbox;
     }
@@ -1036,8 +1068,11 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
       $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
       $title = $date_request->field_event_name->value();
       $collapsed = FALSE;
-      $approved_date = $date_request->field_approved_date->value();
-      if (!empty($approved_date)) {
+
+      $approved_event_node = $date_request->field_approved_event->value();
+      if (!empty($approved_event_node)) {
+        $approved_node = entity_metadata_wrapper('node',$approved_event_node);
+        $approved_date = $approved_node->field_date->value();
         $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date, 'Y F d')));
         $collapsed = TRUE;
       }
@@ -1065,9 +1100,8 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
 //  $request_id = $date_request->entityform_id->value();
 
   $subform['info_' . $request_id] = $request_render_array;
-  $approved_date = $date_request->field_approved_date->value();
-  //dpm($approved_date);
-  if (empty($approved_date)) {
+  $approved_event_node = $date_request->field_approved_event->value();
+  if (empty($approved_event_node)) {
     $format_string = 'd F';
     $dv = $date_request->field_first_choice_date->value();
     $first_choice = _wk_format_date($dv, $format_string);
@@ -1127,9 +1161,11 @@ function _wk_process_approve_date_request($form, &$form_state) {
   $node->language = LANGUAGE_NONE;
 
   $v = $date_request->taxonomy_vocabulary_2->value();
-  $branch_group_tid = $v[0]->tid;
+  if (!empty($v)) {
+    $branch_group_tid = $v[0]->tid;
 
-  $node->taxonomy_vocabulary_2[$node->language][] = array('tid' => $branch_group_tid);
+    $node->taxonomy_vocabulary_2[$node->language][] = array('tid' => $branch_group_tid);
+  }
 
   // TODO: Better way to build this record?
   $node->field_date[$node->language][0] = array(
@@ -1172,7 +1208,7 @@ function _wk_process_approve_date_request($form, &$form_state) {
   node_save($node);
 
   // Mark date request as approved
-  $date_request->field_approved_date->set(strtotime($selected_date . 'T12:00:00'));
+  $date_request->field_approved_event->set($node->nid);
   $date_request->save();
 
   drupal_goto("node/" . $node->nid);
@@ -1255,11 +1291,27 @@ function _wk_get_officer_node($branch, $office) {
   return _regnum_get_officer_node('officers', $field_map, array('branch' => $branch, 'office' => $office));
 }
 
+// Return all calendar date requests
 function _wk_date_request_all_ids() {
   $date_requests = array();
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', "entityform");
   $query->propertyCondition('type', 'calendar_date_request');
+  $result = $query->execute();
+  if (isset($result['entityform'])) {
+    $date_requests = $result['entityform'];
+  }
+  return $date_requests;
+}
+
+// Find the specific calendar date request to re-hold the specified
+// event again the following year.
+function _wk_find_date_request_for_event($nid) {
+  $date_requests = array();
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', "entityform");
+  $query->propertyCondition('type', 'calendar_date_request');
+  $query->fieldCondition('field_repeat_of_event', 'nid', $nid, '=');
   $result = $query->execute();
   if (isset($result['entityform'])) {
     $date_requests = $result['entityform'];
