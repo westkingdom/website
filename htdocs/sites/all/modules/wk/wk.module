@@ -1082,7 +1082,7 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
         $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date[0], 'Y F d')));
         $collapsed = TRUE;
       }
-      $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity);
+      $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, TRUE);
       $form['date_request_' . $id] = array(
         '#type' => 'fieldset',
         '#title' => $title,
@@ -1099,7 +1099,7 @@ function wk_date_request_approval_form($form, &$form_state, $request_id) {
   return $form + _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity);
 }
 
-function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity) {
+function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity, $include_checkboxes = FALSE) {
   $request_id = $date_request_entity->entityform_id;
   $request_render_array = entityform_page_view($date_request_entity);
   $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
@@ -1107,37 +1107,84 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
   $subform['info_' . $request_id] = $request_render_array;
   $approved_event_node = $date_request->field_approved_event->value();
   if (empty($approved_event_node)) {
+    $subform['approval-options'] = array(
+      '#type' => 'fieldset',
+    );
+    $checkbox_options = array();
     $format_string = 'd F';
     $dv = $date_request->field_first_choice_date->value();
     $first_choice = _wk_format_date($dv, $format_string);
-    $subform['approve_first_choice_date_' . $request_id] = array(
+    $first_choice_epoch = _wk_format_date($dv, 'U');
+    $subform['approval-options']['approve_first_choice_date_' . $request_id] = array(
       '#type' => 'submit',
       '#value' => t('Approve !d', array('!d' => $first_choice)),
       '#submit' => array('_wk_process_approve_date_request'),
       '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
+      '#prefix' => "<div class='approve-$request_id-$first_choice_epoch'>",
+      '#suffix' => "</div>",
     );
+    $checkbox_options[$first_choice_epoch] = $first_choice;
     $dv = $date_request->field_alternate_date->value();
     $alternate_choice = _wk_format_date($dv, $format_string);
+    $alternate_choice_epoch = _wk_format_date($dv, 'U');
     if ($alternate_choice != $first_choice) {
-      $subform['approve_alternate_choice_button_' . $request_id] = array(
+      $subform['approval-options']['approve_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
         '#value' => t('Approve !d', array('!d' => $alternate_choice)),
         '#submit' => array('_wk_process_approve_date_request'),
         '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
+        '#prefix' => "<div class='approve-$request_id-$alternate_choice_epoch'>",
+        '#suffix' => "</div>",
       );
+      $checkbox_options[$alternate_choice_epoch] = $alternate_choice;
     }
     $dv = $date_request->field_second_alternate_date->value();
     $second_alternate = _wk_format_date($dv, $format_string);
+    $second_alternate_epoch = _wk_format_date($dv, 'U');
     if (($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
-      $subform['approve_second_alternate_choice_button_' . $request_id] = array(
+      $subform['approval-options']['approve_second_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
         '#value' => t('Approve !d', array('!d' => $second_alternate)),
         '#submit' => array('_wk_process_approve_date_request'),
         '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
+        '#prefix' => "<div class='approve-$request_id-$second_alternate_epoch'>",
+        '#suffix' => "</div>",
       );
+      $checkbox_options[$second_alternate_epoch] = $second_alternate;
+    }
+    if ($include_checkboxes) {
+      $subform['approval-options']['approve_checkboxes_' . $request_id] = array(
+        '#type' => 'checkboxes',
+        '#options' => $checkbox_options,
+      );
+      $subform['approval-options']['#post_render'] = array('_wk_approve_button_post_render');
     }
   }
   return $subform;
+}
+
+// Post-process the rendered HTML of our approval buttons and
+// checkboxes to move the approval button next to the checkbox,
+// repacing the checkbox's label.
+function _wk_approve_button_post_render($content, $element) {
+  // dpm($content);
+  // Find all of the submit buttons
+  if (preg_match_all("#<div class='approve-([0-9]*)-([0-9]*)'>[^<]*(<input[^>]*>)[^<]*</div>#", $content, $match_sets, PREG_SET_ORDER)) {
+    // dpm($match_sets);
+    foreach ($match_sets as $matches) {
+      // For each submit button found, look for a corresponding
+      // checkbox.  If a match is found, then replace the checkbox
+      // label with the submit button.
+      $matched_html = $matches[0];
+      $matched_request_id = $matches[1];
+      $matched_epoch = $matches[2];
+      $matched_button_html = $matches[3];
+
+      $content = str_replace($matched_html, '', $content);
+      $content = preg_replace("#<label *class=\"option\" *for=\"edit-approve-checkboxes-$matched_request_id-$matched_epoch\">[^<]*</label>#", "<label class=\"option\" for=\"edit-approve-checkboxes-$matched_request_id-$matched_epoch\">$matched_button_html</label>", $content);
+    }
+  }
+  return $content;
 }
 
 function _wk_format_date($dv, $format_string = 'Y-m-d') {
