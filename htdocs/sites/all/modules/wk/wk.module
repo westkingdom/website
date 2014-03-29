@@ -1090,6 +1090,11 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
         '#collapsed' => $collapsed,
       ) + $subform;
     }
+    $form['approve-checked'] = array(
+      '#type' => 'submit',
+      '#value' => t('Approve Checked Dates'),
+      '#submit' => array('_wk_process_approve_checked_date_request'),
+    );
   }
   return $form;
 }
@@ -1200,13 +1205,62 @@ function _wk_format_date($dv, $format_string = 'Y-m-d') {
   }
 }
 
+// Handle 'Approved Selected Dates' button.
+function _wk_process_approve_checked_date_request($form, &$form_state) {
+  // Iterate over all of the checked buttons
+  // Make sure that each event has at most one checked date
+  $approval_list = array();
+  foreach ($form_state['values'] as $key => $info) {
+    if (substr($key, 0, 19) == 'approve_checkboxes_') {
+      $id = substr($key, 19);
+      $selected = FALSE;
+      foreach ($info as $value => $state) {
+        if ($state) {
+          // TODO: if $selected is TRUE, that means two dates
+          // were approved.  We should error out, but for now
+          // we will instead assume first-selected wins.
+          if (!$selected) {
+            $selected = $value;
+          }
+        }
+      }
+      if ($selected) {
+        $approval_list[$id] = $selected;
+      }
+    }
+  }
+
+  if (empty($approval_list)) {
+    drupal_set_message(t("You must select at lease one date before clicking the 'Approve Checked Dates' button."), 'error');
+  }
+  else {
+    // Call _wk_approve_selected_date_request for each selected event
+    $nodes = array();
+    foreach ($approval_list as $id => $selected_date) {
+      $node = _wk_approve_selected_date_request($id, _wk_format_date($selected_date));
+      if ($node) {
+        $nodes[$node->nid] = $node;
+      }
+    }
+    // TODO: show summary of approved events
+    // drupal_goto("calendar-date-request");
+  }
+}
+
+// Handle 'Approve (single date)' button
 function _wk_process_approve_date_request($form, &$form_state) {
   $id = $form_state['clicked_button']['#attributes']['date-request-id'];
-  $date_request_entity = entityform_load($id);
-  //dpm($date_request_entity);
   $choice = $form_state['clicked_button']['#attributes']['date-choice'];
   $date_request = new EntityDrupalWrapper('entityform', $id);
   $selected_date = _wk_format_date($date_request->$choice->value());
+  $node = _wk_approve_selected_date_request($id, $selected_date);
+  drupal_goto("node/" . $node->nid);
+}
+
+function _wk_approve_selected_date_request($id, $selected_date) {
+  $date_request = new EntityDrupalWrapper('entityform', $id);
+  // TODO: Calculate correct end date by looking at the
+  // duration of the first choice date, and adding it to 'selected_date'.
   $end_date = $selected_date;
 
   $node = new stdClass();
@@ -1266,7 +1320,7 @@ function _wk_process_approve_date_request($form, &$form_state) {
   $date_request->field_approved_event->set($node->nid);
   $date_request->save();
 
-  drupal_goto("node/" . $node->nid);
+  return $node;
 }
 
 // TODO:  How do we decide if an activity is a carryover activity
