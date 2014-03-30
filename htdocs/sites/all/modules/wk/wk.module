@@ -1165,7 +1165,19 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       $subform['approval-options']['#post_render'] = array('_wk_approve_button_post_render');
     }
   }
+
+  // Render the visible elements of the entityform
+  $visible_elements = array(
+    'info',
+    'field_additional_information',
+    'field_placeholder_event_descript',
+  );
   $request_render_array = entityform_page_view($date_request_entity);
+  foreach ($request_render_array['entityform'][$request_id] as $key => $info) {
+    if (($key[0] != '#') && (!in_array($key, $visible_elements))) {
+      hide($request_render_array['entityform'][$request_id][$key]);
+    }
+  }
   $subform['info_' . $request_id] = $request_render_array;
 
   // If not approved, then put in the contact and edit controls
