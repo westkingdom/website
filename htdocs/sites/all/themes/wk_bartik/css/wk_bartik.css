@@ -513,6 +513,31 @@ blockquote {
   clear: both;
 }
 
+/* ----- Date request approval form ----- */
+
+.date-request-contact {
+  margin-right: 16px;
+}
+
+#wk-date-request-multiple-approval-form h2 {
+  display: none;
+}
+
+@media all and (min-width: 600px) {
+
+  .approval-fieldset {
+    float: right;
+    width: 50%;
+  }
+}
+
+@media all and (min-width: 901px) {
+
+  .approval-fieldset {
+    float: right;
+    width: 33%;
+  }
+}
 
 /* ############# End General Field CSS ############# */
 
