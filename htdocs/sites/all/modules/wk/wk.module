@@ -1105,6 +1105,7 @@ function wk_date_request_approval_form($form, &$form_state, $request_id) {
 }
 
 function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity, $include_checkboxes = FALSE) {
+  global $user;
   $request_id = $date_request_entity->entityform_id;
   $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
 
@@ -1206,22 +1207,27 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
         $seneschal = _regnum_get_user(array('mail' => $date_request->field_email_address->value()));
       }
 
-      if ($seneschal) {
-        // 'Contact' button that leads to the contact
-        // form of a regisered user.
-        $subform['contact_' . $request_id] = array(
-          '#type' => 'submit',
-          '#value' => t('Contact !name', array('!name' => $seneschal->name)),
-          '#submit' => array('_wk_process_contact_date_request'),
-          '#attributes' => array('date-request-id' => $request_id, 'seneschal-uid' => $seneschal->uid),
-        );
-      }
-      else {
-        // A 'mailto' link pointing to whatever
-        // email address was entered on the form.
-        $subform['contact_' . $request_id] = array(
-          '#markup' => '<span class="date-request-contact">' . l('Contact  ' . $date_request->field_society_name->value(), 'mailto://' . $date_request->field_email_address->value()) . '</span>',
-        );
+      // If you are the form submitter, or if you
+      // are the Seneschal, then you do not need a
+      // 'Contact' button.
+      if (($user->mail != $date_request->field_email_address->value()) && ((!$seneschal) || ($user->mail != $seneschal->mail))) {
+        if ($seneschal) {
+          // 'Contact' button that leads to the contact
+          // form of a regisered user.
+          $subform['contact_' . $request_id] = array(
+            '#type' => 'submit',
+            '#value' => t('Contact !name', array('!name' => $seneschal->name)),
+            '#submit' => array('_wk_process_contact_date_request'),
+            '#attributes' => array('date-request-id' => $request_id, 'seneschal-uid' => $seneschal->uid),
+          );
+        }
+        else {
+          // A 'mailto' link pointing to whatever
+          // email address was entered on the form.
+          $subform['contact_' . $request_id] = array(
+            '#markup' => '<span class="date-request-contact">' . l('Contact  ' . $date_request->field_society_name->value(), 'mailto://' . $date_request->field_email_address->value()) . '</span>',
+          );
+        }
       }
     }
 
