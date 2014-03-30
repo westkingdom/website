@@ -1106,17 +1106,17 @@ function wk_date_request_approval_form($form, &$form_state, $request_id) {
 
 function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity, $include_checkboxes = FALSE) {
   $request_id = $date_request_entity->entityform_id;
-  $request_render_array = entityform_page_view($date_request_entity);
   $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
 
-  $subform['info_' . $request_id] = $request_render_array;
   $approved_event_node = $date_request->field_approved_event->value();
+  // If not approved, then put in the approval controls
   if (empty($approved_event_node)) {
     $subform['approval-options'] = array(
       '#type' => 'fieldset',
+      '#attributes' => array('class' => array('approval-fieldset')),
     );
     $checkbox_options = array();
-    $format_string = 'd F';
+    $format_string = 'd F Y';
     $dv = $date_request->field_first_choice_date->value();
     $first_choice = _wk_format_date($dv, $format_string);
     $first_choice_epoch = _wk_format_date($dv, 'U');
@@ -1132,7 +1132,7 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     $dv = $date_request->field_alternate_date->value();
     $alternate_choice = _wk_format_date($dv, $format_string);
     $alternate_choice_epoch = _wk_format_date($dv, 'U');
-    if ($alternate_choice != $first_choice) {
+    if (!empty($dv) && ($alternate_choice != $first_choice)) {
       $subform['approval-options']['approve_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
         '#value' => t('Approve !d', array('!d' => $alternate_choice)),
@@ -1146,7 +1146,7 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     $dv = $date_request->field_second_alternate_date->value();
     $second_alternate = _wk_format_date($dv, $format_string);
     $second_alternate_epoch = _wk_format_date($dv, 'U');
-    if (($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
+    if (!empty($dv) && ($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
       $subform['approval-options']['approve_second_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
         '#value' => t('Approve !d', array('!d' => $second_alternate)),
@@ -1165,7 +1165,64 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       $subform['approval-options']['#post_render'] = array('_wk_approve_button_post_render');
     }
   }
+  $request_render_array = entityform_page_view($date_request_entity);
+  $subform['info_' . $request_id] = $request_render_array;
+
+  // If not approved, then put in the contact and edit controls
+  if (empty($approved_event_node)) {
+    // If there is a Seneschal registered on this site,
+    // put in a 'Contact' button that redirects to the
+    // Seneschal's contact form.  Otherwise, put in
+    // "mailto" link.
+    $v = $date_request->taxonomy_vocabulary_2->value();
+    if (!empty($v)) {
+      $branch_group_tid = $v[0]->tid;
+      $seneschal = _wk_get_officer($branch_group_tid, SENESCHAL_TID);
+      if (count($v) > 1) {
+        $alternate_branch_group_tid = $v[1]->tid;
+        $alternate_seneschal = _wk_get_officer($alternate_branch_group_tid, SENESCHAL_TID);
+        if ($alternate_seneschal && ($alternate_seneschal->mail == $date_request->field_email_address->value())) {
+          $seneschal = $alternate_seneschal;
+        }
+      }
+
+      if ($seneschal) {
+        // 'Contact' button
+        $subform['contact_' . $request_id] = array(
+          '#type' => 'submit',
+          '#value' => t('Contact !name', array('!name' => $seneschal->name)),
+          '#submit' => array('_wk_process_contact_date_request'),
+          '#attributes' => array('date-request-id' => $request_id, 'seneschal-uid' => $seneschal->uid),
+        );
+      }
+      else {
+        $subform['contact_' . $request_id] = array(
+          '#markup' => '<span class="date-request-contact">' . l('Contact  ' . $date_request->field_society_name->value(), 'mailto://' . $date_request->field_email_address->value()) . '</span>',
+        );
+      }
+    }
+
+    // 'Edit' button
+    $subform['edit_' . $request_id] = array(
+      '#type' => 'submit',
+      '#value' => t('Edit'),
+      '#submit' => array('_wk_process_edit_date_request'),
+      '#attributes' => array('date-request-id' => $request_id),
+    );
+  }
+
   return $subform;
+}
+
+function _wk_process_contact_date_request($form, &$form_state) {
+  $id = $form_state['clicked_button']['#attributes']['date-request-id'];
+  $seneschal_uid = $form_state['clicked_button']['#attributes']['seneschal-uid'];
+  drupal_goto("user/$seneschal_uid/contact");
+}
+
+function _wk_process_edit_date_request($form, &$form_state) {
+  $id = $form_state['clicked_button']['#attributes']['date-request-id'];
+  drupal_goto("entityform/$id/edit");
 }
 
 // Post-process the rendered HTML of our approval buttons and
