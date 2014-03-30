@@ -1186,8 +1186,17 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
         }
       }
 
+      // If we could not find the registered seneschal
+      // of this branch group, then try to find any
+      // user on the system who has the same email address
+      // as the one entered on the form.
+      if (!$seneschal) {
+        $seneschal = _regnum_get_user(array('mail' => $date_request->field_email_address->value()));
+      }
+
       if ($seneschal) {
-        // 'Contact' button
+        // 'Contact' button that leads to the contact
+        // form of a regisered user.
         $subform['contact_' . $request_id] = array(
           '#type' => 'submit',
           '#value' => t('Contact !name', array('!name' => $seneschal->name)),
@@ -1196,6 +1205,8 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
         );
       }
       else {
+        // A 'mailto' link pointing to whatever
+        // email address was entered on the form.
         $subform['contact_' . $request_id] = array(
           '#markup' => '<span class="date-request-contact">' . l('Contact  ' . $date_request->field_society_name->value(), 'mailto://' . $date_request->field_email_address->value()) . '</span>',
         );
