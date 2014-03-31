@@ -5,6 +5,12 @@
  * West Kingdom customizations
  */
 
+// Calendar status values (used internally only; not stored in database)
+
+define("CALENDAR_STATUS_CLOSED", "CLOSED");
+define("CALENDAR_STATUS_PREPARING", "PREPARING");
+define("CALENDAR_STATUS_ONE_EVENT", "ONE_EVENT");
+
 // Some magic numbers.  TODO: move to configuration
 
 define("SOCIETY_TID", 75);
@@ -14,6 +20,7 @@ define("SENESCHAL_TID", 84);
 
 define("KINGDOM_WEBMINISTER_GID", 851);
 define("KINGDOM_SENESCHAL_GID", 989);
+
 
 /**
  * Implements hook_module_implements_alter
@@ -976,84 +983,226 @@ function wk_events_for_next_years_calendar($year) {
   return wk_load_nodes($event_nids);
 }
 
-function wk_calendar_status($form, &$form_state) {
-  $editable = wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID));
-  $events_for_next_year = wk_events_for_next_years_calendar('2014');
-  $non_carryover = array();
-  foreach ($events_for_next_year as $nid => $node) {
-    $carryover = FALSE;
-    $kingdom_or_principality = _wk_kingdom_or_principality_event($node);
-    if ($kingdom_or_principality && isset($node->field_activities[$node->language])) {
-      foreach ($node->field_activities[$node->language] as $index => $tid_info) {
-        $tid = $tid_info['tid'];
-        if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
-          $carryover = TRUE;
-        }
-      }
-    }
-    $checkbox = array(
-      '#type' => 'checkbox',
-      '#attributes' => array('class' => array('carryover-selection')),
-      '#checked' => $carryover,
-      '#default_value' => $carryover,
-      '#title' => l($node->title, 'node/' . $nid),
-      '#disabled' => !$editable,
-      '#prefix' => "",
-      '#suffix' => "",
-    );
-    $date_request_info = _wk_find_date_request_for_event($nid);
-    if ($date_request_info) {
-      $list = array_keys($date_request_info);
-      $entityform_id = reset($list);
-      $date_request_entity = entityform_load($entityform_id);
-      $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
-      $url = 'approve-date-request/' .  $date_request->entityform_id->value();
-      $approved_event_node = $date_request->field_approved_event->value();
-      if (!empty($approved_event_node)) {
-        $approved_node = entity_metadata_wrapper('node',$approved_event_node);
-        $approved_date = $approved_node->field_date->value();
-        // TODO: link to the event listing
-        $checkbox['#title'] .= ' ' . t("Approved for !when", array('!when' => l(_wk_format_date($approved_date[0], 'Y F d'), 'node/' . $approved_event_node->nid)));
-      }
-      else {
-        $requested_date = $date_request->field_first_choice_date->value();
-        $checkbox['#title'] .= ' ' . t("Requested for !when", array('!when' => l(_wk_format_date($requested_date, 'Y F d'), $url)));
-      }
-    }
-    if ($carryover) {
-      $form['c-' . $nid] = $checkbox;
-    }
-    else {
-      $non_carryover['c-' . $nid] = $checkbox;
+// What year is already open for all events?
+function wk_calendar_year_open_for_all_events() {
+  $result = 0;
+
+  // If there is no information about the status of the calendar, or if
+  // it is out of date, then the calendar will automatically open for all
+  // events on the first day of that year.  This is the "default year",
+  // and we will never return a result less than this.
+  $default_year = date("Y");
+  // The calendar will open for all events on a certain date and time;
+  // if the current date and time is past this milestone, then the calendar
+  // is open for all events for the year AFTER the time and date the
+  // milestone occurred in.
+  $open_for_all_milestone = variable_get('calendar-open-for-all', 0);
+  if ($open_for_all_milestone) {
+    if (time() > $open_for_all_milestone) {
+      $result = date("Y", $open_for_all_milestone) + 1;
     }
   }
-  $form['non-carryover'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Other events'),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-  ) + $non_carryover;
-  if ($editable) {
-    $form['prepare_calendar'] = array(
-      '#type' => 'submit',
-      '#value' => t('Prepare Calendar'),
-      '#submit' => array('_wk_prepare_calendar'),
-    );
+  return max($default_year, $result);
+}
+
+// What is the status for the calendar year that comes after
+// the year returned by wk_calendar_year_open_for_all_events?
+//
+// CLOSED - no one can make any calendar date requests for next year.
+//
+// PREPARING - like closed, most groups cannot make date requests for
+// next year.  During this phase, the Kingdom Seneschal and Calendar
+// deputy place the required events for the Kingdom on the calendar.
+//
+// ONE EVENT - every branch group may request a single event.  This is
+// in addition to any required events already on the calendar (i.e. for
+// principalities).
+//
+// After the ONE EVENT phase, the calendar opens for all events -- by
+// bumping wk_calendar_year_open_for_all_events() by one year, and
+// reseting to CLOSED for the next year.
+function wk_calendar_status_for_next_year() {
+  $result = CALENDAR_STATUS_CLOSED;
+  $open_for_all_milestone = variable_get('calendar-open-for-all', 0);
+  $preparing_milestone = variable_get('calendar-preparing', 0);
+  $open_one_event_milestone = variable_get('calendar-open-for-one', 0);
+
+  if (($preparing_milestone > $open_for_all_milestone) && (time() > $preparing_milestone)) {
+    $result = CALENDAR_STATUS_PREPARING;
+  }
+
+  if (($open_one_event_milestone > $open_for_all_milestone) && (time() > $open_one_event_milestone)) {
+    $result = CALENDAR_STATUS_ONE_EVENT;
+  }
+  return $result;
+}
+
+function wk_calendar_status($form, &$form_state) {
+  $status_messages = array(
+    CALENDAR_STATUS_CLOSED => t("Not open yet."),
+    CALENDAR_STATUS_PREPARING => t("Preparing to open."),
+    CALENDAR_STATUS_ONE_EVENT => t("Open for one event request per group."),
+  );
+  $open_year = wk_calendar_year_open_for_all_events();
+  $next_years_status = wk_calendar_status_for_next_year();
+  $form['status-summary'] = array(
+    '#markup' => t('<p><b>Calendar status for !open_year:</b> Open for all events.</p><p><b>Calendar status for !next_year:</b> !msg</p>', array('!open_year' => $open_year, '!next_year' => $open_year + 1, '!msg' => $status_messages[$next_years_status])),
+  );
+  $fn = 'wk_calendar_status_' . strtolower($next_years_status);
+  return $fn($form, $form_state);
+}
+
+function wk_calendar_status_closed($form, &$form_state) {
+  $open_year = wk_calendar_year_open_for_all_events();
+  $this_year = date("Y");
+  $form['closed-message'] = array(
+    '#markup' => t('<p>The calendar is CLOSED for requests in !next_year.  Usually, the Seneschal and Calendar Deputy begin to prepare the calendar in April.  Once the calendar is ready, it will be opened up for ONE event request for every branch group.</p>', array('!next_year' => $open_year + 1)),
+  );
+
+  return wk_calendar_events_for_calendar_preparation($form, $form_state);
+}
+
+function wk_calendar_status_preparing($form, &$form_state) {
+  $open_year = wk_calendar_year_open_for_all_events();
+  $form['preparing-message'] = array(
+    '#markup' => t('<p>The calendar is CLOSED for requests in !next_year.  The Seneschal and Calendar Deputy are currently preparing the calendar for next year.  Once it is ready, it will be opened up for ONE event request for every branch group.</p>', array('!next_year' => $open_year + 1)),
+  );
+  $form['open-for-one'] = array(
+    '#type' => 'submit',
+    '#value' => t('Open For One Event'),
+    '#submit' => array('_wk_open_calendar_for_one_date_request'),
+  );
+
+  return wk_calendar_events_for_calendar_preparation($form, $form_state);
+}
+
+function wk_calendar_status_one_event($form, &$form_state) {
+  $open_year = wk_calendar_year_open_for_all_events();
+  $form['preparing-message'] = array(
+    '#markup' => '<p>' . t('The calendar is open for ONE event request for each branch group in !next_year.', array('!next_year' => $open_year + 1)) . '</p>',
+  );
+  $form['open-for-all'] = array(
+    '#type' => 'submit',
+    '#value' => t('Open For All Events'),
+    '#submit' => array('_wk_open_calendar_for_all_requests'),
+  );
+
+  return $form;
+}
+
+function wk_calendar_events_for_calendar_preparation($form, &$form_state) {
+  $open_year = wk_calendar_year_open_for_all_events();
+  $this_year = date("Y");
+  $next_year = $this_year + 1;
+
+  // If the calendar is open for all events this year, and closed for next year,
+  // then put in the controls to begin calendar planning for next year.  The
+  // alternative is that the calendar is already open for all events next year;
+  // in that case, it is too early to begin preparing the calendar for the year
+  // after, so leave these controls off.
+  if ($next_year > $open_year) {
+    $next_years_status = wk_calendar_status_for_next_year();
+    $editable = wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID));
+    $events_for_next_year = wk_events_for_next_years_calendar($this_year);
+    $non_carryover = array();
+    foreach ($events_for_next_year as $nid => $node) {
+      $carryover = FALSE;
+      $kingdom_or_principality = _wk_kingdom_or_principality_event($node);
+      if ($kingdom_or_principality && isset($node->field_activities[$node->language])) {
+        foreach ($node->field_activities[$node->language] as $index => $tid_info) {
+          $tid = $tid_info['tid'];
+          if (_wk_is_carryover_activity($tid, $kingdom_or_principality)) {
+            $carryover = TRUE;
+          }
+        }
+      }
+      $checkbox = array(
+        '#type' => 'checkbox',
+        '#attributes' => array('class' => array('carryover-selection')),
+        '#checked' => $carryover,
+        '#default_value' => $carryover,
+        '#title' => l($node->title, 'node/' . $nid),
+        '#disabled' => !$editable,
+        '#prefix' => "",
+        '#suffix' => "",
+      );
+      $date_request_info = _wk_find_date_request_for_event($nid);
+      if ($date_request_info) {
+        $list = array_keys($date_request_info);
+        $entityform_id = reset($list);
+        $date_request_entity = entityform_load($entityform_id);
+        $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+        $url = 'approve-date-request/' .  $date_request->entityform_id->value();
+        $approved_event_node = $date_request->field_approved_event->value();
+        if (!empty($approved_event_node)) {
+          $approved_node = entity_metadata_wrapper('node',$approved_event_node);
+          $approved_date = $approved_node->field_date->value();
+          // TODO: link to the event listing
+          $checkbox['#title'] .= ' ' . t("Approved for !when", array('!when' => l(_wk_format_date($approved_date[0], 'Y F d'), 'node/' . $approved_event_node->nid)));
+        }
+        else {
+          $requested_date = $date_request->field_first_choice_date->value();
+          $checkbox['#title'] .= ' ' . t("Requested for !when", array('!when' => l(_wk_format_date($requested_date, 'Y F d'), $url)));
+        }
+      }
+      if ($carryover) {
+        $form['c-' . $nid] = $checkbox;
+      }
+      else {
+        $non_carryover['c-' . $nid] = $checkbox;
+      }
+    }
+    $form['non-carryover'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Other events'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    ) + $non_carryover;
+    if ($editable) {
+      $form['prepare_calendar'] = array(
+        '#type' => 'submit',
+        '#value' => $next_years_status == CALENDAR_STATUS_PREPARING ? t('Add Events') : t('Prepare Calendar'),
+        '#submit' => array('_wk_prepare_calendar'),
+      );
+    }
   }
   return $form;
 }
 
+function _wk_open_calendar_for_one_date_request($form, &$form_state) {
+  // TODO: check and see if there are calendar date requests for the
+  // next year that have not been approved yet, and warn if so.
+  // TODO: send email to all Seneschals informing them that they may
+  // submit one calendar date request
+  variable_set('calendar-open-for-one', time());
+}
+
+function _wk_open_calendar_for_all_requests($form, &$form_state) {
+  // TODO: send email to all Seneschals informing them that they may
+  // submit the rest of their calendar date requests
+  variable_set('calendar-open-for-all', time());
+}
+
 function _wk_prepare_calendar($form, &$form_state) {
+  $created_some_date_requests = FALSE;
   foreach ($form_state['values'] as $key => $value) {
     if (substr($key,0,2) == 'c-') {
       if ($value) {
         $nid = substr($key,2);
         $node = node_load($nid);
         wk_create_calendar_date_request($node);
+        $created_some_date_requests = TRUE;
       }
     }
   }
-
+  // Once some calendar date requests are created for the
+  // coming year, we will consider that we have moved into
+  // the PREPARING phase of the calendar date request process.
+  if ($created_some_date_requests) {
+    if (wk_calendar_status_for_next_year() == CALENDAR_STATUS_CLOSED) {
+      variable_set('calendar-preparing', time());
+    }
+  }
   drupal_goto('approve-date-requests');
 }
 
