@@ -408,7 +408,9 @@ function wk_create_calendar_date_request($node, $additional_delta = 0) {
 
     $dv = $node->field_date[LANGUAGE_NONE][0];
     $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+    $start_date->setTime(12,0,0);
     $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
+    $end_date->setTime(12,0,0);
     $duration = $start_date->diff($end_date);
 
     // Add one year, and then find the nearest
@@ -427,7 +429,7 @@ function wk_create_calendar_date_request($node, $additional_delta = 0) {
     }
     // Calculate a new end date at the same duration
     // as the original event
-    $end_date = new DateTime($start_date->format("Y-m-d H:i:s"), $start_date->getTimezone());
+    $end_date = new DateTime($start_date->format("Y-m-d") . '12:00:00', $start_date->getTimezone());
     $end_date->add($duration);
 
     $start_date_formatted = $start_date->format('Y-m-d');
@@ -484,7 +486,9 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       // Find the start and end date of the original event
       $dv = $node->field_date[LANGUAGE_NONE][0];
       $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+      $start_date->setTime(12,0,0);
       $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
+      $end_date->setTime(12,0,0);
       $duration = $start_date->diff($end_date);
       $previous_event_date = $start_date->format("d F, Y");
       $previous_event_title = l($node->title, 'node/' . $node->nid);
@@ -1267,25 +1271,27 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     );
     $checkbox_options = array();
     $format_string = 'd F Y';
-    $dv = $date_request->field_first_choice_date->value();
-    $first_choice = _wk_format_date($dv, $format_string);
-    $first_choice_epoch = _wk_format_date($dv, 'U');
+    $dv_first = $date_request->field_first_choice_date->value();
+    $first_choice = _wk_format_date($dv_first, $format_string);
+    $first_choice_text = _wk_format_date_range($dv_first, $format_string);
+    $first_choice_epoch = _wk_format_date($dv_first, 'U');
     $subform['approval-options']['approve_first_choice_date_' . $request_id] = array(
       '#type' => 'submit',
-      '#value' => t('Approve !d', array('!d' => $first_choice)),
+      '#value' => t('Approve !d', array('!d' => $first_choice_text)),
       '#submit' => array('_wk_process_approve_date_request'),
       '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
       '#prefix' => "<div class='approve-$request_id-$first_choice_epoch'>",
       '#suffix' => "</div>",
     );
     $checkbox_options[$first_choice_epoch] = $first_choice;
-    $dv = $date_request->field_alternate_date->value();
+    $dv = _wk_date_with_same_duration($date_request->field_alternate_date->value(), $dv_first);
     $alternate_choice = _wk_format_date($dv, $format_string);
+    $alternate_choice_text = _wk_format_date_range($dv, $format_string);
     $alternate_choice_epoch = _wk_format_date($dv, 'U');
     if (!empty($dv) && ($alternate_choice != $first_choice)) {
       $subform['approval-options']['approve_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
-        '#value' => t('Approve !d', array('!d' => $alternate_choice)),
+        '#value' => t('Approve !d', array('!d' => $alternate_choice_text)),
         '#submit' => array('_wk_process_approve_date_request'),
         '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
         '#prefix' => "<div class='approve-$request_id-$alternate_choice_epoch'>",
@@ -1293,13 +1299,14 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       );
       $checkbox_options[$alternate_choice_epoch] = $alternate_choice;
     }
-    $dv = $date_request->field_second_alternate_date->value();
+    $dv = _wk_date_with_same_duration($date_request->field_second_alternate_date->value(), $dv_first);
     $second_alternate = _wk_format_date($dv, $format_string);
+    $second_alternate_text = _wk_format_date_range($dv, $format_string);
     $second_alternate_epoch = _wk_format_date($dv, 'U');
     if (!empty($dv) && ($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
       $subform['approval-options']['approve_second_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
-        '#value' => t('Approve !d', array('!d' => $second_alternate)),
+        '#value' => t('Approve !d', array('!d' => $second_alternate_text)),
         '#submit' => array('_wk_process_approve_date_request'),
         '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
         '#prefix' => "<div class='approve-$request_id-$second_alternate_epoch'>",
@@ -1427,6 +1434,37 @@ function _wk_approve_button_post_render($content, $element) {
   return $content;
 }
 
+function _wk_format_date_range($dv, $format_string = 'd M Y') {
+  $result = '';
+  if (!empty($dv)) {
+    $start = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+    $end = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
+    // Different years?
+    if ($start->format('Y') != $end->format('Y')) {
+      $result = $start->format($format_string) . ' - ' . $end->format($format_string);
+    }
+    // Different months?
+    elseif ($start->format('m') != $end->format('m')) {
+      if (preg_match('/[dmM]+[^a-zA-Z]*[dmM]+/', $format_string, $matches)) {
+        $adjusted_format = str_replace($matches[1], $start->format($matches[1]) . ' - ' . $matches[1], $format_string);
+        $result = $end->format($adjusted_format);
+      }
+      else {
+        $result = $start->format('d M') . ' - ' . $end->format('d M Y');
+      }
+    }
+    // Different days?
+    elseif ($start->format('d') != $end->format('d')) {
+      $format_string = str_replace('d', 'd - ' . $end->format('d'), $format_string);
+      $result = $start->format($format_string);
+    }
+    else {
+      $result = $start->format($format_string);
+    }
+  }
+  return $result;
+}
+
 function _wk_format_date($dv, $format_string = 'Y-m-d') {
   if (is_array($dv)) {
     if (!array_key_exists('value', $dv) || !array_key_exists('timezone', $dv)) {
@@ -1438,6 +1476,36 @@ function _wk_format_date($dv, $format_string = 'Y-m-d') {
   else {
     return date($format_string, $dv);
   }
+}
+
+function _wk_end_date($dv) {
+  if (is_array($dv) && array_key_exists('value2', $dv)) {
+    $dv['value'] = $dv['value2'];
+  }
+  return $dv;
+}
+
+function _wk_date_with_same_duration($date_origin, $date_with_duration) {
+  if (empty($date_origin)) {
+    $result = $date_origin;
+  }
+  else {
+    $result = $date_with_duration;
+var_export($date_with_duration);
+    $start_date = new DateTime($date_with_duration['value'], new DateTimeZone($date_with_duration['timezone']));
+    $start_date->setTime(12,0,0);
+    $end_date = new DateTime($date_with_duration['value2'], new DateTimeZone($date_with_duration['timezone']));
+    $end_date->setTime(12,0,0);
+    $duration = $start_date->diff($end_date);
+
+    $working_date = new DateTime(_wk_format_date($date_origin, "Y-m-d") . ' 12:00:00', $start_date->getTimezone());
+    $result['value'] = $working_date->format('Y-m-d') . ' 12:00:00';
+
+    $working_date->add($duration);
+    $result['value2'] = $working_date->format('Y-m-d') . ' 12:00:00';
+  }
+
+  return $result;
 }
 
 // Handle 'Approved Selected Dates' button.
@@ -1487,16 +1555,17 @@ function _wk_process_approve_date_request($form, &$form_state) {
   $id = $form_state['clicked_button']['#attributes']['date-request-id'];
   $choice = $form_state['clicked_button']['#attributes']['date-choice'];
   $date_request = new EntityDrupalWrapper('entityform', $id);
-  $selected_date = _wk_format_date($date_request->$choice->value());
+  $selected_date = _wk_format_date($date_request->$choice->value(), "U");
   $node = _wk_approve_selected_date_request($id, $selected_date);
   drupal_goto("node/" . $node->nid);
 }
 
 function _wk_approve_selected_date_request($id, $selected_date) {
   $date_request = new EntityDrupalWrapper('entityform', $id);
-  // TODO: Calculate correct end date by looking at the
-  // duration of the first choice date, and adding it to 'selected_date'.
-  $end_date = $selected_date;
+  // Calculate correct event date by looking at the
+  // duration of the first choice date, and adding it
+  // to 'selected_date'.
+  $event_date = _wk_date_with_same_duration($selected_date, $date_request->field_first_choice_date->value());
 
   $node = new stdClass();
   $node->type = 'cal_event';
@@ -1513,13 +1582,14 @@ function _wk_approve_selected_date_request($id, $selected_date) {
 
   // TODO: Better way to build this record?
   $node->field_date[$node->language][0] = array(
-    'value' => $selected_date . "T12:00:00",
-    'value2' => $end_date . "T22:00:00",
+    'value' => _wk_format_date($event_date, 'Y-m-d') . "T12:00:00",
+    'value2' => _wk_format_date(_wk_end_date($event_date), 'Y-m-d') . "T22:00:00",
     'offset' => -25200,
     'offset2' => -25200,
     'timezone' => "America/Los_Angeles",
     'date_type' => 'date',
   );
+
   $body = $date_request->field_placeholder_event_descript->value();
   $seneschal = _wk_get_officer($branch_group_tid, SENESCHAL_TID);
   if ($seneschal) {
