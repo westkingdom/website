@@ -1490,7 +1490,6 @@ function _wk_date_with_same_duration($date_origin, $date_with_duration) {
   }
   else {
     $result = $date_with_duration;
-var_export($date_with_duration);
     $start_date = new DateTime($date_with_duration['value'], new DateTimeZone($date_with_duration['timezone']));
     $start_date->setTime(12,0,0);
     $end_date = new DateTime($date_with_duration['value2'], new DateTimeZone($date_with_duration['timezone']));
@@ -1683,6 +1682,36 @@ function _wk_kingdom_or_principality_event($node) {
     }
   }
 
+  return $result;
+}
+
+function _wk_is_seneschal($the_user = NULL) {
+  return _wk_is_officer(SENESCHAL_TID, $the_user);
+}
+
+// If the current user is a Seneschal, return
+// the branch group tid
+function _wk_is_officer($officer_tid, $the_user = NULL) {
+  global $user;
+  $result = array();
+  if (!$the_user) {
+    $the_user = $user;
+  }
+  $users_groups = og_get_entity_groups("user", $the_user);
+  if (array_key_exists('node', $users_groups)) {
+    foreach ($users_groups['node'] as $key => $nid) {
+      $node = node_load($nid);
+      $officer_page = new EntityDrupalWrapper('node', $node);
+      foreach ($officer_page->field_office->value() as $term) {
+        if ($term->tid == $officer_tid) {
+          $branches = $officer_page->taxonomy_vocabulary_2->value();
+          if (!empty($branches)) {
+            $result[] = $branches[0]->tid;
+          }
+        }
+      }
+    }
+  }
   return $result;
 }
 
