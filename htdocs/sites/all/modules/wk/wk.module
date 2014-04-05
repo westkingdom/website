@@ -1008,6 +1008,17 @@ function wk_calendar_year_open_for_all_events() {
   return max($default_year, $result);
 }
 
+function wk_calendar_year_of_preparation() {
+  $open_year = wk_calendar_year_open_for_all_events();
+  switch (wk_calendar_status_for_next_year()) {
+    case CALENDAR_STATUS_CLOSED:
+      return $open_year;
+    case CALENDAR_STATUS_PREPARING:
+    case CALENDAR_STATUS_ONE_EVENT:
+      return $open_year + 1;
+  }
+}
+
 // What is the status for the calendar year that comes after
 // the year returned by wk_calendar_year_open_for_all_events?
 //
@@ -1091,6 +1102,68 @@ function wk_calendar_status_one_event($form, &$form_state) {
       '#value' => t('Open For All Events'),
       '#submit' => array('_wk_open_calendar_for_all_requests'),
     );
+  }
+  return wk_calendar_events_for_one_branch($form, $form_state);
+}
+
+function wk_calendar_events_for_one_branch($form, &$form_state) {
+  // Determine if current user is the Seneschal of a group.
+  $branch_groups = _wk_is_seneschal();
+  if (!empty($branch_groups)) {
+    $year = wk_calendar_year_of_preparation();
+    $event_nids = _wk_get_calendar_event_nids($year - 1, $branch_groups);
+    $events = wk_load_nodes($event_nids);
+    if (!empty($events)) {
+      $selectable_items = array();
+      $unselectable_items = array();
+      $has_date_request = FALSE;
+      foreach ($events as $nid => $node) {
+        $selectable_items[$nid] = l($node->title, 'calendar-date-request/' . $nid);
+        $date_request_info = _wk_find_date_request_for_event($nid);
+        if ($date_request_info) {
+          $has_date_request = TRUE;
+          $list = array_keys($date_request_info);
+          $entityform_id = reset($list);
+          $date_request_entity = entityform_load($entityform_id);
+          $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+
+
+          // TODO: This needs to go somewhere other than the date approval page.
+          $url = 'approve-date-request/' .  $date_request->entityform_id->value();
+          $approved_event_node = $date_request->field_approved_event->value();
+          if (!empty($approved_event_node)) {
+            //$approved_node = entity_metadata_wrapper('node',$approved_event_node);
+            //$approved_date = $approved_node->field_date->value();
+            // TODO: link to the event listing
+            //$checkbox['#title'] .= ' ' . t("Approved for !when", array('!when' => l(_wk_format_date($approved_date[0], 'Y F d'), 'node/' . $approved_event_node->nid)));
+
+            $url = 'node/' . $approved_event_node->nid;
+          }
+          //else {
+          //  $requested_date = $date_request->field_first_choice_date->value();
+          //  $checkbox['#title'] .= ' ' . t("Requested for !when", array('!when' => l(_wk_format_date($requested_date, 'Y F d'), $url)));
+          //}
+
+
+
+
+          $unselectable_items[] = '<b>' . l($node->title, $url) . '</b>';
+        }
+        else {
+          $unselectable_items[] = '<i>' . $node->title . '</i>';
+        }
+      }
+      if ($has_date_request) {
+        $form['already-selected-message'] = array(
+          '#markup' => t('<p>You have already requested a calendar date for an event in this calendar period.  You must wait until the calendar is open for all events before you request another.<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $unselectable_items))),
+        );
+      }
+      else {
+        $form['pick-one-message'] = array(
+          '#markup' => t('<p>Pick one event to hold again next year.<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $selectable_items))),
+        );
+      }
+    }
   }
   return $form;
 }
