@@ -943,6 +943,7 @@ function _wk_get_calendar_event_nids($year, $branch = FALSE) {
   $query = $query->entityCondition('entity_type','node')
     ->entityCondition('bundle', array('cal_event'))
     ->propertyCondition('status', 1)
+    ->fieldCondition('field_event_type', 'value', 0, '=')
     ->fieldCondition('field_date', 'value', $year . '-01-01T00:00:00', '>')
     ->fieldCondition('field_date', 'value', $year + 1 . '-01-01T00:00:00', '<')
     ->fieldOrderBy('field_date', 'value');
@@ -1069,10 +1070,16 @@ function wk_calendar_status($form, &$form_state) {
 function wk_calendar_status_closed($form, &$form_state) {
   $open_year = wk_calendar_year_open_for_all_events();
   $this_year = date("Y");
+  // TODO:  do not display this message until 'next_year' is nearly upon us (October and later, maybe?)
   $form['closed-message'] = array(
     '#markup' => t('<p>The calendar is CLOSED for requests in !next_year.  Usually, the Seneschal and Calendar Deputy begin to prepare the calendar in April.  Once the calendar is ready, it will be opened up for ONE event request for every branch group.</p>', array('!next_year' => $open_year + 1)),
   );
 
+  // TODO: we need to give Seneschals the chance to pick an event to hold again next year.
+  // return wk_calendar_events_for_one_branch($form, $form_state);
+
+  // TODO: only display the calendar preparation when it is close to time to do so.
+  // Maybe only when $open_year < $this_year?
   return wk_calendar_events_for_calendar_preparation($form, $form_state);
 }
 
@@ -1106,7 +1113,7 @@ function wk_calendar_status_one_event($form, &$form_state) {
   return wk_calendar_events_for_one_branch($form, $form_state);
 }
 
-function wk_calendar_events_for_one_branch($form, &$form_state) {
+function wk_calendar_events_for_one_branch($form, &$form_state, $unlimited = FALSE) {
   // Determine if current user is the Seneschal of a group.
   $branch_groups = _wk_is_seneschal();
   if (!empty($branch_groups)) {
@@ -1118,7 +1125,8 @@ function wk_calendar_events_for_one_branch($form, &$form_state) {
       $unselectable_items = array();
       $has_date_request = FALSE;
       foreach ($events as $nid => $node) {
-        $selectable_items[$nid] = l($node->title, 'calendar-date-request/' . $nid);
+        // TODO: what if the group requested an event not held last year?  We still need
+        // to record that as their selection.
         $date_request_info = _wk_find_date_request_for_event($nid);
         if ($date_request_info) {
           $has_date_request = TRUE;
@@ -1129,7 +1137,7 @@ function wk_calendar_events_for_one_branch($form, &$form_state) {
 
 
           // TODO: This needs to go somewhere other than the date approval page.
-          $url = 'approve-date-request/' .  $date_request->entityform_id->value();
+          $url = 'entityform/' .  $date_request->entityform_id->value() . '/edit';
           $approved_event_node = $date_request->field_approved_event->value();
           if (!empty($approved_event_node)) {
             //$approved_node = entity_metadata_wrapper('node',$approved_event_node);
@@ -1147,20 +1155,35 @@ function wk_calendar_events_for_one_branch($form, &$form_state) {
 
 
 
-          $unselectable_items[] = '<b>' . l($node->title, $url) . '</b>';
+          $unselectable_items[$nid] = '<b>' . l($node->title, $url) . '</b>';
+          $selectable_items[$nid] = $unselectable_items[$nid];
         }
         else {
-          $unselectable_items[] = '<i>' . $node->title . '</i>';
+          $unselectable_items[$nid] = '<i>' . $node->title . '</i>';
+          $selectable_items[$nid] = l($node->title, 'calendar-date-request/' . $nid);
         }
       }
-      if ($has_date_request) {
+      // If only one event is allowed, and one or more dates have been requested,
+      // then tell the Seneschal to wait until the calendar opens for all events.
+      if ($has_date_request && !$unlimited) {
         $form['already-selected-message'] = array(
           '#markup' => t('<p>You have already requested a calendar date for an event in this calendar period.  You must wait until the calendar is open for all events before you request another.<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $unselectable_items))),
         );
       }
       else {
-        $form['pick-one-message'] = array(
-          '#markup' => t('<p>Pick one event to hold again next year.<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $selectable_items))),
+        if ($unlimited) {
+          $form['pick-one-message'] = array(
+            '#markup' => t('<p>Click on the events below in turn to request new dates to hold them again next year.<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $selectable_items))),
+          );
+        }
+        else {
+          $form['pick-one-message'] = array(
+            '#markup' => t('<p>Pick one event to hold again next year.<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $selectable_items))),
+          );
+        }
+        // Also include a link to the calendar date request form
+        $form['calendar-date-request-form'] = array(
+          '#markup' => t('<p>Use the !request_form to request a date for an event not shown above.</p>', array('!request_form' => l("calendar date request form", 'calendar-date-request'))),
         );
       }
     }
