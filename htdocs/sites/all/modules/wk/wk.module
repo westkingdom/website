@@ -944,10 +944,17 @@ function _wk_get_calendar_event_nids($year, $branch = FALSE) {
     ->entityCondition('bundle', array('cal_event'))
     ->propertyCondition('status', 1)
     ->fieldCondition('field_date', 'value', $year . '-01-01T00:00:00', '>')
-    ->fieldCondition('field_date', 'value', $year + 1 . '-01-01T00:00:00', '<');
+    ->fieldCondition('field_date', 'value', $year + 1 . '-01-01T00:00:00', '<')
+    ->fieldOrderBy('field_date', 'value');
   if ($branch) {
-    $query = $query->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, '=');
+    if (is_array($branch)) {
+      $query = $query->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, 'IN');
+    }
+    else {
+      $query = $query->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, '=');
+    }
   }
+
   $entities = $query->execute();
 
   if (!empty($entities)) {
@@ -975,15 +982,7 @@ function wk_events_for_next_years_calendar($year) {
   $result = array();
   $principalities = wk_children_of_branch_tids(KINGDOM_OF_THE_WEST_TID);
   $other_kingdoms = wk_children_of_branch_tids(SOCIETY_TID);
-  $event_nids = _wk_get_calendar_event_nids($year, KINGDOM_OF_THE_WEST_TID);
-  foreach ($principalities as $principality_tid) {
-    $principality_nids = _wk_get_calendar_event_nids($year, $principality_tid);
-    $event_nids = array_merge($event_nids, $principality_nids);
-  }
-  foreach ($other_kingdoms as $other_kingdom_tid) {
-    $other_kingdom_nids = _wk_get_calendar_event_nids($year, $other_kingdom_tid);
-    $event_nids = array_merge($event_nids, $other_kingdom_nids);
-  }
+  $event_nids = _wk_get_calendar_event_nids($year, array_merge(array(KINGDOM_OF_THE_WEST_TID), $principalities, $other_kingdoms));
   return wk_load_nodes($event_nids);
 }
 
