@@ -1070,12 +1070,13 @@ function wk_calendar_status_preparing($form, &$form_state) {
   $form['preparing-message'] = array(
     '#markup' => t('<p>The calendar is CLOSED for requests in !next_year.  The Seneschal and Calendar Deputy are currently preparing the calendar for next year.  Once it is ready, it will be opened up for ONE event request for every branch group.</p>', array('!next_year' => $open_year + 1)),
   );
-  $form['open-for-one'] = array(
-    '#type' => 'submit',
-    '#value' => t('Open For One Event'),
-    '#submit' => array('_wk_open_calendar_for_one_date_request'),
-  );
-
+  if(wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID))) {
+    $form['open-for-one'] = array(
+      '#type' => 'submit',
+      '#value' => t('Open For One Event'),
+      '#submit' => array('_wk_open_calendar_for_one_date_request'),
+    );
+  }
   return wk_calendar_events_for_calendar_preparation($form, $form_state);
 }
 
@@ -1084,12 +1085,13 @@ function wk_calendar_status_one_event($form, &$form_state) {
   $form['preparing-message'] = array(
     '#markup' => '<p>' . t('The calendar is open for ONE event request for each branch group in !next_year.', array('!next_year' => $open_year + 1)) . '</p>',
   );
-  $form['open-for-all'] = array(
-    '#type' => 'submit',
-    '#value' => t('Open For All Events'),
-    '#submit' => array('_wk_open_calendar_for_all_requests'),
-  );
-
+  if(wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID))) {
+    $form['open-for-all'] = array(
+      '#type' => 'submit',
+      '#value' => t('Open For All Events'),
+      '#submit' => array('_wk_open_calendar_for_all_requests'),
+    );
+  }
   return $form;
 }
 
@@ -1538,7 +1540,7 @@ function _wk_process_approve_checked_date_request($form, &$form_state) {
     // Call _wk_approve_selected_date_request for each selected event
     $nodes = array();
     foreach ($approval_list as $id => $selected_date) {
-      $node = _wk_approve_selected_date_request($id, _wk_format_date($selected_date));
+      $node = _wk_approve_selected_date_request($id, $selected_date);
       if ($node) {
         $nodes[$node->nid] = $node;
       }
