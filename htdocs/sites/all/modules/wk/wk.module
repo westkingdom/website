@@ -21,6 +21,18 @@ define("SENESCHAL_TID", 84);
 define("KINGDOM_WEBMINISTER_GID", 851);
 define("KINGDOM_SENESCHAL_GID", 989);
 
+// DateTime::W3C = "Y-m-d\TH:i:sP"
+// These are not quite W3C formats, because they are
+// missing the timezone component.
+define("W3C_NoTZ", "Y-m-d\TH:i:s");
+define("W3C_BeginningOfDay", "Y-m-d\T00:00:00");
+define("W3C_Noon", "Y-m-d\T12:00:00");
+define("W3C_EndOfDay", "Y-m-d\T23:59:59");
+
+// Drupal time formats = "Y-m-d H:i:s"
+define("Drupal_BeginningOfDay", "Y-m-d 00:00:00");
+define("Drupal_Noon", "Y-m-d 12:00:00");
+define("Drupal_EndOfDay", "Y-m-d 23:59:59");
 
 /**
  * Implements hook_module_implements_alter
@@ -429,14 +441,12 @@ function wk_create_calendar_date_request($node, $additional_delta = 0) {
     }
     // Calculate a new end date at the same duration
     // as the original event
-    $end_date = new DateTime($start_date->format("Y-m-d") . '12:00:00', $start_date->getTimezone());
+    $end_date = new DateTime($start_date->format(W3C_Noon), $start_date->getTimezone());
     $end_date->add($duration);
 
-    $start_date_formatted = $start_date->format('Y-m-d');
-    $end_date_formatted = $end_date->format('Y-m-d');
     $v = $date_request->field_first_choice_date->value();
-    $v['value'] = $start_date_formatted . 'T12:00:00';
-    $v['value2'] = $end_date_formatted . 'T12:00:00';
+    $v['value'] = $start_date->format(W3C_Noon);
+    $v['value2'] = $end_date->format(W3C_Noon);
     $date_request->field_first_choice_date->set($v);
 
     // Make the first alternate the week after
@@ -938,14 +948,20 @@ function _wk_calendar_request_get_settings() {
 }
 
 function _wk_get_calendar_event_nids($year, $branch = FALSE) {
+  $start_date = $year . '-01-01T00:00:00';
+  $end_date = $year + 1 . '-01-01T00:00:00';
+  return _wk_get_calendar_event_nids_in_range($start_date, $end_date, $branch);
+}
+
+function _wk_get_calendar_event_nids_in_range($start_date, $end_date, $branch = FALSE) {
   $nids = array();
   $query = new EntityFieldQuery();
   $query = $query->entityCondition('entity_type','node')
     ->entityCondition('bundle', array('cal_event'))
     ->propertyCondition('status', 1)
     ->fieldCondition('field_event_type', 'value', 0, '=')
-    ->fieldCondition('field_date', 'value', $year . '-01-01T00:00:00', '>')
-    ->fieldCondition('field_date', 'value', $year + 1 . '-01-01T00:00:00', '<')
+    ->fieldCondition('field_date', 'value', $start_date, '>')
+    ->fieldCondition('field_date', 'value', $end_date, '<')
     ->fieldOrderBy('field_date', 'value');
   if ($branch) {
     if (is_array($branch)) {
@@ -1307,14 +1323,46 @@ function _wk_prepare_calendar($form, &$form_state) {
   drupal_goto('approve-date-requests');
 }
 
+function _wk_expand_date_range_single_date($date_range, $date_to_add) {
+  $result = $date_range;
+
+  $date_epoch = _wk_format_date($date_to_add, "U");
+
+  if (!isset($result['begin']) || ($result['begin'] > $date_epoch)) {
+    $result['begin'] = $date_epoch;
+  }
+
+  if (!isset($result['end']) || ($result['end'] < $date_epoch)) {
+    $result['end'] = $date_epoch;
+  }
+
+  return $result;
+}
+
+function _wk_expand_date_range($date_range, $date_to_add) {
+  $date_range = _wk_expand_date_range_single_date($date_range, _wk_beginning_of_day($date_to_add));
+  $date_range = _wk_expand_date_range_single_date($date_range, _wk_end_of_day(_wk_end_date($date_to_add)));
+  return $date_range;
+}
+
+function _wk_expand_date_range_for_date_request($date_range, $date_request) {
+  $date_range = _wk_expand_date_range($date_range, $date_request->field_first_choice_date->value());
+  $date_range = _wk_expand_date_range($date_range, _wk_date_with_same_duration($date_request->field_alternate_date->value(), $date_request->field_first_choice_date->value()));
+  $date_range = _wk_expand_date_range($date_range, _wk_date_with_same_duration($date_request->field_second_alternate_date->value(), $date_request->field_first_choice_date->value()));
+  return $date_range;
+}
+
 function wk_date_request_multiple_approval_form($form, &$form_state) {
   $all_ids = _wk_date_request_all_ids();
   $date_requests = array();
+  $date_range = array();
   foreach ($all_ids as $id => $info) {
     $date_request_entity = entityform_load($id);
     $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
     $date_requests[$id] = $date_request_entity;
+    $date_range = _wk_expand_date_range_for_date_request($date_range, $date_request);
   }
+  $conflicting_events = _wk_get_calendar_event_nids_in_range(_wk_format_date($date_range['begin'], W3C_NoTZ), _wk_format_date($date_range['end'], W3C_NoTZ));
   if (count($date_requests) == 1) {
     $form = _wk_date_request_approval_form_singular($form, $form_state, array_shift($date_requests));
   }
@@ -1575,9 +1623,28 @@ function _wk_format_date($dv, $format_string = 'Y-m-d') {
   }
 }
 
+function _wk_format_end_date($dv, $format_string = 'Y-m-d')
+{
+  return _wk_format_date(_wk_end_date($dv), $format_string);
+}
+
 function _wk_end_date($dv) {
   if (is_array($dv) && array_key_exists('value2', $dv)) {
     $dv['value'] = $dv['value2'];
+  }
+  return $dv;
+}
+
+function _wk_beginning_of_day($dv) {
+  if (is_array($dv)) {
+    $dv['value'] = _wk_format_date($dv, Drupal_BeginningOfDay);
+  }
+  return $dv;
+}
+
+function _wk_end_of_day($dv) {
+  if (is_array($dv)) {
+    $dv['value'] = _wk_format_date($dv, Drupal_EndOfDay);
   }
   return $dv;
 }
