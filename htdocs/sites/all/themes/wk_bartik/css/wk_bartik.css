@@ -523,6 +523,13 @@ blockquote {
   display: none;
 }
 
+a.conflicting-event img {
+  height: 40px;
+  width: auto;
+  margin-bottom: -16px;
+  margin-left: 8px;
+}
+
 @media all and (min-width: 600px) {
 
   .approval-fieldset {

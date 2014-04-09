@@ -204,6 +204,43 @@ function wk_preprocess_page__cal_event(&$variables) {
   }
 }
 
+function _wk_render_event_list($event_list) {
+  $result = "";
+  $link_options = array();
+  foreach ($event_list as $nid => $node) {
+    $link_content = $node->title;
+    $term_info = reset($node->taxonomy_vocabulary_2[$node->language]);
+    if ($term_info) {
+      $term = false;
+      if (isset($term_info['taxonomy_term'])) {
+        $term = $term_info['taxonomy_term'];
+      }
+      elseif (isset($term_info['tid'])) {
+        $term = taxonomy_term_load($term_info['tid']);
+      }
+      if ($term) {
+
+
+        $e = entity_metadata_wrapper("taxonomy_term", $term);
+        $img_info = $e->field_arms->value();
+        if ($img_info) {
+          $image_attributes = array('alt' => $term->name);
+          $format_string = 'd F Y';
+          $dv = $node->field_date[$node->language][0];
+          $conflict_dates = _wk_format_date_range($dv, $format_string);
+          $title = $term->name . ' - ' . $node->title . ', ' . $conflict_dates;
+          $link_content = theme_image(array("path" => $img_info['uri'], "title" => $title, "attributes" => $image_attributes));
+          $link_options['html'] = true;
+          $link_options['attributes']['class'] = array('conflicting-event');
+        }
+      }
+    }
+
+    $result .= l($link_content, 'node/' . $node->nid, $link_options) . ' ';
+  }
+  return $result;
+}
+
 /**
  * Drupal trims usernames to prevent the layout of certain
  * views from wrapping awkwardly.  Long names are very common
@@ -418,7 +455,7 @@ function wk_create_calendar_date_request($node, $additional_delta = 0) {
       $date_request->taxonomy_vocabulary_2->set($branch_tids);
     }
 
-    $dv = $node->field_date[LANGUAGE_NONE][0];
+    $dv = $node->field_date[$node->language][0];
     $start_date = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
     $start_date->setTime(12,0,0);
     $end_date = new DateTime($dv['value2'], new DateTimeZone($dv['timezone']));
@@ -1362,9 +1399,10 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
     $date_requests[$id] = $date_request_entity;
     $date_range = _wk_expand_date_range_for_date_request($date_range, $date_request);
   }
-  $conflicting_events = _wk_get_calendar_event_nids_in_range(_wk_format_date($date_range['begin'], W3C_NoTZ), _wk_format_date($date_range['end'], W3C_NoTZ));
+  $other_approved_event_nids = _wk_get_calendar_event_nids_in_range(_wk_format_date($date_range['begin'], W3C_NoTZ), _wk_format_date($date_range['end'], W3C_NoTZ));
+  $other_approved_events = wk_load_nodes($other_approved_event_nids);
   if (count($date_requests) == 1) {
-    $form = _wk_date_request_approval_form_singular($form, $form_state, array_shift($date_requests));
+    $form = _wk_date_request_approval_form_singular($form, $form_state, array_shift($date_requests), $other_approved_events);
   }
   else {
     foreach ($date_requests as $id => $date_request_entity) {
@@ -1380,7 +1418,7 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
         $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date[0], 'Y F d')));
         $collapsed = TRUE;
       }
-      $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, TRUE);
+      $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, $other_approved_events, TRUE);
       $form['date_request_' . $id] = array(
         '#type' => 'fieldset',
         '#title' => $title,
@@ -1399,10 +1437,11 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
 
 function wk_date_request_approval_form($form, &$form_state, $request_id) {
   $date_request_entity = entityform_load($request_id);
-  return $form + _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity);
+  $other_approved_events = array();
+  return $form + _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, $other_approved_events);
 }
 
-function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity, $include_checkboxes = FALSE) {
+function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity, $other_approved_events, $include_checkboxes = FALSE) {
   global $user;
   $request_id = $date_request_entity->entityform_id;
   $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
@@ -1420,13 +1459,14 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     $first_choice = _wk_format_date($dv_first, $format_string);
     $first_choice_text = _wk_format_date_range($dv_first, $format_string);
     $first_choice_epoch = _wk_format_date($dv_first, 'U');
+    $conflicting_events = _wk_overlapping_events($other_approved_events, $dv_first);
     $subform['approval-options']['approve_first_choice_date_' . $request_id] = array(
       '#type' => 'submit',
       '#value' => t('Approve !d', array('!d' => $first_choice_text)),
       '#submit' => array('_wk_process_approve_date_request'),
       '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
       '#prefix' => "<div class='approve-$request_id-$first_choice_epoch'>",
-      '#suffix' => "</div>",
+      '#suffix' => _wk_render_event_list($conflicting_events) . "</div>",
     );
     $checkbox_options[$first_choice_epoch] = $first_choice;
     $dv = _wk_date_with_same_duration($date_request->field_alternate_date->value(), $dv_first);
@@ -1434,13 +1474,14 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     $alternate_choice_text = _wk_format_date_range($dv, $format_string);
     $alternate_choice_epoch = _wk_format_date($dv, 'U');
     if (!empty($dv) && ($alternate_choice != $first_choice)) {
+      $conflicting_events = _wk_overlapping_events($other_approved_events, $dv);
       $subform['approval-options']['approve_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
         '#value' => t('Approve !d', array('!d' => $alternate_choice_text)),
         '#submit' => array('_wk_process_approve_date_request'),
         '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
         '#prefix' => "<div class='approve-$request_id-$alternate_choice_epoch'>",
-        '#suffix' => "</div>",
+        '#suffix' => _wk_render_event_list($conflicting_events) . "</div>",
       );
       $checkbox_options[$alternate_choice_epoch] = $alternate_choice;
     }
@@ -1449,13 +1490,14 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     $second_alternate_text = _wk_format_date_range($dv, $format_string);
     $second_alternate_epoch = _wk_format_date($dv, 'U');
     if (!empty($dv) && ($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
+      $conflicting_events = _wk_overlapping_events($other_approved_events, $dv);
       $subform['approval-options']['approve_second_alternate_choice_button_' . $request_id] = array(
         '#type' => 'submit',
         '#value' => t('Approve !d', array('!d' => $second_alternate_text)),
         '#submit' => array('_wk_process_approve_date_request'),
         '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
         '#prefix' => "<div class='approve-$request_id-$second_alternate_epoch'>",
-        '#suffix' => "</div>",
+        '#suffix' => _wk_render_event_list($conflicting_events) . "</div>",
       );
       $checkbox_options[$second_alternate_epoch] = $second_alternate;
     }
@@ -1561,7 +1603,7 @@ function _wk_process_edit_date_request($form, &$form_state) {
 function _wk_approve_button_post_render($content, $element) {
   // dpm($content);
   // Find all of the submit buttons
-  if (preg_match_all("#<div class='approve-([0-9]*)-([0-9]*)'>[^<]*(<input[^>]*>)[^<]*</div>#", $content, $match_sets, PREG_SET_ORDER)) {
+  if (preg_match_all("#<div class='approve-([0-9]*)-([0-9]*)'>[^<]*(<input[^>]*>.*)</div>#U", $content, $match_sets, PREG_SET_ORDER)) {
     // dpm($match_sets);
     foreach ($match_sets as $matches) {
       // For each submit button found, look for a corresponding
@@ -1666,6 +1708,49 @@ function _wk_date_with_same_duration($date_origin, $date_with_duration) {
 
     $working_date->add($duration);
     $result['value2'] = $working_date->format('Y-m-d') . ' 12:00:00';
+  }
+
+  return $result;
+}
+
+//
+// Not overlapping, case 1:
+//
+// End date of date 1 is less than beginning date of date 2.
+//
+// (b1)---date 1---(e1)   (b2)---date 2---(e2)
+//
+// Not overlapping, case 2:
+//
+// End date of date 2 is less then beginning date of date 1.
+//
+//                        (b2)---date 2---(e2)   (b1)---date 1---(e1)
+//
+// Anything else is overlapping.
+//
+// Note also that anything that is on any part of the same day
+// is considered to be overlapping; we will always compare from
+// the beginning of the day of the begin date through the end of
+// the day of the end date when doing comparisons, regardless of the
+// actual times that the event might start and end.
+//
+function _wk_overlapping_dates($date_value1, $date_value2) {
+  $b1 = _wk_format_date(_wk_beginning_of_day($date_value1), "U");
+  $e1 = _wk_format_date(_wk_end_of_day(_wk_end_date($date_value1)), "U");
+  $b2 = _wk_format_date(_wk_beginning_of_day($date_value2), "U");
+  $e2 = _wk_format_date(_wk_end_of_day(_wk_end_date($date_value2)), "U");
+  $not_overlapping = ($e1 < $b2) || ($e2 < $b1);
+  // Ugh, the double-negative.
+  return !$not_overlapping;
+}
+
+function _wk_overlapping_events($list_of_events, $date_value) {
+  $result = array();
+
+  foreach($list_of_events as $nid => $node) {
+    if (_wk_overlapping_dates($node->field_date[$node->language][0], $date_value)) {
+      $result[$nid] = $node;
+    }
   }
 
   return $result;
