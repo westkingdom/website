@@ -1838,7 +1838,7 @@ function _wk_approve_selected_date_request($id, $selected_date) {
     'date_type' => 'date',
   );
 
-  $body = $date_request->field_placeholder_event_descript->value();
+  $body = t("More information will be posted as it becomes available.");
   $seneschal = _wk_get_officer($branch_group_tid, SENESCHAL_TID);
   if ($seneschal) {
     $body = t("<b>Autocrat:</b> <a href='!uri'>!name</a><br><br>", array('!uri' => 'user/' . $seneschal->uid . '/contact', '!name' => $seneschal->name)) . $body;
@@ -1872,6 +1872,16 @@ function _wk_approve_selected_date_request($id, $selected_date) {
   // Mark date request as approved
   $date_request->field_approved_event->set($node->nid);
   $date_request->save();
+
+  // Save an unpublished revision containing the requested event text
+  if (module_exists('revisioning')) {
+    $requested_event_description = $date_request->field_placeholder_event_descript->value();
+    if (!empty($requested_event_description)) {
+      $node->revision_operation = 2; // new revision with moderation
+      $node->body[$node->language][0]['value'] = $requested_event_description;
+      node_save($node);
+    }
+  }
 
   return $node;
 }
