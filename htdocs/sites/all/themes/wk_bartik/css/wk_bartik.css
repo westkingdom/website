@@ -519,8 +519,15 @@ blockquote {
   margin-right: 16px;
 }
 
+#wk-date-request-approval-form h2,
 #wk-date-request-multiple-approval-form h2 {
   display: none;
+}
+
+#wk-date-request-approval-form h3,
+#wk-date-request-multiple-approval-form h3 {
+  font-weight: bold;
+  font-size: 150%;
 }
 
 #wk-date-request-multiple-approval-form legend {
