@@ -523,6 +523,30 @@ blockquote {
   display: none;
 }
 
+#wk-date-request-multiple-approval-form legend {
+  font-weight: bold;
+  font-size: 120%;
+}
+
+#wk-date-request-multiple-approval-form .fieldset-wrapper {
+  padding-top: 20px;
+}
+
+#wk-date-request-multiple-approval-form .approval-fieldset .fieldset-wrapper {
+  padding-top: 0px;
+}
+
+.requesting-branch-group {
+  float: left;
+  text-align: center;
+  margin-right: 12px;
+}
+
+.requesting-branch-group img {
+  height: 120px;
+  width: auto;
+}
+
 a.conflicting-event img {
   height: 40px;
   width: auto;

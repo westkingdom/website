@@ -219,8 +219,6 @@ function _wk_render_event_list($event_list) {
         $term = taxonomy_term_load($term_info['tid']);
       }
       if ($term) {
-
-
         $e = entity_metadata_wrapper("taxonomy_term", $term);
         $img_info = $e->field_arms->value();
         if ($img_info) {
@@ -1441,6 +1439,22 @@ function wk_date_request_approval_form($form, &$form_state, $request_id) {
   return $form + _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, $other_approved_events);
 }
 
+
+function _wk_render_branch_group($terms) {
+  $result = "";
+  $link_options = array();
+  foreach ($terms as $term) {
+    $e = entity_metadata_wrapper("taxonomy_term", $term);
+    $img_info = $e->field_arms->value();
+    if ($img_info) {
+      $image_attributes = array('alt' => $term->name);
+      $title = $term->name;
+      $result .= "<div class='requesting-branch-group'>" . theme_image(array("path" => $img_info['uri'], "title" => $title, "attributes" => $image_attributes)) . "<br>$title</div>";
+    }
+  }
+  return $result;
+}
+
 function _wk_date_request_approval_form_singular($form, &$form_state, $date_request_entity, $other_approved_events, $include_checkboxes = FALSE) {
   global $user;
   $request_id = $date_request_entity->entityform_id;
@@ -1509,6 +1523,11 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       $subform['approval-options']['#post_render'] = array('_wk_approve_button_post_render');
     }
   }
+
+  // Render the requesting branch group
+  $subform['branch_group'] = array(
+    '#markup' => _wk_render_branch_group($date_request->taxonomy_vocabulary_2->value()),
+  );
 
   // Render the visible elements of the entityform
   $visible_elements = array(
