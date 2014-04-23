@@ -580,7 +580,9 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
   }
   else {
     // TODO: Only fill this in if the current user is a seneschal
-    $form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
+    if (isset($form['field_society_name']) && empty($form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'])) {
+      $form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
+    }
   }
 }
 
