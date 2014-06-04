@@ -2532,3 +2532,9 @@ function regnum_domain_set_theme($domain, $theme) {
   }
   cache_clear_all();
 }
+//Added to include code based view. ~Karius
+function regnum_views_api() {
+  return array(
+    'api' => 2.0,
+  );
+}
