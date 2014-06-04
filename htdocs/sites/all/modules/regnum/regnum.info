@@ -5,6 +5,7 @@ files[] = regnum.module
 dependencies[] = og
 dependencies[] = entityform
 dependencies[] = taxonomy
+dependencies[] = views
 recommends[] = passwordless
 recommends[] = domain
 recommends[] = og_contact
