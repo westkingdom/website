@@ -2396,8 +2396,11 @@ function regnum_domain_add($branch_term) {
   $domain_base_url = $default_domain['subdomain'];
   // TODO: need to call shortname via a hook. For now, make an illegal cross-module call to wk
   $subdomain = _wk_term_short_name($branch_term);
+  // Remove spaces and illegal characters from the short name.
+  // TODO: make a function to get the subdomain short name
+  $subdomain = strtolower(preg_replace('/[^A-Za-z]*/', '', $subdomain));
   $record = array(
-    'subdomain' => strtolower($subdomain) . '.' . $domain_base_url,
+    'subdomain' => $subdomain . '.' . $domain_base_url,
     'sitename' => $sitename,
     'valid' => 1,
     'scheme' => 'http',
