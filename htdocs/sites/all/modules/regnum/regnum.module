@@ -2419,8 +2419,9 @@ function regnum_domain_initialize($domain) {
 
   // Create a new home page for the new domain, if one has
   // not already been set.
+  $main_site_homepage = variable_get('site_frontpage');
   $homepage_path = domain_conf_variable_get($domain['domain_id'], 'site_frontpage');
-  if (empty($homepage_path)) {
+  if (empty($homepage_path) || ($main_site_homepage == $homepage_path)) {
     $homepage_default_text = t("This is the recognized website for the !branch.", array('!branch' => $branch_term->name));
 
     $node = new stdClass();
