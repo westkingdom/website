@@ -414,6 +414,7 @@ function noggin_theme_settings_submit($form, &$form_state) {
       $values['asset_image_height_' . $asset_number] = $values['asset_image_height_' . $i];
       $values['extra_attributes_' . $asset_number] = $values['extra_attributes_' . $i];
       $values['additional_css_' . $asset_number] = $values['additional_css_' . $i];
+      $values['media_wrapper_' . $asset_number] = $values['media_wrapper_' . $i];
       $values['hover_css_' . $asset_number] = $values['hover_css_' . $i];
       // Clear out the i'th item (prevent duplicates)
       $values['asset_path_' . $i] = '';
