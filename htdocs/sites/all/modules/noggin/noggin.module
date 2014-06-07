@@ -111,7 +111,7 @@ function noggin_form_alter(&$form, &$form_state, $form_id) {
       $asset_placement_options = array('' => t('Not used'), 'advanced' => t('Advanced'));
       foreach ($asset_areas as $key => $area) {
         $selectable = !isset($area['#used']);
-        if ((isset($theme_settings['asset_selector_' . $asset_number]) && ($theme_settings['asset_selector_' . $asset_number] == $area['selector']))) {
+        if ((isset($theme_settings['asset_selector_' . $asset_number]) && !empty($theme_settings['asset_path_' . $asset_number]) && ($theme_settings['asset_selector_' . $asset_number] == $area['selector']))) {
           $theme_settings['asset_placement_' . $asset_number] = $key;
         }
         if ((isset($theme_settings['asset_placement_' . $asset_number]) && ($theme_settings['asset_placement_' . $asset_number] == $key))) {
@@ -399,8 +399,25 @@ function noggin_theme_settings_submit($form, &$form_state) {
   // If the user provided a path for an image asset, make sure a file
   // exists at that path.
   $asset_number = 1;
+  $i = 1;
   $unused_asset_number = FALSE;
-  while (isset($values['asset_path_' . $asset_number])) {
+  while (isset($values['asset_path_' . $i])) {
+    if ($i > $asset_number) {
+      // Copy the i'th item to the current slot ($asset_number)
+      $values['asset_path_' . $asset_number] = $values['asset_path_' . $i];
+      $values['asset_placement_' . $asset_number] = $values['asset_placement_' . $i];
+      $values['asset_selector_' . $asset_number] = $values['asset_selector_' . $i];
+      $values['asset_horizontal_alignment_' . $asset_number] = $values['asset_horizontal_alignment_' . $i];
+      $values['asset_vertical_alignment_' . $asset_number] = $values['asset_vertical_alignment_' . $i];
+      $values['asset_image_repeat_' . $asset_number] = $values['asset_image_repeat_' . $i];
+      $values['asset_image_width_' . $asset_number] = $values['asset_image_width_' . $i];
+      $values['asset_image_height_' . $asset_number] = $values['asset_image_height_' . $i];
+      $values['extra_attributes_' . $asset_number] = $values['extra_attributes_' . $i];
+      $values['additional_css_' . $asset_number] = $values['additional_css_' . $i];
+      $values['hover_css_' . $asset_number] = $values['hover_css_' . $i];
+      // Clear out the i'th item (prevent duplicates)
+      $values['asset_path_' . $i] = '';
+    }
     // If the user entered a path relative to the system files directory for
     // a image asset, store a public:// URI so the theme system can handle it.
     if (!empty($values['asset_path_' . $asset_number])) {
@@ -409,20 +426,11 @@ function noggin_theme_settings_submit($form, &$form_state) {
       if (!empty($placement) && (array_key_exists($placement, $asset_areas))) {
         $values['asset_selector_' . $asset_number] = $asset_areas[$placement]['selector'];
       }
+      $asset_number = $asset_number + 1;
     }
-    else {
-      // TODO: Maybe we should clear out all of the other
-      // associated settings that go with a given asset number
-      // if we re-use one that has been used in the past.
-      // On the other hand, it might be a feature to clear
-      // out a configured image.
-      $unused_asset_number = $asset_number;
-    }
-    $asset_number = $asset_number + 1;
+    $i = $i + 1;
   }
-  if (!$unused_asset_number) {
-    $unused_asset_number = $asset_number;
-  }
+  $unused_asset_number = $asset_number;
   // Pick a directory to store our assets in.
   $asset_dir = "public://image_assets/$theme_key";
   // If domain access is in use, also further
