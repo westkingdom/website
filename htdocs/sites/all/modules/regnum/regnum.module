@@ -2484,6 +2484,7 @@ function regnum_domain_initialize($domain) {
       $img_thumbnail_path = image_style_path('thumbnail', $img_path);
       $theme_settings['logo_path'] = $img_thumbnail_path;
       $theme_settings['toggle_logo'] = 1;
+      $theme_settings['page_style'] = 'borderless';
     }
   }
 
