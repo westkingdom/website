@@ -551,14 +551,12 @@ function _noggin_get_values_for_asset($asset_number) {
 function _noggin_generate_static_css_file($file_path, $values) {
   $css = _noggin_generate_static_css($values);
 
-  if (!empty($css)) {
-    file_put_contents($file_path, $css);
-    // Clear the Drupal css cache whenever we regenerate our
-    // asset css, so that our generated file will be included
-    // in the new agregated content
-    _drupal_flush_css_js();
-    drupal_clear_css_cache();
-  }
+  file_put_contents($file_path, $css);
+  // Clear the Drupal css cache whenever we regenerate our
+  // asset css, so that our generated file will be included
+  // in the new agregated content
+  _drupal_flush_css_js();
+  drupal_clear_css_cache();
 }
 
 /**
