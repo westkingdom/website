@@ -2458,11 +2458,18 @@ function regnum_domain_initialize($domain) {
   if (empty($slogan) || ($slogan == $main_site_slogan)) {
     // set the created menu as the domain's main menu
     domain_conf_variable_set($domain['domain_id'], 'site_slogan', strip_tags($branch_term->description));
+    domain_conf_variable_set($domain['domain_id'], 'toggle_slogan', 1);
   }
 
   // set theme for domain. TODO: put default theme in a setting somewhere,
   // or do this in a hook
   regnum_domain_set_theme($domain, 'wk_bartik');
+
+  // Reset the default logo and show the name
+  domain_conf_variable_set($domain['domain_id'], 'default_logo', 1);
+  domain_conf_variable_set($domain['domain_id'], 'logo_path', '');
+  domain_conf_variable_set($domain['domain_id'], 'toggle_logo', 1);
+  domain_conf_variable_set($domain['domain_id'], 'toggle_name', 1);
 
   // TODO: email address for domain?
 }
