@@ -2457,7 +2457,7 @@ function regnum_domain_initialize($domain) {
   $slogan = domain_conf_variable_get($domain['domain_id'], 'site_slogan');
   if (empty($slogan) || ($slogan == $main_site_slogan)) {
     // set the created menu as the domain's main menu
-    domain_conf_variable_set($domain['domain_id'], '$slogan', strip_tags($branch_term->description));
+    domain_conf_variable_set($domain['domain_id'], 'site_slogan', strip_tags($branch_term->description));
   }
 
   // set theme for domain. TODO: put default theme in a setting somewhere,
