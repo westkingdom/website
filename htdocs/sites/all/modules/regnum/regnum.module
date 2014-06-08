@@ -2416,34 +2416,38 @@ function regnum_domain_add($branch_term) {
 
 function regnum_domain_initialize($domain) {
   $branch_term = regnum_domain_taxonomy_term($domain);
+  $sitename = $domain['sitename'];
 
   // Create a new home page for the new domain, if one has
   // not already been set.
-  $main_site_homepage = variable_get('site_frontpage');
-  $homepage_path = domain_conf_variable_get($domain['domain_id'], 'site_frontpage');
-  if (empty($homepage_path) || ($main_site_homepage == $homepage_path)) {
-    $homepage_default_text = t("This is the recognized website for the !branch.", array('!branch' => $branch_term->name));
+  $homepage_default_text = t("This is the recognized website for the !branch.", array('!branch' => $branch_term->name));
 
-    $node = new stdClass();
-    $node->type = 'page'; // TODO: what content type?
-    node_object_prepare($node);
-    $node->title = $sitename;
-    $node->language = LANGUAGE_NONE;
-    //$node->created = strtotime($item->created_on);
-    $node->uid = 1; // TODO: find $owner_uid; should be the web minister for the new domain
+  $node = new stdClass();
+  $node->type = 'page'; // TODO: what content type?
+  node_object_prepare($node);
+  $node->title = $sitename;
+  $node->language = LANGUAGE_NONE;
+  //$node->created = strtotime($item->created_on);
+  $node->uid = 1; // TODO: find $owner_uid; should be the web minister for the new domain
 
-    $node->body[$node->language][0] = array(
-      'value' => $homepage_default_text,
-      'format' => '1',
-    );
+  $node->body[$node->language][0] = array(
+    'value' => $homepage_default_text,
+    'format' => '1',
+  );
+  $node->domains = array($domain['domain_id'] => $domain['domain_id']);
+  $node->subdomains = array($domain['sitename']);
+  $node->og_group_ref = array();
+  $node->revision_moderation = FALSE;
+  $node->is_pending = FALSE;
+  $node->status = TRUE;
 
-    // n.b. Pathauto hooks fire, so node will be given a standard-format url
-    node_save($node);
+  // n.b. Pathauto hooks fire, so node will be given a standard-format url
+  node_save($node);
 
-    $homepage_path = 'node/' . $node->nid;
-    // Save the path to the new homepage as this domain's front page
-    domain_conf_variable_set($domain['domain_id'], 'site_frontpage', "$homepage_path");
-  }
+  $homepage_path = 'node/' . $node->nid;
+  // Save the path to the new homepage as this domain's front page
+  domain_conf_variable_set($domain['domain_id'], 'site_frontpage', "$homepage_path");
+
   // If there is no main menu, create one
   $main_menu_name = domain_conf_variable_get($domain['domain_id'], 'menu_main_links_source');
   if (empty($main_menu_name) || ($main_menu_name == 'main-menu')) {
@@ -2452,26 +2456,41 @@ function regnum_domain_initialize($domain) {
     // set the created menu as the domain's main menu
     domain_conf_variable_set($domain['domain_id'], 'menu_main_links_source', $menu["menu_name"]);
   }
+
   // Set the site slogan to the taxonomy term description
-  $main_site_slogan = variable_get('site_slogan');
-  $slogan = domain_conf_variable_get($domain['domain_id'], 'site_slogan');
-  if (empty($slogan) || ($slogan == $main_site_slogan)) {
-    // set the created menu as the domain's main menu
-    domain_conf_variable_set($domain['domain_id'], 'site_slogan', strip_tags($branch_term->description));
-    domain_conf_variable_set($domain['domain_id'], 'toggle_slogan', 1);
-  }
+  domain_conf_variable_set($domain['domain_id'], 'site_slogan', strip_tags($branch_term->description));
+
+  // Set up a 'dev' alias for the new domain
+  regnum_create_domain_alias($domain, array('dev'));
+
+  // TODO: email address for domain?
 
   // set theme for domain. TODO: put default theme in a setting somewhere,
   // or do this in a hook
   regnum_domain_set_theme($domain, 'wk_bartik');
 
-  // Reset the default logo and show the name
-  domain_conf_variable_set($domain['domain_id'], 'default_logo', 1);
-  domain_conf_variable_set($domain['domain_id'], 'logo_path', '');
-  domain_conf_variable_set($domain['domain_id'], 'toggle_logo', 1);
-  domain_conf_variable_set($domain['domain_id'], 'toggle_name', 1);
+  $theme_data = domain_theme_lookup($domain['domain_id'], "wk_bartik");
+  $theme_settings = unserialize($theme_data["settings"]);
 
-  // TODO: email address for domain?
+  $theme_settings['toggle_slogan'] = 1;
+  $theme_settings['toggle_name'] = 1;
+  $theme_settings['toggle_logo'] = 0;
+  $theme_settings['default_logo'] = 0;
+
+  // If the branch term has arms, then set the logo path
+  if (isset($branch_term->field_arms)) {
+    if (isset($branch_term->field_arms[LANGUAGE_NONE][0]['uri'])) {
+      $img_path = $branch_term->field_arms[LANGUAGE_NONE][0]['uri'];
+      $img_thumbnail_path = image_style_path('thumbnail', $img_path);
+      $theme_settings['logo_path'] = $img_thumbnail_path;
+      $theme_settings['toggle_logo'] = 1;
+    }
+  }
+
+  db_update('domain_theme')
+    ->fields(array('settings' => serialize($theme_settings)))
+    ->condition('domain_id', $domain['domain_id'])
+    ->execute();
 }
 
 function regnum_create_aliases_for_all_domains($alias_prefixes, $redirect = 0) {
