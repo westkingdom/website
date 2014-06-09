@@ -2384,8 +2384,23 @@ function regnum_create_subdomain_submit(&$form_state) {
   $branch_tid = $form_state['domain']['#value'];
   $branch_term = taxonomy_term_load($branch_tid);
   $domain = regnum_domain_add($branch_term);
-  // Redirect to our newly-created domain
-  drupal_goto($domain['path']);
+  // Redirect to our newly-created domain.
+  // If we created the domain from 'dev.', then
+  // redirect to 'dev.' when going to the new url.
+  drupal_goto(_regnum_add_prefix_to_url(_regnum_domain_prefix(), $domain['path']));
+}
+
+function _regnum_domain_prefix() {
+  $current_domain = domain_get_domain();
+  $path_without_scheme = preg_replace('#https*://#', '', $current_domain['path']);
+  $path_without_scheme = preg_replace('#/$#', '', $path_without_scheme);
+  $prefix = preg_replace('#' . $path_without_scheme . '#', '', $current_domain['subdomain']);
+
+  return $prefix;
+}
+
+function _regnum_add_prefix_to_url($prefix, $url) {
+  return preg_replace('#://#', '://' . $prefix, $url);
 }
 
 function regnum_domain_add($branch_term) {
