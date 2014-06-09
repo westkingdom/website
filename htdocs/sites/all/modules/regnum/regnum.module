@@ -2434,8 +2434,9 @@ function regnum_domain_initialize($domain) {
     'value' => $homepage_default_text,
     'format' => '1',
   );
+  $node->domain_site = 0;
+  $node->domain_source = $domain['domain_id'];
   $node->domains = array($domain['domain_id'] => $domain['domain_id']);
-  $node->subdomains = array($domain['sitename']);
   $node->og_group_ref = array();
   $node->revision_moderation = FALSE;
   $node->is_pending = FALSE;
@@ -2492,6 +2493,8 @@ function regnum_domain_initialize($domain) {
     ->fields(array('settings' => serialize($theme_settings)))
     ->condition('domain_id', $domain['domain_id'])
     ->execute();
+
+  // TODO: need to submit theme settings form to rebuild cache files
 }
 
 function regnum_create_aliases_for_all_domains($alias_prefixes, $redirect = 0) {
