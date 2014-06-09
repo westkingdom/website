@@ -2494,7 +2494,30 @@ function regnum_domain_initialize($domain) {
     ->condition('domain_id', $domain['domain_id'])
     ->execute();
 
-  // TODO: need to submit theme settings form to rebuild cache files
+  // Rebuild files for color module support
+  _regnum_repair_domain_color_theme();
+}
+
+function _regnum_repair_domain_color_theme() {
+  // The color module just won't be happy unless it gets
+  // a form submit.  Thanks, https://drupal.org/node/1245148#comment-5067026
+  require('modules/system/system.admin.inc');
+  $theme = 'wk_bartik'; // name of the theme supporting the color module
+  $scheme = 'default';
+  // start building our "fake form"
+  $fform = array();
+  $fform_state = array();
+  $fform_state['build_info']['args'][0] = $theme;
+  $fform = system_theme_settings($fform, $fform_state, $theme);
+  // add the color theme settings to the form
+  color_form_system_theme_settings_alter($fform, $fform_state);
+  // simulate selecting values for the form
+  $fform_state['values']['theme'] = $theme;
+  $fform_state['values']['info'] = color_get_info($theme);
+  $fform_state['values']['palette'] = $fform_state['values']['info']['schemes'][$scheme]['colors'];
+  $fform_state['values']['scheme'] = $scheme;
+  // submitting the form
+  color_scheme_form_submit($fform, $fform_state);
 }
 
 function regnum_create_aliases_for_all_domains($alias_prefixes, $redirect = 0) {
