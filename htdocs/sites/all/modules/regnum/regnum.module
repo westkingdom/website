@@ -1540,6 +1540,10 @@ function regnum_token_info() {
     'name' => t("Submission URL"),
     'description' => t('URL to the submission.'),
   );
+  $submission['warrant'] = array(
+    'name' => t("Submission URL"),
+    'description' => t('URL to a filled-out warrant form for the submission.'),
+  );
   $submission['name'] = array(
     'name' => t("Submitter Name"),
     'description' => t('Name of the submitter, as entered on the form.'),
@@ -1613,6 +1617,9 @@ function regnum_tokens($type, $tokens, array $data = array(), array $options = a
       switch ($name) {
         case 'url':
           $replacements[$original] = 'http://' . $_SERVER['SERVER_NAME'] . '/regnum/' . $submission->entityform_id->value() . '/confirm';
+          break;
+        case 'warrant':
+          $replacements[$original] = 'http://' . $_SERVER['SERVER_NAME'] . '/regnum/' . $submission->entityform_id->value() . '/warrant';
           break;
         case 'name':
           $replacements[$original] = $user_info['name'];
