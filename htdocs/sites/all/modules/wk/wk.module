@@ -1266,7 +1266,7 @@ function wk_calendar_events_for_one_branch($form, &$form_state, $event_limit = U
         );
       }
       else {
-        $exising = '';
+        $existing = '';
         if ($existing_date_request_count > 0) {
           $existing = t('Events in bold type have already been requested.');
         }
