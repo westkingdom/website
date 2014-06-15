@@ -888,9 +888,17 @@ function wk_menu() {
   );
   $items['approve-date-request/%'] = array(
     'title' => 'Approve Calendar Date Request',
-    'description' => 'Approve or deny a specific submitted calendar date requests.',
+    'description' => 'Approve or deny a specific submitted calendar date request.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_date_request_approval_form', 1),
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
+  );
+  $items['approve-date-request/%/%'] = array(
+    'title' => 'Approve Calendar Date Request for a specific date',
+    'description' => 'Approve a specific submitted calendar date requests on one of the submitted days.',
+    'page callback' => 'wk_approve_date_request_on_date',
+    'page arguments' => array(1, 2),
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
@@ -1541,13 +1549,8 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     $first_choice_epoch = _wk_format_date($dv_first, 'U');
     $conflicting_events = _wk_overlapping_events($other_approved_events, $dv_first);
     $subform['approval-options']['approve_first_choice_date_' . $request_id] = array(
-      '#type' => 'submit',
-      '#value' => t('Approve !d', array('!d' => $first_choice_text)),
-      '#submit' => array('_wk_process_approve_date_request'),
-      '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_first_choice_date'),
-      '#prefix' => "<div class='approve-$request_id-$first_choice_epoch'>",
-      '#suffix' => _wk_render_event_list($conflicting_events) . "</div>",
-    );
+        '#markup' => "<div class='approve-$request_id-$first_choice_epoch'>" . l(t('Approve !d', array('!d' => $first_choice_text)), 'approve-date-request/' . $request_id . '/first_choice') . _wk_render_event_list($conflicting_events) . "</div>",
+      );
     $checkbox_options[$first_choice_epoch] = $first_choice;
     $dv = _wk_date_with_same_duration($date_request->field_alternate_date->value(), $dv_first);
     $alternate_choice = _wk_format_date($dv, $format_string);
@@ -1556,12 +1559,7 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     if (!empty($dv) && ($alternate_choice != $first_choice)) {
       $conflicting_events = _wk_overlapping_events($other_approved_events, $dv);
       $subform['approval-options']['approve_alternate_choice_button_' . $request_id] = array(
-        '#type' => 'submit',
-        '#value' => t('Approve !d', array('!d' => $alternate_choice_text)),
-        '#submit' => array('_wk_process_approve_date_request'),
-        '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_alternate_date'),
-        '#prefix' => "<div class='approve-$request_id-$alternate_choice_epoch'>",
-        '#suffix' => _wk_render_event_list($conflicting_events) . "</div>",
+        '#markup' => "<div class='approve-$request_id-$alternate_choice_epoch'>" . l(t('Approve !d', array('!d' => $alternate_choice_text)), 'approve-date-request/' . $request_id . '/alternate') . _wk_render_event_list($conflicting_events) . "</div>",
       );
       $checkbox_options[$alternate_choice_epoch] = $alternate_choice;
     }
@@ -1572,12 +1570,7 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
     if (!empty($dv) && ($second_alternate != $first_choice) && ($second_alternate != $alternate_choice)) {
       $conflicting_events = _wk_overlapping_events($other_approved_events, $dv);
       $subform['approval-options']['approve_second_alternate_choice_button_' . $request_id] = array(
-        '#type' => 'submit',
-        '#value' => t('Approve !d', array('!d' => $second_alternate_text)),
-        '#submit' => array('_wk_process_approve_date_request'),
-        '#attributes' => array('date-request-id' => $request_id, 'date-choice' => 'field_second_alternate_date'),
-        '#prefix' => "<div class='approve-$request_id-$second_alternate_epoch'>",
-        '#suffix' => _wk_render_event_list($conflicting_events) . "</div>",
+        '#markup' => "<div class='approve-$request_id-$second_alternate_epoch'>" . l(t('Approve !d', array('!d' => $second_alternate_text)), 'approve-date-request/' . $request_id . '/second_alternate') . _wk_render_event_list($conflicting_events) . "</div>",
       );
       $checkbox_options[$second_alternate_epoch] = $second_alternate;
     }
@@ -1640,13 +1633,9 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       // 'Contact' button.
       if (($user->mail != $date_request->field_email_address->value()) && ((!$seneschal) || ($user->mail != $seneschal->mail))) {
         if ($seneschal) {
-          // 'Contact' button that leads to the contact
-          // form of a regisered user.
+          // A link to the contact form of a regisered user.
           $subform['contact_' . $request_id] = array(
-            '#type' => 'submit',
-            '#value' => t('Contact !name', array('!name' => $seneschal->name)),
-            '#submit' => array('_wk_process_contact_date_request'),
-            '#attributes' => array('date-request-id' => $request_id, 'seneschal-uid' => $seneschal->uid),
+            '#markup' => '<span class="date-request-contact">' . l('Contact  ' . $date_request->field_society_name->value(), "user/" . $seneschal->uid . "/contact") . '</span>',
           );
         }
         else {
@@ -1659,24 +1648,23 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       }
     }
 
-    // 'Edit' button
+    // 'Edit' link
     $subform['edit_' . $request_id] = array(
-      '#type' => 'submit',
-      '#value' => t('Edit'),
-      '#submit' => array('_wk_process_edit_date_request'),
-      '#attributes' => array('date-request-id' => $request_id),
+      '#markup' => '<span class="date-request-edit">' . l('Edit', "entityform/$request_id/edit") . '</span>',
     );
   }
 
   return $subform;
 }
 
+// no longer needed
 function _wk_process_contact_date_request($form, &$form_state) {
   $id = $form_state['clicked_button']['#attributes']['date-request-id'];
   $seneschal_uid = $form_state['clicked_button']['#attributes']['seneschal-uid'];
   drupal_goto("user/$seneschal_uid/contact");
 }
 
+// no longer needed
 function _wk_process_edit_date_request($form, &$form_state) {
   $id = $form_state['clicked_button']['#attributes']['date-request-id'];
   drupal_goto("entityform/$id/edit");
@@ -1686,10 +1674,8 @@ function _wk_process_edit_date_request($form, &$form_state) {
 // checkboxes to move the approval button next to the checkbox,
 // repacing the checkbox's label.
 function _wk_approve_button_post_render($content, $element) {
-  // dpm($content);
   // Find all of the submit buttons
-  if (preg_match_all("#<div class='approve-([0-9]*)-([0-9]*)'>[^<]*(<input[^>]*>.*)</div>#U", $content, $match_sets, PREG_SET_ORDER)) {
-    // dpm($match_sets);
+  if (preg_match_all("#<div class='approve-([0-9]*)-([0-9]*)'>[^<]*(<a [^>]*>.*)</div>#U", $content, $match_sets, PREG_SET_ORDER)) {
     foreach ($match_sets as $matches) {
       // For each submit button found, look for a corresponding
       // checkbox.  If a match is found, then replace the checkbox
@@ -1883,7 +1869,21 @@ function _wk_process_approve_checked_date_request($form, &$form_state) {
   }
 }
 
-// Handle 'Approve (single date)' button
+function wk_approve_date_request_on_date($id, $selected) {
+  $date_request = new EntityDrupalWrapper('entityform', $id);
+  $choice = 'field_' . $selected . '_date';
+  // Catch URL errors: go back to the event request approval form
+  if ( !isset($date_request->$choice)) {
+    drupal_goto("approve-date-request/" . $id);
+  }
+  else {
+    $selected_date = _wk_format_date($date_request->$choice->value(), "U");
+    $node = _wk_approve_selected_date_request($id, $selected_date);
+    drupal_goto("node/" . $node->nid);
+  }
+}
+
+// Handle 'Approve (single date)' button (no longer needed)
 function _wk_process_approve_date_request($form, &$form_state) {
   $id = $form_state['clicked_button']['#attributes']['date-request-id'];
   $choice = $form_state['clicked_button']['#attributes']['date-choice'];
