@@ -138,7 +138,9 @@
   <?php
     if (!empty($past_events)) {
       print "<div class='field past-events'><div class='field-label'>Past events at this site:</div><ul>";
-      foreach ($past_events as $start_date_mktime => $item) {
+      foreach (array_reverse(array_keys($past_events)) as $start_date_mktime) {
+        $item = $past_events[$start_date_mktime];
+        $start_date_description = date('F Y', $start_date_mktime);
         print '<li>' . l($item["node"]->title, 'node/' . $item["node"]->nid) . ' ' . $start_date_description . '</li>';
       }
       print "</ul></div>";
