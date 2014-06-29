@@ -58,6 +58,48 @@ function wk_module_implements_alter(&$implementations, $hook) {
 }
 
 /**
+ * Implement hook_mail_alter
+ *
+ * Drupal will send out email messages where the 'From' header
+ * is taken from the email address that the submitting user typed
+ * in to a web form.
+ *
+ * This can cause messages to be rejected by mail servers that
+ * implement DMARC.  For example, Google mail will reject any
+ * mail proporting to be 'From' any yahoo.com address due to the
+ * fact that (a) Google respects DMARC policies, and (b) Yahoo's
+ * DMARC policy prohibits 'From' address forgary.
+ *
+ * See: https://support.google.com/mail/answer/2451690
+ */
+function wk_mail_alter(&$message) {
+  // DMARC failures are only an issue when the domain of
+  // the 'From' address is different than the domain of the
+  // 'Sender' address.
+  $sender_domain = wk_domain_from_address($message['headers']['Sender']);
+  $from_domain = wk_domain_from_address($message['headers']['From']);
+  if (empty($sender_domain) || empty($from_domain) || !isset($message['params']['name']) || empty($message['params']['name'])) {
+    // Fail -- but how should we best notify this situation?
+    $message['sent'] = FALSE;
+  }
+  else if ($sender_domain != $from_domain) {
+    $proxy_from_address = 'anonymous';
+    $message['headers']['Reply-To'] = $message['headers']['From'];
+    $message['headers']['From'] = $message['params']['name'] . ' <' . $proxy_from_address . $sender_domain . '>';
+  }
+}
+
+// Return the domain the address is part of
+// including the '@'.
+function wk_domain_from_address($address) {
+  $domain = '';
+  if (preg_match("/@[^>]*/", $address, $matches)) {
+    $domain = $matches[0];
+  }
+  return $domain;
+}
+
+/**
  * Implements hook_entity_info_alter().
  *
  * c.f. http://www.wunderkraut.com/blog/drupal-7-custom-node-view-modes/2010-12-20
