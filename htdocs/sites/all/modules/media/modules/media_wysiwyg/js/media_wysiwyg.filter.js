@@ -14,12 +14,15 @@
      * @param content
      */
     replaceTokenWithPlaceholder: function(content) {
-      Drupal.media.filter.ensure_tagmap()
-      var matches = content.match(/\[\[.*?"type":"media".*?\]\]/g);
+      Drupal.media.filter.ensure_tagmap();
+      var matches = content.match(/\[\[.*?\]\]/g);
 
       if (matches) {
         for (var i = 0; i < matches.length; i++) {
           var match = matches[i];
+          if (match.indexOf('"type":"media"') == -1) {
+            continue;
+          }
 
           // Check if the macro exists in the tagmap. This ensures backwards
           // compatibility with existing media and is moderately more efficient
@@ -88,54 +91,6 @@
       }
 
       return content.html();
-    },
-
-    /**
-     * Returns alt and title field values for use as html attributes. Ensures
-     * changes made via the media popup persist into the macro as title/alt
-     * attributes.
-     *
-     * @param options (array)
-     *   Options passed through a popup form submission.
-     */
-    parseAttributeFields: function(options) {
-      var attributes = [];
-
-      for (field in options) {
-        if (field.match('image_alt')) {
-          attributes['alt'] = options[field];
-        }
-
-        if (field.match('image_title')) {
-          attributes['title'] = options[field];
-        }
-      }
-
-      return attributes;
-    },
-
-    /**
-     * Ensures changes made to fielded attributes persist set to the field(s).
-     *
-     * @param file_info (object)
-     *   A json decoded object of the file being inserted/updated.
-     */
-    syncAttributesToFields: function(file_info) {
-      // If the title attribute has changed, ensure the title field is updated.
-      var titleAttr  = file_info.attributes.title || false;
-      var titleField = file_info.fields['field_file_image_title_text[und][0][value]'] || false;
-      if (titleAttr !== titleField) {
-        file_info.fields['field_file_image_title_text[und][0][value]'] = titleAttr;
-      }
-
-      // If the alt attribute has changed, ensure the alt field is updated.
-      var altAttr  = file_info.attributes.alt || false;
-      var altField = file_info.fields['field_file_image_alt_text[und][0][value]'] || false;
-      if (altAttr !== altField) {
-        file_info.fields['field_file_image_alt_text[und][0][value]'] = altAttr;
-      }
-
-      return file_info;
     },
 
     /**
@@ -233,14 +188,16 @@
               if (typeof value == 'string') {
                 value = value.replace('&quot;', '\\"');
               }
-
               file_info.attributes[a] = value;
             }
           });
+
+          // Extract the link text, if there is any.
+          file_info.link_text = element.find('a').html();
         }
       }
 
-      return Drupal.media.filter.syncAttributesToFields(file_info);
+      return file_info;
     },
 
     /**
