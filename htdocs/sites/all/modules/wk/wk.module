@@ -91,6 +91,11 @@ function wk_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings)
   //dpm($element);
 }
 
+function wk_form_alter__media_wysiwyg_format_form(&$form, &$form_state) {
+  hide($form['options']['fields']['field_image_style']);
+  hide($form['options']['fields']['field_link']);
+}
+
 /**
  * Implements hook_module_implements_alter
  *
