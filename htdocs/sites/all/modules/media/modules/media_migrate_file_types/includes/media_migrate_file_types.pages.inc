@@ -2,96 +2,8 @@
 
 /**
  * @file
- * Common pages for the Media module.
+ * Common pages for the Media Migrate File Types module.
  */
-
-
-/**
- * Menu callback; Edit multiple files on the same page using multiform module.
- *
- * @todo When http://drupal.org/node/1227706 is fixed, filter the $files
- * array using file_access($file, 'edit').
- *
- * @see media_file_operation_edit_multiple()
- */
-function media_file_page_edit_multiple($files) {
-  if (empty($files)) {
-    return MENU_ACCESS_DENIED;
-  }
-
-  $forms = array();
-  foreach ($files as $file) {
-    // To maintain unique form_ids, append the file id.
-    $forms[] = array('media_edit_' . $file->fid, $file);
-  }
-
-  $form = call_user_func_array('multiform_get_form', $forms);
-  $form['#attributes']['class'][] = 'media-multiedit-form';
-
-  // Add the title to each 'subform'.
-  foreach (element_children($form['multiform']) as $key) {
-    $fid = $form['multiform'][$key]['fid']['#value'];
-    $file = $files[$fid];
-    $title = t('<em>Edit @type</em> @title', array('@type' => $file->type, '@title' => $file->filename));
-    $form['multiform'][$key]['#prefix'] = '<h2>' . $title . '</h2>';
-    $form['multiform'][$key]['actions']['#access'] = FALSE;
-  }
-
-  if (isset($form['buttons']['Delete'])) {
-    $form['buttons']['Delete']['#access'] = FALSE;
-  }
-
-  // Add a cancel button at the bottom of the form.
-  $form['buttons']['cancel'] = array(
-    '#type' => 'link',
-    '#title' => t('Cancel'),
-    '#weight' => 50,
-  );
-  if (isset($_GET['destination'])) {
-    $form['buttons']['cancel']['#href'] = $_GET['destination'];
-  }
-  else if (user_access('administer files')) {
-    $form['buttons']['cancel']['#href'] = 'admin/content/file';
-  }
-  else {
-    $form['buttons']['cancel']['#href'] = '<front>';
-  }
-
-  // Override the page title since each file form sets a title.
-  drupal_set_title(t('Edit multiple files'));
-
-  // Allow other modules to alter the form.
-  drupal_alter('media_edit_multiple_form', $form);
-
-  return $form;
-}
-
-/**
- * CTools modal callback for editing a file.
- */
-function media_file_edit_modal($form, &$form_state, $file, $js) {
-  ctools_include('modal');
-  ctools_include('ajax');
-
-  $form_state['ajax'] = $js;
-  form_load_include($form_state, 'inc', 'file_entity', 'file_entity.pages');
-
-  $output = ctools_modal_form_wrapper('file_entity_edit', $form_state);
-
-  if ($js) {
-    $commands = $output;
-
-    if ($form_state['executed']) {
-      $commands = array(ctools_modal_command_dismiss(t('File saved')));
-    }
-
-    print ajax_render($commands);
-    exit();
-  }
-
-  // Otherwise, just return the output.
-  return $output;
-}
 
 /**
  * File type migration page.
@@ -99,14 +11,14 @@ function media_file_edit_modal($form, &$form_state, $file, $js) {
  * Allows site administrator to execute migration of old/disabled/deleted
  * file types to new ones.
  */
-function media_upgrade_file_types($form, &$form_state) {
-  $migratable_types = _media_get_migratable_file_types();
+function media_migrate_file_types_upgrade_file_types($form, &$form_state) {
+  $migratable_types = _media_migrate_file_types_get_migratable_file_types();
 
   // Silently return if there are no file types that need migration.
   if (empty($migratable_types)) {
     return array(
       'message' => array(
-        '#markup' => t('There are no file types that need migration.'),
+        '#markup' => t('There are no file types that need migration. The Media Medigrate File Types module can now be safely <a href="@modules">disabled</a>.', array('@modules' => url('admin/modules'))),
       ),
     );
   }
@@ -164,7 +76,7 @@ function media_upgrade_file_types($form, &$form_state) {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Start migraton'),
+    '#value' => t('Start migration'),
   );
 
   return $form;
@@ -173,8 +85,8 @@ function media_upgrade_file_types($form, &$form_state) {
 /**
  * File type migration page submit handler.
  */
-function media_upgrade_file_types_submit($form, &$form_state) {
-  $migratable_types = _media_get_migratable_file_types();
+function media_migrate_file_types_upgrade_file_types_submit($form, &$form_state) {
+  $migratable_types = _media_migrate_file_types_get_migratable_file_types();
   $migrate = FALSE;
   foreach ($migratable_types as $type) {
     if ($form_state['values'][$type]) {
@@ -205,7 +117,7 @@ function media_upgrade_file_types_submit($form, &$form_state) {
 /**
  * File types migration confirmation page.
  */
-function media_upgrade_file_types_confirm($form, &$form_state) {
+function media_migrate_file_types_upgrade_file_types_confirm($form, &$form_state) {
   return confirm_form(
     $form,
     t('Do you really want to migrate selected file types?'),
@@ -216,10 +128,10 @@ function media_upgrade_file_types_confirm($form, &$form_state) {
 }
 
 /**
- * File types migration confirmation page sumit. Executes actual migration.
+ * File types migration confirmation page submit. Executes actual migration.
  */
-function media_upgrade_file_types_confirm_submit($form, &$form_state) {
-  $migratable_types = _media_get_migratable_file_types();
+function media_migrate_file_types_upgrade_file_types_confirm_submit($form, &$form_state) {
+  $migratable_types = _media_migrate_file_types_get_migratable_file_types();
   foreach ($migratable_types as $type) {
     if ($_GET[$type] && $bundle_new = file_type_load($_GET[$type])) {
       // Old bundle might be deleted so let's fake some values.
