@@ -79,13 +79,21 @@ h1 {
 
 /* ############# Begin Image CSS ############# */
 
-/* div: media media-element-container media-default */
-/* img: media-element filemedia media-center */
-
-
-div.media img {
-  width: 100%;
+div.media img,
+.image-frame img {
   border: 2px solid black;
+  border-radius: 8px;
+  box-shadow: 8px 8px 10px #ccc;
+}
+
+div.media-round img {
+  border-radius: 50%;
+}
+
+div.media-plain img {
+  border: 0px;
+  border-radius: 0;
+  box-shadow: 0 0 0;
 }
 
 div.media {
@@ -98,14 +106,14 @@ div.media {
 div.media-left {
   float: left;
   text-align: inherit;
-  margin-right: 12px;
+  margin-right: 24px;
   margin-left: 0px;
 }
 
 div.media-right {
   float: right;
   text-align: inherit;
-  margin-left: 12px;
+  margin-left: 24px;
   margin-right: 0px;
 }
 
@@ -114,27 +122,6 @@ div.media-center {
   text-align: center;
   margin-left: auto;
   margin-right: auto;
-}
-
-div.media-full_width {
-  width: 100%;
-}
-
-div.media-half_width {
-  width: 50%;
-}
-
-div.media-one_third_width {
-  width: 33%;
-}
-
-div.media-quarter_width {
-  width: 25%;
-}
-
-
-.file-image .image-frame {
-  width: 100%;
 }
 
 .file-image img {
@@ -147,85 +134,46 @@ div.media-quarter_width {
   font-weight: bold;
 }
 
-.file-image .image-style-full,
-.file-image .image-style-half,
-.file-image .image-style-half-r,
-.file-image .image-style-half-c,
-.file-image .image-style-third,
-.file-image .image-style-third-r,
-.file-image .image-style-third-c,
-.file-image .image-style-full img,
-.file-image .image-style-half img,
-.file-image .image-style-half-r img,
-.file-image .image-style-half-c img,
-.file-image .image-style-third img,
-.file-image .image-style-third-r img,
-.file-image .image-style-third-c img {
+.media-width-full,
+.media-width-half,
+.media-width-third,
+.media-width-quarter,
+div.media img,
+.media-width-full img,
+.media-width-half img,
+.media-width-third img,
+.media-width-quarter img {
   width: 100%;
 }
 
 @media all and (min-width: 560px) {
 
-  .file-image .image-style-half {
+  .media-width-half {
     width: 50%;
-    float: left;
-    margin-right: 12px;
-  }
-
-  .file-image .image-style-half-r {
-    width: 50%;
-    float: right;
-    margin-left: 12px;
-  }
-
-  .file-image .image-style-half-c {
-    width: 50%;
-    margin-left: auto;
-    margin-right: auto;
   }
 
 }
 
 @media all and (min-width: 560px) and (max-width: 900px) {
 
-  .file-image .image-style-third {
+  .media-width-third {
     width: 50%;
-    float: left;
-    margin-right: 12px;
   }
 
-  .file-image .image-style-third-r {
-    width: 50%;
-    float: right;
-    margin-left: 12px;
-  }
-
-  .file-image .image-style-third-c {
-    width: 50%;
-    margin-left: auto;
-    margin-right: auto;
+  .media-width-quarter {
+    width: 33%;
   }
 
 }
 
 @media all and (min-width: 901px) {
 
-  .file-image .image-style-third {
+  .media-width-third {
     width: 33%;
-    float: left;
-    margin-right: 12px;
   }
 
-  .file-image .image-style-third-r {
-    width: 33%;
-    float: right;
-    margin-left: 12px;
-  }
-
-  .file-image .image-style-third-c {
-    width: 33%;
-    margin-left: auto;
-    margin-right: auto;
+  .media-width-quarter {
+    width: 25%;
   }
 
 }

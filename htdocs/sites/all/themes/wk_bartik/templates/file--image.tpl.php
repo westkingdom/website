@@ -83,16 +83,20 @@ $image_style_css = 'image-style-full';
 if (!$is_front && isset($field_image_style[LANGUAGE_NONE][0]['value'])) {
   if ($field_image_style[LANGUAGE_NONE][0]['value'] == 'default') {
     if (isset($file->referencing_entity) && ($file->referencing_entity->type == 'location')) {
-      $image_style_css = 'image-style-third-r';
+      $image_style_css = 'media-right';
     }
     else {
-      $image_style_css = 'image-style-half';
+      $image_style_css = 'media-left';
     }
   }
   else {
-    $image_style_css = 'image-style-' . $field_image_style[LANGUAGE_NONE][0]['value'];
+    $image_style_css = 'media-' . $field_image_style[LANGUAGE_NONE][0]['value'];
   }
 }
+if (!$is_front && isset($field_image_width[LANGUAGE_NONE][0]['value'])) {
+  $image_style_css .= ' media-width-' . $field_image_width[LANGUAGE_NONE][0]['value'];
+}
+
 $link_prefix = '';
 $link_suffix = '';
 if(isset($field_link[LANGUAGE_NONE][0]['url'])) {
