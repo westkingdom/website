@@ -111,9 +111,14 @@ function wk_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings)
  *
  * The form that comes up when you click the "edit" button on an
  * image file is form_id file_entity_edit.
+ *
+ * We want to hide the "link", "width" and "style" controls
+ * on the wysiwyg dialog, because these items are specified
+ * via the wysiwyg editor controls, not the media dialog.
  */
 function wk_form_alter__media_wysiwyg_format_form(&$form, &$form_state) {
   hide($form['options']['fields']['field_image_style']);
+  hide($form['options']['fields']['field_image_width']);
   hide($form['options']['fields']['field_link']);
 }
 
