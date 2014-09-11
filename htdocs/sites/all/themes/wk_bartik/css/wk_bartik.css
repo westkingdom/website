@@ -11,6 +11,25 @@ h1 {
 
 /* ############# End Text Size and Style CSS ############# */
 
+
+/* ############# Begin style.css Color Reset ############# */
+
+h1 {
+  color: inherit;
+}
+
+tr.odd {
+  color: inherit;
+}
+
+#site-name {
+  color: inherit;
+}
+
+/* there are table backgrounds and colors that should perhaps be reset as well... */
+
+/* ############# End style.css Color Reset ############# */
+
 /* ############# Begin Block CSS ############# */
 
 .sidebar .block {
