@@ -335,12 +335,6 @@ div.media img,
 
 /* ############# Begin General Field CSS ############# */
 
-blockquote {
-  margin-left: 16px;
-  padding-left: 48px;
-  background: url('../images/blockquote.png') 0% 0% no-repeat;
-}
-
 .page-taxonomy-term article {
   clear: both;
 }
