@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * Implements hook_og_permission
+ *
+ * Returns the standard revisioning permissions as available og permissions.
+ *
+ * The available permissions are:
+ *
+ *    'view revision status messages'
+ *    'edit revisions'
+ *    'publish revisions'
+ *    'unpublish current revision'
+ *    'title'
+ *    'view revisions of own CONTENT_TYPE content'
+ *    'view revisions of any CONTENT_TYPE content'
+ *    'publish revisions of own CONTENT_TYPE content'
+ *    'publish revisions of any CONTENT_TYPE content'
+ */
+function og_revisioning_og_permission() {
+  return revisioning_permission();
+}
+
+/**
+ * Implements hook_revisioning_access_node_revision
+ *
+ * Check to see if the given revisioning operation is allowed by a
+ * grant from one of the organic groups permissions.
+ *
+ * The possible revision_op values are:
+ *
+ *    'compare to current'
+ *    'delete revisions'
+ *    'delete archived revisions'
+ *    'view revision list' // i.e. node revisions summary
+ *    'edit revisions'
+ *    'publish revisions'
+ *    'unpublish current revision'
+ *    'revert revisions'
+ *
+ * Return NODE_ACCESS_ALLOW to allow, NODE_ACCESS_DENY to disallow,
+ * and NULL to allow others to decide.
+ */
+function og_revisioning_revisioning_access_node_revision($revision_op, $node) {
+  $result = NULL;
+
+  // We need to find the bundle_name (e.g. "page") before we can determine if
+  // this node is a group content type.  We do nothing unless the node is
+  // a group type or group content type.
+  list($id, $vid, $bundle_name) = entity_extract_ids('node', $node);
+  if (og_is_group('node', $node) || (og_is_group_content_type('node', $bundle_name))) {
+
+    // Check the revision-aspect of the operation
+    $node_op = og_revisioning_user_node_access($revision_op, $node);
+    // ... then check with core to assess node permissions
+    // node_access will invoke hook_node_access(), i.e. revisioning_node_access().
+    $access = $node_op && node_access($node_op, $node);
+
+    if ($access) {
+      $result = NODE_ACCESS_ALLOW;
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * og-aware version of revisioning_user_node_access
+ *
+ * @param $revision_op
+ *   node or revision operation e.g. 'view revisions'
+ * @param $node
+ * @param $account
+ *   An optional user account object, defaults to the current user.
+ * @return the associated node operation required for this revision_op, or
+ *   FALSE if access to the node is to be denied.
+ *   Valid node operations to return are 'view', 'update', 'delete'.
+ */
+function og_revisioning_user_node_access($revision_op, $node, $account = NULL) {
+  if (!isset($account)) {
+    $account = $GLOBALS['user'];
+  }
+
+  $type = check_plain($node->type);
+
+  switch ($revision_op) {
+    case 'view current':
+      break;
+    case 'compare to current':
+    case 'view revisions':
+    case 'view revision list':
+      if (og_user_access_entity('view revision list', 'node', $node)) {
+        break;
+      }
+      if (og_user_access_entity('view revisions of any ' . $type . ' content', 'node', $node)) {
+        break;
+      }
+      if (($node->uid == $account->uid) && og_user_access_entity('view revisions of own ' . $type . ' content', 'node', $node)) {
+        break;
+      }
+      return FALSE;
+
+    case 'edit current':
+      return 'update';
+
+    case 'edit revisions':
+    case 'revert revisions':
+      return og_user_access_entity($revision_op, 'node', $node) ? 'update' : FALSE;
+
+    case 'publish revisions':
+      $node_op = variable_get('revisioning_require_update_to_publish', TRUE) ? 'update' : 'view';
+      if (og_user_access_entity('publish revisions', 'node', $node)) {
+        return $node_op;
+      }
+      if (og_user_access_entity('publish revisions of any ' . $type . ' content', 'node', $node)) {
+        return $node_op;
+      }
+      if (($node->uid == $account->uid) && og_user_access_entity('publish revisions of own ' . $type . ' content', 'node', $node)) {
+        return $node_op;
+      }
+      return FALSE;
+
+    case 'unpublish current revision':
+      $node_op = variable_get('revisioning_require_update_to_publish', TRUE) ? 'update' : 'view';
+      return og_user_access_entity('unpublish current revision', 'node', $node) ? $node_op : FALSE;
+
+    case 'delete revisions':
+    case 'delete archived revisions':
+      if (!og_user_access_entity('delete revisions', 'node', $node)) {
+        return FALSE;
+      }
+    case 'delete node':
+      return 'delete';
+
+    default:
+      drupal_set_message(t("Unknown Revisioning operation '%revision_op'. Treating as 'view'.",
+        array('%revision_op' => $revision_op)), 'warning', FALSE);
+  }
+  return 'view';
+}
