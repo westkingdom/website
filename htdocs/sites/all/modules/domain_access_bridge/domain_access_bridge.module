@@ -1,0 +1,189 @@
+<?php
+
+/**
+ * @file Functional code for the domain_access_bridge module
+ */
+ 
+/**
+ * Implements hook_node_grants().
+ *
+ * Necessary to let Drupal implement our custom realm. The correct grant IDs will be assigned
+ * in hook_node_access_grants_alter() because we need the content_access grant ID to
+ * calculate our domain_access_bridge grant ID.
+ */
+function domain_access_bridge_node_grants($account, $op) {
+  return array(
+    'domain_access_bridge' => array(0),
+  );
+}
+
+/**
+ * Implements hook_node_access_records_alter().
+ *
+ * Defines our merged access records for each node.
+ * Note that Workflow realms should receive highest priority if other access control
+ * modules are also available. This case however is actually serious overkill.
+ * Nonetheless we should support it...
+ */
+function domain_access_bridge_node_access_records_alter(&$grants, $node) {
+  // Load domain grants and content_access grants 
+  $domain_grants = array();
+  $workflow_grants = array();
+  $access_grants = array();
+
+  foreach ($grants as $key => $grant) {
+    if (domain_access_bridge_is_module_realm($grant['realm'], 'domain')) {
+      $domain_grants[] = $grant;
+    } elseif (domain_access_bridge_is_module_realm($grant['realm'], 'workflow')) {
+      $workflow_grants[] = $grant;
+    } else {
+      $access_grants[] = $grant;
+    }
+    // Removes current grant records as they will be combined in one record.
+    // If not applicable, we'll return just return all of these in a later step.
+    unset($grants[$key]);
+  }
+  
+  // Workflow should get highest priority by just overwriting all other access grants.
+  if (!empty($workflow_grants)) {
+    $access_grants = $workflow_grants;
+  }
+  
+  // If no other access control modules have been encountered, just provide the domain grants.
+  if (empty($access_grants)) {
+  	$grants = $domain_grants;
+  }
+  else {
+	  // Create the merged grant records
+	  foreach ($domain_grants as $domain_grant) {
+		foreach ($access_grants as $access_grant) {
+		  $gid = domain_access_bridge_get_grant_id($domain_grant['realm'], $domain_grant['gid'], $access_grant['realm'], $access_grant['gid']);
+		  $grants[] = array(
+			'realm' => 'domain_access_bridge',
+			'gid' => $gid,
+			// Insert content_access permissions only if access to the domain has been granted
+			'grant_view'   => $domain_grant['grant_view'] == 0 ? $domain_grant['grant_view'] : $access_grant['grant_view'],
+			'grant_update' => $domain_grant['grant_update'] == 0 ? $domain_grant['grant_update'] : $access_grant['grant_update'],
+			'grant_delete' => $domain_grant['grant_update'] == 0 ? $domain_grant['grant_update'] : $access_grant['grant_update'],
+			'priority' => 0,
+			'#module' => 'domain_access_bridge',
+		  );
+		}
+	  }
+  }
+}
+
+/**
+ * Implements hook_node_grants_alter().
+ *
+ * This will populate the current user's merged grants so they can be used to check
+ * against the ones previously set in hook_node_access_records_alter().
+ */
+function domain_access_bridge_node_grants_alter(&$grants, $account, $op) {
+  // Load the current domain
+  global $_domain;
+  
+  // Load domain grants and other access grants 
+  $domain_grants = array();
+  // The 'all' grant isn't set yet, but we'd like to use it in our grant merge process.
+  $access_grants = array('all' => array(0));
+  foreach ($grants as $realm => $gids) {
+    if (domain_access_bridge_is_module_realm($realm, 'domain')) {
+      $domain_grants[$realm] = $gids;
+    } else {
+      $access_grants[$realm] = $gids;
+    }
+  }
+  
+  // Construct the current user's merged grant IDs
+  $gids = array();
+  foreach ($domain_grants as $domain_realm => $domain_gids) {
+    foreach ($access_grants as $access_realm => $access_gids) {
+      foreach ($domain_gids as $domain_gid) {
+        // If realm is 'domain_id', use the global domain_id as domain_gid
+        $domain_gid = ($domain_realm == 'domain_id') ? $_domain['domain_id'] : $domain_gid;
+        foreach ($access_gids as $access_gid) {
+          $gids[] = domain_access_bridge_get_grant_id($domain_realm, $domain_gid, $access_realm, $access_gid);
+        }
+      }
+    }
+  }
+  
+  // Overwrite gid = 0 previously set in hook_node_grants()
+  if (!empty($gids)) {
+    $grants['domain_access_bridge'] = $gids;
+  }
+  else {
+    unset($grants['domain_access_bridge']);
+  }
+}
+
+/**
+ * Helper function returning (and inserting a new row if necessary) grant id for given grants pair.
+ *
+ * @param string $domain_realm
+ *   A string containing the original domain realm
+ * @param string $domain_gid
+ *   A string containing the original domain gid
+ * @param string $content_access_realm
+ *   A string containing the original content_access realm
+ * @param string $content_access_gid
+ *   A string containing the original content_access gid
+ *
+ * @return int
+ *   Grant id of the merged grant
+ */
+function domain_access_bridge_get_grant_id($domain_realm, $domain_gid, $access_realm, $access_gid) {
+  // HACKY SOLUTION to get domain_access_bridge grant IDs calculated correctly
+  // For some reason, hook__node_grants_alter() sometimes provides the domain_realm as
+  // our merged realm instead of domain_id...
+  $domain_realm = $domain_realm == 'domain_access_bridge' ? 'domain_id' : $domain_realm;
+  //
+          
+  $gid = db_select('domain_access_bridge', 'dc')
+    ->fields('dc', array('gid'))
+    ->condition('domain_realm', $domain_realm)
+    ->condition('domain_gid', $domain_gid)
+    ->condition('access_realm', $access_realm)
+    ->condition('access_gid', $access_gid)
+    ->execute()
+    ->fetchField();
+
+  if ($gid === FALSE) {
+    $gid = db_insert('domain_access_bridge')
+      ->fields(array(
+          'domain_realm' => $domain_realm,
+          'domain_gid' => $domain_gid,
+          'access_realm' => $access_realm,
+          'access_gid' => $access_gid,
+        ))
+      ->execute();
+  }
+
+  return $gid;
+}
+
+/**
+ * Checks if a realm is originating from a specified module.
+ *
+ * @param string $realm
+ *   A string containing a realm machine_name
+ * @param string $module
+ *   A module's name
+ *
+ * @return bool
+ */
+function domain_access_bridge_is_module_realm($realm, $module) {
+  switch ($module) {
+    case 'domain_access':
+      // Just in case...
+      return substr($realm, 0, 7) == 'domain_';
+      break;
+    default:
+      // The default is also able to catch 'domain' and 'workflow',
+      // so no need to specify them seperately
+	  $module .= '_';
+      return strpos($realm, $module) === 0;
+      break;
+  }
+}
