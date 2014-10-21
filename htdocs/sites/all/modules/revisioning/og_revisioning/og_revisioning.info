@@ -1,0 +1,4 @@
+name = OG Revisioning
+description = Bridge module to allow Revisioning module permissions to work correctly with Organic Groups.
+core = 7.x
+
