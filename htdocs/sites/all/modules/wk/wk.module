@@ -745,7 +745,7 @@ function wk_form_alter(&$form, &$form_state) {
     $is_moderated_content = isset($node->revision_moderation)
       ? $node->revision_moderation
       : revisioning_content_is_moderated($form['type']['#value'], $node);
-    if (revisioning_user_node_access('publish revisions', $node)) {
+    if (revisioning_user_node_access('publish revisions', $node) || revisioning_user_node_access('edit revisions', $node)) {
       // Expand and move this vertical tab to top, so that it's in user's face
       if (isset($form['menu'])) {
         $form['menu']['#collapsed'] = TRUE;
