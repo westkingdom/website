@@ -20,13 +20,52 @@ h1 {
 
 tr.odd {
   color: inherit;
+  background-color: inherit;
 }
 
 #site-name {
   color: inherit;
 }
 
-/* there are table backgrounds and colors that should perhaps be reset as well... */
+table tr th,
+table tr th a,
+table tr th a:hover {
+  color: inherit;
+}
+
+.node-teaser h2 a {
+  color: inherit;
+}
+
+.meta {
+  color: inherit;
+}
+
+ul.links {
+  color: inherit;
+}
+
+.comment .submitted .comment-time {
+  color: inherit;
+}
+
+fieldset legend {
+  color: inherit;
+  background: inherit;
+}
+
+fieldset legend a,
+fieldset legend a:hover,
+fieldset legend a:focus,
+fieldset legend a:active  {
+  inherit;
+}
+
+fieldset .fieldset-description {
+  inherit;
+}
+
+/* what about System Tabs? */
 
 /* ############# End style.css Color Reset ############# */
 
