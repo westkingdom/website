@@ -2721,6 +2721,70 @@ function _wk_create_branch_menu($branch_term, $homepage_path) {
   return $menu;
 }
 
+function wk_export_email_lists() {
+  $branch_tree = taxonomy_get_tree(2);
+  $officer_tree = taxonomy_get_tree(3);
+
+  $officer_map = array();
+  foreach ($officer_tree as $info) {
+    $officer_map[$info->tid] = taxonomy_term_load($info->tid);
+  }
+
+  $branches = array();
+  foreach ($branch_tree as $branch_info) {
+      $offices = array();
+      $office_info = array();
+
+      $branch_tid = $branch_info->tid;
+      $branch_shortname = strtolower(_wk_term_short_name($branch_info));
+      $branch_shortname = preg_replace('/[^a-z]+/', '', $branch_shortname);
+
+      // Find all of the officer nodes for the specified branch
+      $query = new EntityFieldQuery();
+      $query = $query->entityCondition('entity_type','node')
+        ->entityCondition('bundle', array('officers'))
+        ->propertyCondition('status', 1)
+        ->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch_tid, '=');
+      $entities = $query->execute();
+
+      if (!empty($entities)) {
+        foreach ($entities['node'] as $gid => $info) {
+          $officeNode = node_load($gid);
+          $office_tid = $officeNode->field_office[LANGUAGE_NONE][0]['tid'];
+          $officer_info = $officer_map[$office_tid];
+          $office_shortname = strtolower(_wk_term_short_name($officer_info));
+          $office_shortname = preg_replace('/[^a-z]+/', '', $office_shortname);
+
+          $members = array();
+          $group_info = _wk_group_members($gid);
+          foreach ($group_info as $uid => $user_info) {
+            if (isset($user_info['user']->mail)) {
+              $member_email_address = $user_info['user']->mail;
+              $members[] = $member_email_address;
+            }
+          }
+          $offices[$office_shortname]['members'] = $members;
+        }
+      }
+      if (!empty($offices)) {
+        $branches[$branch_shortname]['lists'] = $offices;
+      }
+  }
+  return $branches;
+}
+
+
+function wk_officer_nodes($branch) {
+  // Find all of the officer nodes for the specified branch
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array('officers'))
+    ->propertyCondition('status', 1)
+    ->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, '=');
+  $entities = $query->execute();
+  return $entities;
+}
+
 function wk_officer_list($branch) {
   // Find all of the officer nodes for the specified branch
   $query = new EntityFieldQuery();
@@ -2847,11 +2911,13 @@ function _wk_group_members($gid, $group_type = 'node') {
       $type_of_deputy = $e->field_type_of_deputy->value();
       $weight = $e->field_weight->value(); // todo: just sort by weight
       $user = $e->entity->value();
-      $members[$user->uid] = array(
-        'user' => $user,
-        'title' => $type_of_deputy,
-        'weight' => $weight,
-      );
+      if (isset($user->uid) && isset($user->mail)) {
+        $members[$user->uid] = array(
+          'user' => $user,
+          'title' => $type_of_deputy,
+          'weight' => $weight,
+        );
+      }
     }
   }
   return $members;
