@@ -18,6 +18,10 @@
  *    'publish revisions of any CONTENT_TYPE content'
  */
 function og_revisioning_og_permission() {
+  // TODO:  we should only include permissions for those CONTENT_TYPEs
+  // that are group types, or group content types.  To do this, we would
+  // need to copy revisioning_permissions here, and modify the code to
+  // include the og tests.
   return revisioning_permission();
 }
 
