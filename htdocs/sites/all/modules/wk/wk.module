@@ -2571,6 +2571,14 @@ function _wk_term_short_name($term) {
   return $short_name;
 }
 
+function _wk_term_email_name($term) {
+  $email_name = strtolower(_wk_term_short_name($term));
+  $email_name = strtr($email_name, ' ', '-');
+  $email_name = preg_replace('/[^a-z-]+/', '', $email_name);
+  return $email_name;
+}
+
+
 function _wk_shorten_name($name) {
   $remove = array("Kingdom of ", "Principality of ", "Palatine Barony of ", "Barony of ", "Kingdom of ", "Shire of ", "Province of ", "Canton of ", "College of ", "Stronghold of ", "the ", " (incipiant)");
 
@@ -2721,7 +2729,44 @@ function _wk_create_branch_menu($branch_term, $homepage_path) {
   return $menu;
 }
 
+function wk_og_role_grant($entity_type, $gid, $uid, $rid) {
+  _wk_rewrite_email_for_group($gid);
+}
+
+function hook_og_role_revoke($entity_type, $gid, $uid, $rid) {
+  _wk_rewrite_email_for_group($gid);
+}
+
+function _wk_rewrite_email_for_group($gid) {
+  $officeNode = node_load($gid);
+  $branch_tid = $officeNode->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+  $branch_info = taxonomy_term_load($branch_tid);
+  $branch_shortname = _wk_term_email_name($branch_info);
+  foreach ($officeNode->field_office[LANGUAGE_NONE] as $office_node_info) {
+    $office_tid = $office_node_info['tid'];
+    $officer_info = taxonomy_term_load($office_tid);
+    $office_shortname = _wk_term_email_name($officer_info);
+
+    _wk_rewrite_email_list_members($gid, $branch_shortname, $office_shortname);
+  }
+}
+
+function _wk_rewrite_email_list_members($gid, $branch_shortname, $office_shortname) {
+  $path = "/var/list/${branch_shortname}-${office_shortname}";
+  $group_info = _wk_group_members($gid);
+  $members = array();
+  foreach ($group_info as $uid => $user_info) {
+    if (isset($user_info['user']->mail)) {
+      $member_email_address = $user_info['user']->mail;
+      $members[] = $member_email_address;
+    }
+  }
+  $contents = "# $path\n" . implode("\n", $members);
+  dpm($contents);
+}
+
 function wk_export_email_lists() {
+  $primary_domain = 'westkingdom.org'; // TODO: make this a parameter or something
   $branch_tree = taxonomy_get_tree(2);
   $officer_tree = taxonomy_get_tree(3);
 
@@ -2736,8 +2781,7 @@ function wk_export_email_lists() {
       $office_info = array();
 
       $branch_tid = $branch_info->tid;
-      $branch_shortname = strtolower(_wk_term_short_name($branch_info));
-      $branch_shortname = preg_replace('/[^a-z]+/', '', $branch_shortname);
+      $branch_shortname = _wk_term_email_name($branch_info);
 
       // Find all of the officer nodes for the specified branch
       $query = new EntityFieldQuery();
@@ -2750,20 +2794,28 @@ function wk_export_email_lists() {
       if (!empty($entities)) {
         foreach ($entities['node'] as $gid => $info) {
           $officeNode = node_load($gid);
-          $office_tid = $officeNode->field_office[LANGUAGE_NONE][0]['tid'];
-          $officer_info = $officer_map[$office_tid];
-          $office_shortname = strtolower(_wk_term_short_name($officer_info));
-          $office_shortname = preg_replace('/[^a-z]+/', '', $office_shortname);
+          foreach ($officeNode->field_office[LANGUAGE_NONE] as $office_node_info) {
+            $office_tid = $office_node_info['tid'];
+            $officer_info = $officer_map[$office_tid];
+            $office_shortname = _wk_term_email_name($officer_info);
 
-          $members = array();
-          $group_info = _wk_group_members($gid);
-          foreach ($group_info as $uid => $user_info) {
-            if (isset($user_info['user']->mail)) {
-              $member_email_address = $user_info['user']->mail;
-              $members[] = $member_email_address;
+            $members = array();
+            $group_info = _wk_group_members($gid);
+            foreach ($group_info as $uid => $user_info) {
+              if (isset($user_info['user']->mail)) {
+                $member_email_address = $user_info['user']->mail;
+                $members[] = $member_email_address;
+              }
             }
+            $list_email_address = $branch_shortname . '-' . $office_shortname . '@' . $primary_domain;
+            $offices[$office_shortname]['members'] = $members;
+            $offices['officers']['members'][] = $list_email_address;
+            $all_listname = 'all-' . $office_shortname;
+            if (substr($all_listname, strlen($all_listname) - 1) != "s") {
+              $all_listname .= 's';
+            }
+            $branches['west']['lists'][$all_listname]['members'][] = $list_email_address;
           }
-          $offices[$office_shortname]['members'] = $members;
         }
       }
       if (!empty($offices)) {
@@ -2896,6 +2948,7 @@ function _wk_build_office_member_display($title, $name, $nid = 0) {
     '#suffix' => '</div>',
   );
 }
+
 function _wk_group_members($gid, $group_type = 'node') {
   $query = new EntityFieldQuery();
   $result = $query
@@ -2922,3 +2975,4 @@ function _wk_group_members($gid, $group_type = 'node') {
   }
   return $members;
 }
+
