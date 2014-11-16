@@ -2762,7 +2762,10 @@ function _wk_rewrite_email_list_members($gid, $branch_shortname, $office_shortna
     }
   }
   $contents = "# $path\n" . implode("\n", $members);
-  dpm($contents);
+  // TODO:  read existing file.
+  // Find the "below this line" line.
+  // Append that line and everything below to '$contents'
+  // rewrite contents to file
 }
 
 function wk_export_email_lists() {
