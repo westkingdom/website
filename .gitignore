@@ -1,3 +1,12 @@
+
+.vagrant
+**/.DS_Store
+**/pkg/
+**/.*.sw?
+**/spec/fixtures
+**/Gemfile.lock
+**/.rspec_system
+
 # Ignore the devel mail log on dev / staging systems
 devel-mail-log
 
