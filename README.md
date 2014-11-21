@@ -1,32 +1,40 @@
-OGM / POSTFIX ENVIRONMENT
-=========================
+West Kingdom Website Repository
+===============================
 
-This project sets up a postfix environment for use with the og_mailinglist
-Drupal module.  For testing purposes, a Vagrantfile is also provided; it
-defines a postfix mail server called 'postfix', and a secondary clinet
-machine called the 'client' for testing email delivery from another machine.
+This repository holds the code for the regognized website for the
+Kingdom of the West of the Society for Creative Anachronism, Inc.
+
+
+Directory of Files
+------------------
+
+  htdocs         - Drupal root
+  ssl-certs      - Backup copies of ssl certificates installed in web server
+  private-files  - Drupal private upload files storage
+  puppet         - Installation scripts
+  Vagrantfile    - Can be used to start up a virtual environment for testing
+
+
+Deploying
+---------
+
+tbd
+
+
+Using the Vagrantfile
+---------------------
+
+This project contains a Vagrantfile and associated puppet manifests and
+modules to sets up a postfix environment for testing the email forwarding
+software.
+
+The Vagrantfile defines two virtual machines:
+
+  postfix         - The email server
+  client          - A simple linux system to send test email to
 
 Hiera is used to allow different machines to be set up with configuration
 appropriate to their needs.  The hiera configuration files are located
 in puppet/manifests/configuration.  Make particular note of the configuration
 file named `postfix.postfix.local.yaml` -- this is the configuration file
-for the test Vagrant server.
-
-The following puppet modules are used to create this environment:
-
-  - apache
-  - composer
-  - concat
-  - dns
-  - drupal
-  - drush
-  - mysql
-  - ogm
-  - php
-  - postfix
-  - procmail
-  - stdlib
-  - wget
-
-These modules are cloned here for convenience.  Submit any improvements to
-the original module's project page.
+for the test Vagrant postfix mail server.
