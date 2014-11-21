@@ -1,5 +1,86 @@
 <?php
 
+/**
+ * Implements hook_drush_command().
+ */
+function wk_drush_command() {
+  $items = array();
+
+  $items['wk-export-mailinglists'] = array(
+    'description' => "Export mailing list data.",
+    //'arguments' => array(
+    //  'arg' => 'Description of command argument.',
+    //),
+    //'options' => array(
+    //  'option-name' => array(
+    //    'description' => 'Description of option.',
+    //    'example-value' => 'Example values for option, if required.',
+    //  ),
+    //),
+    // Give one or more example commandline usages for this command
+    'examples' => array(
+      'drush wk-export-mailinglists' => 'Export mailing list data.',
+    ),
+    // Delete the 'outputformat' record if command does not
+    // produce any output.
+    'outputformat' => array(
+      'default' => 'yaml',
+      'pipe-format' => 'var_export',
+    ),
+    'aliases' => array('wkx'),
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all. Remove for full bootstrap of Drupal site.
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_drush_help().
+ *
+ * @param
+ *   A string with the help section (prepend with 'drush:')
+ *
+ * @return
+ *   A string with the help text for your command.
+ */
+function wk_drush_help($section) {
+  switch ($section) {
+    case 'drush:wk-export-mailinglists':
+      return dt("Export mailing list data in yaml.");
+    // The 'title' meta item is used to name a group of
+    // commands in `drush help`.  If a title is not defined,
+    // the default is "All commands in ___", with the
+    // specific name of the commandfile (e.g. wk).
+    // Command files with less than four commands will
+    // be placed in the "Other commands" section, _unless_
+    // they define a title.  It is therefore preferable
+    // to not define a title unless the file defines a lot
+    // of commands.
+    case 'meta:wk:title':
+      return dt("West Kingdom commands");
+    // The 'summary' meta item is displayed in `drush help --filter`,
+    // and is used to give a general idea what the commands in this
+    // command file do, and what they have in common.
+    case 'meta:wk:summary':
+      return dt("Commands specific to the West Kingdom site.");
+  }
+}
+
+/**
+ * Implementation of drush_hook_COMMAND().
+ *
+ * Main command implementation goes here.
+ */
+function drush_wk_export_mailinglists() {
+  // Whatever data structure is returned here will be available
+  // as the 'object' item of function result when this command is
+  // executed via drush_invoke_process().  If the function result
+  // is a string, or if the command declares output formats,
+  // then the function result will also be formatted and printed.
+  return wk_export_mailinglists();
+}
+
+
 function wk_drush_sql_sync_sanitize($site) {
   $fields_to_sanitize = array(
     'field_alternate_phone' => '555-1234',

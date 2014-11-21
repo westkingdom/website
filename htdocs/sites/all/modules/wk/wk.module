@@ -2768,7 +2768,7 @@ function _wk_rewrite_email_list_members($gid, $branch_shortname, $office_shortna
   // rewrite contents to file
 }
 
-function wk_export_email_lists() {
+function wk_export_mailinglists() {
   $primary_domain = 'westkingdom.org'; // TODO: make this a parameter or something
   $branch_tree = taxonomy_get_tree(2);
   $officer_tree = taxonomy_get_tree(3);
