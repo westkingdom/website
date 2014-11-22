@@ -72,14 +72,8 @@ function wk_drush_help($section) {
  * Main command implementation goes here.
  */
 function drush_wk_export_mailinglists() {
-  // Whatever data structure is returned here will be available
-  // as the 'object' item of function result when this command is
-  // executed via drush_invoke_process().  If the function result
-  // is a string, or if the command declares output formats,
-  // then the function result will also be formatted and printed.
-  return wk_export_mailinglists();
+  return array("smartlist::subdomain_lists" => wk_export_mailinglists());
 }
-
 
 function wk_drush_sql_sync_sanitize($site) {
   $fields_to_sanitize = array(
