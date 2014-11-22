@@ -2979,3 +2979,21 @@ function _wk_group_members($gid, $group_type = 'node') {
   return $members;
 }
 
+function wk_og_membership_insert(OgMembership $og_membership) {
+  $_SESSION['wk_og_membership_changed'] = TRUE;
+}
+
+function wk_og_membership_update(OgMembership $og_membership) {
+  $_SESSION['wk_og_membership_changed'] = TRUE;
+}
+
+function wk_og_membership_delete(OgMembership $og_membership) {
+  $_SESSION['wk_og_membership_changed'] = TRUE;
+}
+
+function wk_exit() {
+  if (isset($_SESSION['wk_og_membership_changed'])) {
+    unset($_SESSION['wk_og_membership_changed']);
+    $last_line = system(DRUPAL_ROOT . '/../bin/exportmailinglists', $retvalue);
+  }
+}
