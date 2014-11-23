@@ -2994,6 +2994,6 @@ function wk_og_membership_delete(OgMembership $og_membership) {
 function wk_exit() {
   if (isset($_SESSION['wk_og_membership_changed'])) {
     unset($_SESSION['wk_og_membership_changed']);
-    $last_line = system(DRUPAL_ROOT . '/../bin/exportmailinglists', $retvalue);
+    $pid = shell_exec(DRUPAL_ROOT . '/../bin/exportmailinglists <&- 1<&- 2<&- &');
   }
 }
