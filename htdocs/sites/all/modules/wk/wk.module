@@ -2781,6 +2781,7 @@ function wk_export_mailinglists() {
   $branches = array();
   foreach ($branch_tree as $branch_info) {
       $offices = array();
+      $aliases = array();
       $office_info = array();
 
       $branch_tid = $branch_info->tid;
@@ -2797,37 +2798,52 @@ function wk_export_mailinglists() {
       if (!empty($entities)) {
         foreach ($entities['node'] as $gid => $info) {
           $officeNode = node_load($gid);
+          $office_shortname_components = array();
           foreach ($officeNode->field_office[LANGUAGE_NONE] as $office_node_info) {
             $office_tid = $office_node_info['tid'];
             $officer_info = $officer_map[$office_tid];
-            $office_shortname = _wk_term_email_name($officer_info);
-
-            $members = array();
-            $group_info = _wk_group_members($gid);
-            foreach ($group_info as $uid => $user_info) {
-              if (isset($user_info['user']->mail)) {
-                $member_email_address = $user_info['user']->mail;
-                $members[] = $member_email_address;
-              }
+            $one_office_shortname = _wk_term_email_name($officer_info);
+            $office_shortname_components[] = $one_office_shortname;
+          }
+          $office_shortname = implode("-", $office_shortname_components);
+          $members = array();
+          $group_info = _wk_group_members($gid);
+          foreach ($group_info as $uid => $user_info) {
+            if (isset($user_info['user']->mail)) {
+              $member_email_address = $user_info['user']->mail;
+              $members[] = $member_email_address;
             }
-            $list_email_address = $branch_shortname . '-' . $office_shortname . '@' . $primary_domain;
-            $offices[$office_shortname]['members'] = $members;
-            $offices['officers']['members'][] = $list_email_address;
-            $all_listname = 'all-' . $office_shortname;
+          }
+          $list_email_address = $branch_shortname . '-' . $office_shortname . '@' . $primary_domain;
+          $offices[$office_shortname]['members'] = $members;
+          $offices['officers']['members'][] = $list_email_address;
+
+          foreach ($office_shortname_components as $one_office_shortname) {
+            $all_listname = 'all-' . $one_office_shortname;
             if (substr($all_listname, strlen($all_listname) - 1) != "s") {
               $all_listname .= 's';
             }
             $branches['west']['lists'][$all_listname]['members'][] = $list_email_address;
           }
+          if (isset($officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value'])) {
+            foreach (explode("\n", $officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value']) as $alias_shortname)
+            {
+              if (!empty($alias_shortname)) {
+                $aliases[$alias_shortname] = $list_email_address;
+              }
+            }
+          }
         }
       }
       if (!empty($offices)) {
         $branches[$branch_shortname]['lists'] = $offices;
+        if (!empty($aliases)) {
+          $branches[$branch_shortname]['aliases'] = $aliases;
+        }
       }
   }
   return $branches;
 }
-
 
 function wk_officer_nodes($branch) {
   // Find all of the officer nodes for the specified branch
