@@ -2995,6 +2995,23 @@ function _wk_group_members($gid, $group_type = 'node') {
   return $members;
 }
 
+function wk_node_field_value_changed($node, $field_name) {
+  $original_existed = isset($node->original->{$field_name}[LANGUAGE_NONE][0]['value']);
+  $exists_now = isset($node->{$field_name}[LANGUAGE_NONE][0]['value']);
+
+  return ($original_existed != $exists_now) ||
+    ($exists_now &&
+      ($node->original->{$field_name}[LANGUAGE_NONE][0]['value'] != $node->{$field_name}[LANGUAGE_NONE][0]['value']));
+}
+
+function wk_node_update($node) {
+  if ($node->type == 'officers') {
+    if (wk_node_field_value_changed($node, "field_additional_email_aliases")) {
+      $_SESSION['wk_og_membership_changed'] = TRUE;
+    }
+  }
+}
+
 function wk_og_membership_insert(OgMembership $og_membership) {
   $_SESSION['wk_og_membership_changed'] = TRUE;
 }
