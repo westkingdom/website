@@ -915,7 +915,8 @@ function wk_block_view_alter(&$data, $block) {
   // node types.
   if ($block->delta == "officers_list-block_1") {
     $node = menu_get_object();
-    if ($node && $node->type != 'officers') {
+    $menu = menu_get_item();
+    if (($node && $node->type != 'officers') || ($menu && $menu['path'] != 'node/%')) {
       $data['content'] = FALSE;
     }
   }
@@ -1029,7 +1030,7 @@ function wk_menu() {
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
-  $items['calendar-status'] = array(
+  $itemffs['calendar-status'] = array(
     'title' => 'Calendar Status',
     'description' => 'Show whether the calendar is open for new date requests',
     'page callback' => 'drupal_get_form',
@@ -1044,7 +1045,106 @@ function wk_menu() {
     'access callback' => 'user_access',
     'access arguments' => array('configure calendar requests'),
   );
+
+  // "mail" tab on group node
+  $items['node/%wk_og_group_node/mail'] = array(
+    'title' => 'Mail',
+    'page callback' => 'wk_og_mail_page',
+    'access callback' => 'wk_can_view_mail',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 20,
+  );
+
+  // read one email message in a group
+  $items['node/%wk_og_group_node/mail/%'] = array(
+    'title' => 'Mail Message',
+    'page callback' => 'wk_og_mail_view',
+    'access callback' => 'wk_can_view_mail',
+    'access arguments' => array(1),
+    'type' => MENU_CALLBACK,
+  );
+
   return $items;
+}
+
+
+/**
+ * Load a node object based on a menu arg
+ *
+ * Menu loader function that will return a node object.
+ */
+function wk_og_group_node_load($arg) {
+  if (!is_numeric($arg)) {
+    return FALSE;
+  }
+  if ($node = entity_load_single('node', $arg)) {
+    if (og_is_group_type('node', $node->type)) {
+      return $node;
+    }
+  }
+  return FALSE;
+}
+
+function wk_og_permission() {
+  return array(
+    'access og mail tab' => array(
+      'title' => t('access og mail tab'),
+      'description' => t('Read email archives for the group.'),
+    ),
+  );
+}
+
+function wk_can_view_mail($node) {
+  if (og_user_access('node', $node->nid, 'access og mail tab')) {
+    return TRUE;
+  }
+}
+
+function wk_og_mail_view() {
+  $gid = arg(1);
+  $message_number = arg(3);
+  $group_node = node_load($gid);
+  $list_name = wk_group_email_list_name($group_node);
+  drupal_set_title(t("Message !number in list '!list':", array('!number' => $message_number, '!list' => $list_name)));
+  $message_content = trim(wk_get_message_content($list_name, $message_number));
+  if (empty($message_content)) {
+    return t("Message not found.");
+  }
+  return '<pre>' . check_plain($message_content) . '</pre>';
+}
+
+function wk_og_mail_page() {
+  $gid = arg(1);
+  $group_node = node_load($gid);
+  $list_name = wk_group_email_list_name($group_node);
+
+  $list_messages = wk_show_list_messages($list_name);
+  $rows = array();
+  foreach (explode("\n", $list_messages) as $one_message) {
+    $message_info = explode("\t", $one_message);
+    if (count($message_info) == 4) {
+      $message_number = array_shift($message_info);
+      // $message_info[2] =
+      $rows[] = array(
+        check_plain($message_info[0]),
+        check_plain($message_info[1]),
+        l($message_info[2], "node/$gid/mail/$message_number"),
+      );
+    }
+  }
+  if (empty($rows)) {
+    return t("No messages in this forwarding list.");
+  }
+  else {
+    $header = array(
+      array('data' => t("Date"), 'field' => 'date'),
+      array('data' => t("From"), 'field' => 'from'),
+      array('data' => t("Subject"), 'field' => 'subject')
+    );
+    $table = array('header' => $header, 'rows' => $rows);
+    return theme('table', $table);
+  }
 }
 
 function wk_calendar_request_settings($form, &$form_state) {
@@ -3054,6 +3154,14 @@ function wk_og_membership_delete(OgMembership $og_membership) {
 function wk_exit() {
   if (isset($_SESSION['wk_og_membership_changed'])) {
     unset($_SESSION['wk_og_membership_changed']);
-    $pid = shell_exec(DRUPAL_ROOT . '/../bin/exportmailinglists <&- 1<&- 2<&- &');
+    $pid = shell_exec(dirname(DRUPAL_ROOT) . '/bin/exportmailinglists <&- 1<&- 2<&- &');
   }
+}
+
+function wk_show_list_messages($list_name) {
+  return shell_exec('sudo -u list ' . dirname(DRUPAL_ROOT) . '/bin/show-list-messages ' . escapeshellarg($list_name));
+}
+
+function wk_get_message_content($list_name, $message_number) {
+  return shell_exec('sudo -u list ' . dirname(DRUPAL_ROOT) . '/bin/show-list-messages ' . escapeshellarg($list_name) . ' ' . escapeshellarg($message_number));
 }
