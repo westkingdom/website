@@ -3183,14 +3183,40 @@ function wk_views_query_alter(&$view, &$query) {
         if (($condition['field'] == 'node.nid') && ($condition['operator'] = 'IN')) {
           if (isset($condition['value']->conditions()[0])) {
             $additional_tids = array();
+            // First add in parents
             foreach (taxonomy_get_parents_all($tid) as $info) {
               $parent_tid = $info->tid;
               if ($parent_tid != 75) {
                 $additional_tids[] = $parent_tid;
               }
             }
-            foreach($additional_tids as $t) {
-              $condition['value']->conditions()[0]['field']->conditions()[] = array('field' => 'tn.tid', 'value' => $t, 'operator' => '=');
+            // Then add in neighbors
+            $term_info = taxonomy_term_load($tid);
+            if (isset($term_info->taxonomy_vocabulary_2[LANGUAGE_NONE])) {
+              foreach ($term_info->taxonomy_vocabulary_2[LANGUAGE_NONE] as $tinfo) {
+                $additional_tids[] = $tinfo['tid'];
+              }
+            }
+            // At this point, we can search insided
+            // $condition['value']->conditions()[0]['field']->conditions()
+            // and find one that is:
+            //   'field' => 'tn.tid',
+            //   'value' => $view->args[0],
+            //   'operator' => '='.
+            // We will search out and find this entry, and convert it
+            // into an 'IN' search with our $additional_tids.
+            //
+            // Note that we could just add our own conditional onto the
+            // end, but doing it this way results in one fewer condition.
+            if (!empty($additional_tids)) {
+              $additional_tids[] = $tid;
+              foreach ($condition['value']->conditions()[0]['field']->conditions() as &$subquery_condition) {
+                if (is_array($subquery_condition) && ($subquery_condition['field'] == 'tn.tid') && ($subquery_condition['operator'] == '=')) {
+                  $subquery_condition['operator'] = 'IN';
+                  $subquery_condition['value'] = $additional_tids;
+                  break;
+                }
+              }
             }
           }
         }
