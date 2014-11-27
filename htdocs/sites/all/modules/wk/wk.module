@@ -3173,7 +3173,7 @@ function wk_get_message_content($list_name, $message_number) {
  * include all of the parent terms in addition to the children.
  */
 function wk_views_query_alter(&$view, &$query) {
-  if ($view->name == "calendar" && (is_numeric($view->args[0]))) {
+  if ($view->name == "calendar" && isset($view->args[0]) && (is_numeric($view->args[0]))) {
     $tid = $view->args[0];
     // Traverse through the 'where' part of the query.
     foreach ($query->where as &$condition_group) {
@@ -3181,15 +3181,17 @@ function wk_views_query_alter(&$view, &$query) {
         // If this is the part of the query filtering on title, chang the
         // condition to filter on node ID.
         if (($condition['field'] == 'node.nid') && ($condition['operator'] = 'IN')) {
-          $additional_tids = array();
-          foreach (taxonomy_get_parents_all($tid) as $info) {
-            $parent_tid = $info->tid;
-            if ($parent_tid != 75) {
-              $additional_tids[] = $parent_tid;
+          if (isset($condition['value']->conditions()[0])) {
+            $additional_tids = array();
+            foreach (taxonomy_get_parents_all($tid) as $info) {
+              $parent_tid = $info->tid;
+              if ($parent_tid != 75) {
+                $additional_tids[] = $parent_tid;
+              }
             }
-          }
-          foreach($additional_tids as $tid) {
-            $condition['value']->conditions()[0]['field']->conditions()[] = array('field' => 'tn.tid', 'value' => $tid, 'operator' => '=');
+            foreach($additional_tids as $t) {
+              $condition['value']->conditions()[0]['field']->conditions()[] = array('field' => 'tn.tid', 'value' => $t, 'operator' => '=');
+            }
           }
         }
       }
