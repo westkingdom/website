@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Install file for the domaincontext module.
+ */
+
+/**
+ * Implements hook_enable().
+ */
+function domaincontext_enable() {
+  context_invalidate_cache();
+}
