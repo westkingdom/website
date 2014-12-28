@@ -1,0 +1,15 @@
+name = Domain Context
+description = "Provides a Domain condition plugin for the Context module."
+package = "Domain Access"
+core = 7.x
+dependencies[] = domain
+dependencies[] = context
+
+files[] = plugins/domaincontext_context_condition_domain.inc
+
+; Information added by drupal.org packaging script on 2012-03-01
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "domaincontext"
+datestamp = "1330573242"
+
