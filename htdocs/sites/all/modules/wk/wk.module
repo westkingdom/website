@@ -2955,7 +2955,7 @@ function wk_export_mailinglists() {
           foreach (explode("\n", $officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value']) as $alias_shortname)
           {
             if (!empty($alias_shortname)) {
-              $aliases[$alias_shortname] = $list_email_address;
+              $aliases[trim($alias_shortname)] = $list_email_address;
             }
           }
         }
