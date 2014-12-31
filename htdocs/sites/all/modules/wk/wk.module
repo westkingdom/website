@@ -2931,7 +2931,8 @@ function wk_export_mailinglists() {
         $officeNode = node_load($gid);
         $office_shortname_components = wk_group_office_shortname_components($officeNode);
         $office_shortname = implode("-", $office_shortname_components);
-        $list_email_address = _wk_compose_group_email_list_name($branch_shortname, $office_shortname) . '@' . $primary_domain;
+        $list_name = _wk_compose_group_email_list_name($branch_shortname, $office_shortname);
+        $list_email_address = $list_name . '@' . $primary_domain;
 
         $members = array();
         $group_info = _wk_group_members($gid);
@@ -2942,20 +2943,20 @@ function wk_export_mailinglists() {
           }
         }
         $offices[$office_shortname]['members'] = $members;
-        $aliases['officers'][] = $list_email_address;
+        $aliases['officers'][] = $list_name;
 
         foreach ($office_shortname_components as $one_office_shortname) {
           $all_listname = 'all-' . $one_office_shortname;
           if (substr($all_listname, strlen($all_listname) - 1) != "s") {
             $all_listname .= 's';
           }
-          $west_aliases[$all_listname][] = $list_email_address;
+          $west_aliases[$all_listname][] = $list_name;
         }
         if (isset($officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value'])) {
           foreach (explode("\n", $officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value']) as $alias_shortname)
           {
             if (!empty($alias_shortname)) {
-              $aliases[trim($alias_shortname)] = $list_email_address;
+              $aliases[trim($alias_shortname)] = $list_name;
             }
           }
         }
