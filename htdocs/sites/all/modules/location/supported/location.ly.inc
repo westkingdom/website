@@ -1,7 +1,13 @@
 <?php
 
-// Libyan Arab Jamahiriya
+/**
+ * @file
+ * Libyan Arab Jamahiriya.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ly() {
   return array(
     'AJ' => "Ajdabiya",

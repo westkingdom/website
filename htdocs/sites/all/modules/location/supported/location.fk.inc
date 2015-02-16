@@ -1,7 +1,13 @@
 <?php
 
-// Falkland Islands (Malvinas)
+/**
+ * @file
+ * Falkland Islands (Malvinas).
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_fk() {
   return array();
 }

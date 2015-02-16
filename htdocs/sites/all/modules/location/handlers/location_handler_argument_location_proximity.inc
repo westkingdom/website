@@ -8,21 +8,27 @@
 /**
  * Argument handler to accept proximity
  */
+// @codingStandardsIgnoreStart
 class location_handler_argument_location_proximity extends views_handler_argument {
-  function option_definition() {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function option_definition() {
     $options = parent::option_definition();
     // As only us and uk use miles, make km the default otherwise.
     $country = variable_get('location_default_country', 'us');
     $options['search_units'] = array('default' => ($country == 'us' || $country == 'uk' ? 'mile' : 'km'));
     $options['search_method'] = array('default' => 'mbr');
     $options['type'] = array('default' => 'postal');
+
     return $options;
   }
 
   /**
    * Add a form elements to select options for this argument.
    */
-  function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
     $form['type'] = array(
       '#title' => t('Coordinate Type'),
@@ -32,7 +38,10 @@ class location_handler_argument_location_proximity extends views_handler_argumen
         'latlon' => t('Decimal Latitude and Longitude coordinates, comma delimited'),
       ),
       '#default_value' => $this->options['type'],
-      '#description' => t('Type of center point.') . '<br />' . t('Postal code argument format: country_postcode_distance or postcode_distance') . '<br />' . t('Lat/Lon argument format: lat,lon_distance') . '<br />' . t('where distance is either a number or a comma delimited pair of decimal degrees'),
+      '#description' => t('Type of center point.') . '<br />' . t(
+          'Postal code argument format: country_postcode_distance or postcode_distance'
+      ) . '<br />' . t('Lat/Lon argument format: lat,lon_distance') . '<br />' . t(
+      'where distance is either a number or a comma delimited pair of decimal degrees'),
     );
 
     // Units used.
@@ -57,11 +66,16 @@ class location_handler_argument_location_proximity extends views_handler_argumen
         'mbr' => t('Rectangular Proximity'),
       ),
       '#default_value' => $this->options['search_method'],
-      '#description' => t('Method of determining proximity. Please note that Circular Proximity does not work with Decimal degrees.'),
+      '#description' => t(
+        'Method of determining proximity. Note that Circular Proximity does not work with Decimal degrees.'
+      ),
     );
   }
 
-  function calculate_coords() {
+  /**
+   * Calculate coords.
+   */
+  public function calculate_coords() {
     if (!empty($this->value['latitude']) && !empty($this->value['longitude'])) {
       // If there are already coordinates, there's no work for us.
       return TRUE;
@@ -95,6 +109,7 @@ class location_handler_argument_location_proximity extends views_handler_argumen
         return FALSE;
       }
     }
+
     return TRUE;
   }
 
@@ -103,7 +118,7 @@ class location_handler_argument_location_proximity extends views_handler_argumen
    *
    * The argument sent may be found at $this->argument.
    */
-  function query($group_by = FALSE) {
+  public function query($group_by = FALSE) {
     // Get and process argument.
     if ($this->options['type'] == 'postal') {
       foreach ($this->view->argument as $argument) {
@@ -142,6 +157,7 @@ class location_handler_argument_location_proximity extends views_handler_argumen
         // Force nothing to match.
         $this->query->add_where(0, "1 = 0");
       }
+
       return;
     }
 
@@ -179,16 +195,25 @@ class location_handler_argument_location_proximity extends views_handler_argumen
     else {
       $where = "$this->table_alias.latitude > :minlat AND $this->table_alias.latitude < :maxlat AND $this->table_alias.longitude > :minlon AND $this->table_alias.longitude < :maxlon";
     }
-    $this->query->add_where_expression(0, $where, array(
-      ':minlat' => $latrange[0],
-      ':maxlat' => $latrange[1],
-      ':minlon' => $lonrange[0],
-      ':maxlon' => $lonrange[1]
-    ));
+    $this->query->add_where_expression(
+      0,
+      $where,
+      array(
+        ':minlat' => $latrange[0],
+        ':maxlat' => $latrange[1],
+        ':minlon' => $lonrange[0],
+        ':maxlon' => $lonrange[1]
+      )
+    );
 
     if ($this->options['search_method'] == 'dist') {
       // Add radius check.
-      $this->query->add_where_expression(0, earth_distance_sql($lon, $lat, $this->table_alias) . ' < :distance', array(':distance' => $distance_meters));
+      $this->query->add_where_expression(
+        0,
+        earth_distance_sql($lon, $lat, $this->table_alias) . ' < :distance',
+        array(':distance' => $distance_meters)
+      );
     }
   }
 }
+// @codingStandardsIgnoreEnd

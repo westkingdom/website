@@ -10,7 +10,7 @@
  */
 function location_token_info() {
   $type = array(
-    'name' => t('Location'),
+    'name' => t('Location', array(), array('context' => 'geolocation')),
     'description' => t('Tokens related to location.'),
     'needs-data' => 'location',
   );
@@ -75,14 +75,14 @@ function location_token_info() {
 
   $node = array(
     'location' => array(
-      'name' => t("Location"),
+      'name' => t('Location', array(), array('context' => 'geolocation')),
       'description' => t("The location for this node."),
       'type' => 'location',
     )
   );
   $user = array(
     'location' => array(
-      'name' => t("Location"),
+      'name' => t('Location', array(), array('context' => 'geolocation')),
       'description' => t("The location for this user."),
       'type' => 'location',
     )
@@ -163,8 +163,10 @@ function _locations_token_helper($locations, $location_key, $which = 0, array $o
   if ($location_key == 'country_name') {
     if (!empty($locations[$which]['country'])) {
       $val = location_country_name($locations[$which]['country']);
+
       return $sanitize ? check_plain($val) : $val;
     }
+
     return '';
   }
 
@@ -172,8 +174,10 @@ function _locations_token_helper($locations, $location_key, $which = 0, array $o
   if ($location_key == 'province_name') {
     if (!empty($locations[$which]['country']) && !empty($locations[$which]['province'])) {
       $val = location_province_name($locations[$which]['country'], $locations[$which]['province']);
+
       return $sanitize ? check_plain($val) : $val;
     }
+
     return '';
   }
 
@@ -181,5 +185,6 @@ function _locations_token_helper($locations, $location_key, $which = 0, array $o
   if (!empty($locations[$which][$location_key])) {
     return $sanitize ? check_plain($locations[$which][$location_key]) : $locations[$which][$location_key];
   }
+
   return '';
 }

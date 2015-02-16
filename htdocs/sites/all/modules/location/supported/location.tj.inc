@@ -1,7 +1,13 @@
 <?php
 
-// Tajikistan
+/**
+ * @file
+ * Tajikistan.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_tj() {
   return array(
     'GB' => "Gorno-Badakhstan",

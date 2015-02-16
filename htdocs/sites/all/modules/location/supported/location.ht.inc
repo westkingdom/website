@@ -1,7 +1,13 @@
 <?php
 
-// Haiti
+/**
+ * @file
+ * Haiti.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ht() {
   return array(
     'AR' => "Artibonite",

@@ -1,7 +1,13 @@
 <?php
 
-// Oman
+/**
+ * @file
+ * Oman.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_om() {
   return array(
     'DA' => "Ad Dakhiliyah",

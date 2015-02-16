@@ -1,7 +1,13 @@
 <?php
 
-// Honduras
+/**
+ * @file
+ * Honduras.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_hn() {
   return array(
     'AT' => "Atlantida",

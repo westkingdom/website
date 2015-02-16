@@ -1,7 +1,13 @@
 <?php
 
-// Pitcairn
+/**
+ * @file
+ * Pitcairn.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_pn() {
   return array();
 }

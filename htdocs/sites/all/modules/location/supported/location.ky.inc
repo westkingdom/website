@@ -1,7 +1,13 @@
 <?php
 
-// Cayman Islands
+/**
+ * @file
+ * Cayman Islands.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ky() {
   return array(
     'CR' => "Creek",

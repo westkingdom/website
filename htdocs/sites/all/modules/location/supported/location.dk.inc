@@ -1,7 +1,13 @@
 <?php
 
-// Denmark
+/**
+ * @file
+ * Denmark.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_dk() {
   return array(
     'CC' => "Copenhagen (municipality)",
@@ -21,7 +27,7 @@ function location_province_list_dk() {
     'AR' => "Arhus",
     'BH' => "Bornholm",
     'GL' => "Greenland",
-    'FO' => "Faroe Islands"
+    'FO' => "Faroe Islands",
   );
 }
 
@@ -29,9 +35,10 @@ function location_province_list_dk() {
  * Generate findvej.dk map link.
  *
  * @param array $location
- *    The location array we're trying to generate a link for.
- * @return string or null
- *    Map link if generation successful, otherwise null.
+ *   The location array we're trying to generate a link for.
+ *
+ * @return string|null
+ *   Map link if generation successful, otherwise null.
  */
 function location_map_link_dk_findvej($location = array()) {
   if (isset($location['street']) && !empty($location['street']) &&
@@ -45,12 +52,15 @@ function location_map_link_dk_findvej($location = array()) {
     return url('http://findvej.dk/' . $location['street'] . ',' . $location['city']);
   }
   elseif (location_has_coordinates($location)) {
-    return url('http://findvej.dk/', array(
-      'query' => array(
-        'latitude' => $location['latitude'],
-        'longitude' => $location['longitude'],
+    return url(
+      'http://findvej.dk/',
+      array(
+        'query' => array(
+          'latitude' => $location['latitude'],
+          'longitude' => $location['longitude'],
+        ),
       )
-    ));
+    );
   }
   else {
     return NULL;
@@ -63,9 +73,10 @@ function location_map_link_dk_findvej($location = array()) {
  * Rejseplanen is a route planner for Danish public transportation.
  *
  * @param array $location
- *    The location array we're trying to generate a link for.
- * @return string or null
- *    Map link if generation successful, otherwise null.
+ *   The location array we're trying to generate a link for.
+ *
+ * @return string|null
+ *   Map link if generation successful, otherwise null.
  */
 function location_map_link_dk_rejseplanen($location = array()) {
   $keys = array();
@@ -77,7 +88,7 @@ function location_map_link_dk_rejseplanen($location = array()) {
     }
   }
 
-  // Merge postal code and city if both are available, since they 
+  // Merge postal code and city if both are available, since they,
   // shouldn't be comma separated in Danish addresses.
   if (isset($keys['postal_code']) && isset($keys['city'])) {
     $keys['postal_code'] = $keys['postal_code'] . ' ' . $keys['city'];
@@ -94,7 +105,9 @@ function location_map_link_dk_rejseplanen($location = array()) {
 }
 
 /**
- * @return
+ * Providers.
+ *
+ * @return array
  *   An array where
  *     -> the key is the word that helps identify the name of function that builds the link.  For example, a key of 'yahoo' means the name of the
  *        the function that builds a link to a map on Yahoo! Maps would be 'location_map_link_us_yahoo'
@@ -114,13 +127,16 @@ function location_map_link_dk_providers() {
     'rejseplanen' => array(
       'name' => 'Rejseplanen',
       'url' => 'http://www.rejseplanen.dk/',
-      'tos' => 'http://info.rejseplanen.dk/om_rejseplanen', // As close as I could find.
+      // As close as I could find.
+      'tos' => 'http://info.rejseplanen.dk/om_rejseplanen',
     ),
   );
 }
 
 /**
- * @return
+ * Default providers.
+ *
+ * @return array
  *   An array of values that work as keys to the array returned by location_map_link_us_providers.  The idea is that if the
  *   administrator of the site has not yet had a chance to visit the "Map Links" subtab on the location module's settings page,
  *   that we can provide deep-linking to a relatively safe default.  By 'relatively safe', we mean that the Terms Of Service of
@@ -128,12 +144,10 @@ function location_map_link_dk_providers() {
  *
  *   For the case of the U.S., 'google' has relatively flexible Terms Of Service, whereas Yahoo! Maps and MapQuest have more
  *   restrictive Terms Of Service.
- *
  */
 function location_map_link_dk_default_providers() {
   return array('findvej', 'rejseplanen');
 }
-
 
 /**
  * Returns minimum and maximum latitude and longitude needed to create a bounding box.

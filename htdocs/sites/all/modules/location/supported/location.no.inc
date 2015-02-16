@@ -1,7 +1,13 @@
 <?php
 
-// Norway
+/**
+ * @file
+ * Norway.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_no() {
   return array(
     'AK' => "Akershus",
@@ -22,19 +28,25 @@ function location_province_list_no() {
     'TM' => "Telemark",
     'TR' => "Troms",
     'VA' => "Vest-Agder",
-    'VF' => "Vestfold"
+    'VF' => "Vestfold",
   );
 }
 
+/**
+ * LanLon rough.
+ */
 function _location_latlon_rough_no($location = array()) {
   if (!isset($location['postal_code'])) {
     return NULL;
   }
 
-  $row = db_query("SELECT latitude, longitude FROM {zipcodes} WHERE country = :country AND zip = :zip", array(
-    ':country' => $location['country'],
-    ':zip' => substr(str_pad($location['postal_code'], 5, '0', STR_PAD_LEFT), 0, 5)
-  ))->fetchObject();
+  $row = db_query(
+    "SELECT latitude, longitude FROM {zipcodes} WHERE country = :country AND zip = :zip",
+    array(
+      ':country' => $location['country'],
+      ':zip' => substr(str_pad($location['postal_code'], 5, '0', STR_PAD_LEFT), 0, 5)
+    )
+  )->fetchObject();
 
   if ($row) {
     return array('lat' => $row->latitude, 'lon' => $row->longitude);
@@ -45,9 +57,9 @@ function _location_latlon_rough_no($location = array()) {
 }
 
 /**
- * Returns a lat/lon pair of the approximate center of the given postal code in the given country
+ * Returns a lat/lon pair of the approximate center of the given postal code in the given country.
  *
- * @param $location
+ * @param array $location
  *   An associative array $location where only postal code and country are necessary, but can have the keys:
  *     'street'       => the street portion of the location
  *     'supplemental' => additional street portion of the location
@@ -55,29 +67,30 @@ function _location_latlon_rough_no($location = array()) {
  *     'country'      => lower-cased two-letter ISO code (REQUIRED)
  *     'postal_code'  => the international postal code for this location (REQUIRED)
  *
- * @return
+ * @return array
  *   An associative array where
  *      'lat' => approximate latitude of the center of the postal code's area
  *      'lon' => approximate longitude of the center of the postal code's area
  *      'city'     => the city
  *      'province'     => the province, state, or territory
  *      'country'      => lower-cased two-letter ISO code
- *
  */
 function _location_latlon_postalcode_no($location = array()) {
   // Now we pad the thing and query.
-  #$res = db_query("SELECT * FROM {zipcodes} where country = '%s' AND zip = '%s'", $location['country'], str_pad($location['postal_code'], 4, "0", STR_PAD_LEFT));
-  $row = db_query("SELECT * FROM {zipcodes} where country = :country AND zip = :zip", array(
-    ':country' => $location['country'],
-    ':zip' => $location['postal_code']
-  ))->fetchObject();
+  $row = db_query(
+    "SELECT * FROM {zipcodes} where country = :country AND zip = :zip",
+    array(
+      ':country' => $location['country'],
+      ':zip' => $location['postal_code'],
+    )
+  )->fetchObject();
   if ($row) {
     return array(
       'lat' => $row->latitude,
       'lon' => $row->longitude,
       'city' => $row->city,
       'province' => $row->state,
-      'country' => $row->country
+      'country' => $row->country,
     );
   }
   else {

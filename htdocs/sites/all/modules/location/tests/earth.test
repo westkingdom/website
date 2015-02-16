@@ -14,15 +14,15 @@ class LocationEarthTest extends LocationTestCase {
     return array(
       'name' => t('Location earth.inc tests'),
       'description' => t('Test earth.inc calculations.'),
-      'group' => t('Location'),
+      'group' => t('Location', array(), array('context' => 'geolocation')),
     );
   }
 
-  function setUp() {
+  public function setUp() {
     parent::setUp('location', 'location_node', 'devel');
   }
 
-  function testXYZ() {
+  public function testXYZ() {
     $expected = array(5076436.1926031, 3086400.2318368, 2312685.5571307);
     $result = earth_xyz(31.299, 21.4);
     $this->assertArrayEpsilon($result, $expected, 0.01);

@@ -1,7 +1,13 @@
 <?php
 
-// San Marino
+/**
+ * @file
+ * San Marino.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_sm() {
   return array(
     'AC' => "Acquaviva",

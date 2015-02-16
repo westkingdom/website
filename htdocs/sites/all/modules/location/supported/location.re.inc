@@ -1,7 +1,13 @@
 <?php
 
-// Reunion
+/**
+ * @file
+ * Reunion.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_re() {
   return array();
 }

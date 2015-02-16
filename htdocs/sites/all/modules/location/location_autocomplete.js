@@ -9,11 +9,11 @@
                 var input = null;
                 var result = this.className.match(/(location_auto_join_[^ ]*)/);
                 if (result) {
-                    input = $('.location_auto_province.' + result)
+                    input = $('.location_auto_province.' + result);
                 }
                 else {
                     // No joining class found, fallback to searching the immediate area.
-                    input = $('.location_auto_province', $(this).parents('fieldset:first, .views-exposed-form:first'))
+                    input = $('.location_auto_province', $(this).parents('fieldset:first, .views-exposed-form:first'));
                 }
 
                 if (input && input.length) {

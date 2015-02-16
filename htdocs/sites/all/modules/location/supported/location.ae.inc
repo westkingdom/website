@@ -1,7 +1,13 @@
 <?php
 
-// United Arab Emirates
+/**
+ * @file
+ * United Arab Emirates.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ae() {
   return array(
     'AZ' => "Abu Zaby",

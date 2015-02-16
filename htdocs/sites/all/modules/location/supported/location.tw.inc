@@ -1,7 +1,13 @@
 <?php
 
-// Taiwan, Province of China
+/**
+ * @file
+ * Taiwan, Province of China.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_tw() {
   return array(
     'CH' => "Chang-hua",

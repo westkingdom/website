@@ -1,7 +1,13 @@
 <?php
 
-// Hong Kong
+/**
+ * @file
+ * Hong Kong.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_hk() {
   return array(
     'HCW' => "Central and Western Hong Kong Island",

@@ -1,7 +1,13 @@
 <?php
 
-// Aruba
+/**
+ * @file
+ * Aruba.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_aw() {
   return array();
 }

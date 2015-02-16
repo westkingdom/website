@@ -1,7 +1,13 @@
 <?php
 
-// Korea, Republic Of (South Korea)
+/**
+ * @file
+ * Korea, Republic Of (South Korea).
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_kr() {
   return array(
     '11' => "Seoul Special City",

@@ -1,7 +1,13 @@
 <?php
 
-// Armenia
+/**
+ * @file
+ * Armenia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_am() {
   return array(
     'AGT' => "Aragatsotn",

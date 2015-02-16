@@ -1,7 +1,13 @@
 <?php
 
-// Zimbabwe
+/**
+ * @file
+ * Zimbabwe.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_zw() {
   return array(
     'BU' => "Bulawayo (city)",

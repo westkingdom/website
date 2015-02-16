@@ -1,7 +1,13 @@
 <?php
 
-// Nepal
+/**
+ * @file
+ * Nepal.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_np() {
   return array(
     'BA' => "Bagmati",

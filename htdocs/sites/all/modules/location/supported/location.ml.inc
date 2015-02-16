@@ -1,7 +1,13 @@
 <?php
 
-// Mali
+/**
+ * @file
+ * Mali.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ml() {
   return array(
     'GA' => "Gao",

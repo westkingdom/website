@@ -1,7 +1,13 @@
 <?php
 
-// Namibia
+/**
+ * @file
+ * Namibia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_na() {
   return array(
     'CA' => "Caprivi",

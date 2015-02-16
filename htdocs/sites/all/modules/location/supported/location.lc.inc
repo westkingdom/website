@@ -1,7 +1,13 @@
 <?php
 
-// Saint Lucia
+/**
+ * @file
+ * Saint Lucia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_lc() {
   return array(
     'AR' => "Anse-la-Raye",

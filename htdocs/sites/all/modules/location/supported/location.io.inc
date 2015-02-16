@@ -1,7 +1,13 @@
 <?php
 
-// British Indian Ocean Territory
+/**
+ * @file
+ * British Indian Ocean Territory.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_io() {
   return array(
     'PB' => "Peros Banhos",

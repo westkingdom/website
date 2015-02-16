@@ -1,7 +1,13 @@
 <?php
 
-// Wallis and Futuna
+/**
+ * @file
+ * Wallis and Futuna.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_wf() {
   return array(
     'A' => "Alo",

@@ -2,7 +2,7 @@
 
 /**
  * @file
- *   Install, update and uninstall functions for the location_email module.
+ * Install, update and uninstall functions for the location_email module.
  */
 
 /**
@@ -39,9 +39,11 @@ function location_email_schema() {
 function location_email_install() {
   // Change weight.
   db_update('system')
-    ->fields(array(
-      'weight' => 1,
-    ))
+    ->fields(
+      array(
+        'weight' => 1,
+      )
+    )
     ->condition('name', 'location_email')
     ->condition('type', 'module')
     ->execute();

@@ -1,7 +1,13 @@
 <?php
 
-// Gibraltar
+/**
+ * @file
+ * Gibraltar.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_gi() {
   return array();
 }

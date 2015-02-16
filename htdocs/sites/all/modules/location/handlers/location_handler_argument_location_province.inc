@@ -1,20 +1,30 @@
 <?php
 
 /**
+ * @file
  * Argument handler to accept a province code or name.
  */
+
+// @codingStandardsIgnoreStart
 class location_handler_argument_location_province extends views_handler_argument {
 
-  function option_definition() {
+  /**
+   * {@inheritdoc}
+   */
+  public function option_definition() {
     $options = parent::option_definition();
     $options['break_phrase'] = array('default' => FALSE);
+
     return $options;
   }
 
-  function options_form(&$form, &$form_state) {
+  /**
+   * {@inheritdoc}
+   */
+  public function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
-    // allow for , delimited values
+    // Allow for , delimited values.
     $form['break_phrase'] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow multiple terms per argument.'),
@@ -23,7 +33,10 @@ class location_handler_argument_location_province extends views_handler_argument
     );
   }
 
-  function query($group_by = FALSE) {
+  /**
+   * {@inheritdoc}
+   */
+  public function query($group_by = FALSE) {
     $this->ensure_my_table();
     if (!empty($this->options['break_phrase'])) {
       if ($this->argument != '') {
@@ -50,7 +63,7 @@ class location_handler_argument_location_province extends views_handler_argument
   /**
    * Override the behavior of title(). Get the province name.
    */
-  function title() {
+  public function title() {
     if (isset($this->view->argument['country'])) {
       $country = $this->view->argument['country']->argument;
     }
@@ -62,10 +75,14 @@ class location_handler_argument_location_province extends views_handler_argument
     foreach ($values as $value) {
       $title .= location_province_name($country, $value) . ", ";
     }
+
     return substr($title, 0, -2);
   }
 
-  function summary_name($data) {
+  /**
+   * {@inheritdoc}
+   */
+  public function summary_name($data) {
     $value = $data->{$this->name_alias};
     if (empty($value)) {
       return t('Unknown');
@@ -81,3 +98,4 @@ class location_handler_argument_location_province extends views_handler_argument
     return location_province_name($country, $value);
   }
 }
+// @codingStandardsIgnoreEnd

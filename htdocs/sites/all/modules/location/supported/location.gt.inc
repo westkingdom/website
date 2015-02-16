@@ -1,7 +1,13 @@
 <?php
 
-// Guatemala
+/**
+ * @file
+ * Guatemala.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_gt() {
   return array(
     'AV' => "Alta Verapaz",

@@ -1,7 +1,13 @@
 <?php
 
-// Costa Rica
+/**
+ * @file
+ * Costa Rica.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cr() {
   return array(
     'AL' => "Alajuela",

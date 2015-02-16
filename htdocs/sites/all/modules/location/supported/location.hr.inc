@@ -1,7 +1,13 @@
 <?php
 
-// Croatia
+/**
+ * @file
+ * Croatia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_hr() {
   return array(
     '01' => "Zagreb county",

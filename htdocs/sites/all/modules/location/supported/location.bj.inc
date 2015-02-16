@@ -1,7 +1,13 @@
 <?php
 
-// Benin
+/**
+ * @file
+ * Benin.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_bj() {
   return array(
     'AL' => "Alibori",

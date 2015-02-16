@@ -1,7 +1,13 @@
 <?php
 
-// Bahamas
+/**
+ * @file
+ * Bahamas.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_bs() {
   return array(
     'ACK' => "Acklins",

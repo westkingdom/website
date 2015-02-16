@@ -1,7 +1,13 @@
 <?php
 
-// Senegal
+/**
+ * @file
+ * Senegal.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_sn() {
   return array(
     'DA' => "Dakar",

@@ -1,31 +1,41 @@
 <?php
 
 /**
+ * @file
  * Filter on country.
  */
+
+// @codingStandardsIgnoreStart
 class location_handler_filter_location_country extends views_handler_filter_in_operator {
 
-  function option_definition() {
+  /**
+   * {@inheritdoc}
+   */
+  public function option_definition() {
     $options = parent::option_definition();
     $options['operator'] = array('default' => 'in');
+
     return $options;
   }
 
-
-  function admin_summary() {
+  /**
+   * {@inheritdoc}
+   */
+  public function admin_summary() {
     return '';
-//    $options = $this->operator_options('short');
-//    return (!empty($this->options['exposed']) ? t('exposed') : $options[$this->operator]);
   }
 
-  function get_value_options() {
+  /**
+   * {@inheritdoc}
+   */
+  public function get_value_options() {
     $this->value_options = location_get_iso3166_list();
   }
 
   /**
    * Provide widgets for filtering by country.
    */
-  function value_form(&$form, &$form_state) {
+  public function value_form(&$form, &$form_state) {
     $this->get_value_options();
     $options = $this->value_options;
     $default_value = (array) $this->value;
@@ -34,7 +44,7 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
       $identifier = $this->options['expose']['identifier'];
 
       if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator'])) {
-        // exposed and locked.
+        // Exposed and locked.
         $which = in_array($this->operator, $this->operator_values(1)) ? 'value' : 'none';
       }
       else {
@@ -73,14 +83,18 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
       '#options' => $options,
       // Used by province autocompletion js.
       '#attributes' => array('class' => array('location_auto_country')),
-      '#multiple' => TRUE, // views will change this as necessary when exposed.
+      // Views will change this as necessary when exposed.
+      '#multiple' => TRUE,
     );
 
     // Let location_autocomplete.js find the correct fields to attach.
     $form['value']['#attributes']['class'][] = 'location_auto_join_' . $this->options['expose']['identifier'];
   }
 
-  function reduce_value_options($input = NULL) {
+  /**
+   * {@inheritdoc}
+   */
+  public function reduce_value_options($input = NULL) {
     if (empty($this->options)) {
       $this->get_value_options();
     }
@@ -89,16 +103,20 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
       foreach ($this->options['value'] as $value) {
         $reduced_options[$value] = $this->value_options[$value];
       }
+
       return $reduced_options;
     }
+
     return $this->get_value_options();
   }
 
-  function accept_exposed_input($input) {
+  /**
+   * {@inheritdoc}
+   */
+  public function accept_exposed_input($input) {
     if (empty($this->options['exposed'])) {
       return TRUE;
     }
-
 
     if (!empty($this->options['expose']['use_operator']) && !empty($this->options['expose']['operator_id']) && isset($input[$this->options['expose']['operator_id']])) {
       $this->operator = $input[$this->options['expose']['operator_id']];
@@ -124,7 +142,7 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
 
       if (isset($value)) {
         $this->value = $value;
-        if (empty($this->always_multiple) && empty($this->options['expose']['multiple'])) {
+        if (empty($this->always_multiple) && empty($this->options['expose']['multiple']) && !is_array($value)) {
           $this->value = array($value);
         }
       }
@@ -136,7 +154,10 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
     return TRUE;
   }
 
-  function operator_options($which = 'title') {
+  /**
+   * {@inheritdoc}
+   */
+  public function operator_options($which = 'title') {
     if (empty($this->options['expose']['multiple'])) {
       return array(
         'in' => t('Is'),
@@ -151,7 +172,10 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
     }
   }
 
-  function query() {
+  /**
+   * {@inheritdoc}
+   */
+  public function query() {
     if (empty($this->value)) {
       return;
     }
@@ -169,14 +193,15 @@ class location_handler_filter_location_country extends views_handler_filter_in_o
     }
 
     if (is_array($value)) {
-      // Multiple values
+      // Multiple values.
       $operator = ($this->operator == 'in') ? 'IN' : 'NOT IN';
       $this->query->add_where($this->options['group'], $field, $value, $operator);
     }
     else {
-      // Single value
+      // Single value.
       $operator = ($this->operator == 'in') ? '=' : '!=';
       $this->query->add_where($this->options['group'], $field, $value, $operator);
     }
   }
 }
+// @codingStandardsIgnoreEnd

@@ -1,7 +1,13 @@
 <?php
 
-// Slovenia
+/**
+ * @file
+ * Slovenia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_si() {
   return array();
 }

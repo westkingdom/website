@@ -1,7 +1,13 @@
 <?php
 
-// Cote D'Ivoire
+/**
+ * @file
+ * Cote D'Ivoire.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ci() {
   return array(
     'ABE' => "Abengourou",

@@ -1,7 +1,13 @@
 <?php
 
-// French Guiana
+/**
+ * @file
+ * French Guiana.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_gf() {
   return array();
 }

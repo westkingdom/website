@@ -2,7 +2,7 @@
 
 /**
  * @file
- *   Install, update and uninstall functions for the location_fax module.
+ * Install, update and uninstall functions for the location_fax module.
  */
 
 /**
@@ -39,9 +39,11 @@ function location_fax_schema() {
 function location_fax_install() {
   // Change weight so we execute after location.
   db_update('system')
-    ->fields(array(
-      'weight' => 1,
-    ))
+    ->fields(
+      array(
+        'weight' => 1,
+      )
+    )
     ->condition('name', 'location_fax')
     ->condition('type', 'module')
     ->execute();
@@ -49,6 +51,7 @@ function location_fax_install() {
 
 /**
  * Location 3.0 update 1.
+ *
  * Fix pgsql -- The table definition was broken.
  */
 function location_fax_update_5300() {
@@ -80,6 +83,7 @@ function location_fax_update_5300() {
 
 /**
  * Location 3.0 update 2.
+ *
  * Change weight of module.
  */
 function location_fax_update_5301() {
@@ -88,14 +92,17 @@ function location_fax_update_5301() {
 
 /**
  * Location 3.0 update 2.
+ *
  * Change weight of module.
  */
 function location_fax_update_5302() {
   // Change weight.
   db_update('system')
-    ->fields(array(
-      'weight' => 1,
-    ))
+    ->fields(
+      array(
+        'weight' => 1,
+      )
+    )
     ->condition('name', 'location_fax')
     ->condition('type', 'module')
     ->execute();
@@ -105,11 +112,16 @@ function location_fax_update_5302() {
  * Drupal 6 updates.
  */
 function location_fax_update_6301() {
-  db_change_field('location_fax', 'fax', 'fax', array(
-    'description' => 'Fax number',
-    'type' => 'varchar',
-    'length' => 31,
-    'not null' => TRUE,
-    'default' => '',
-  ));
+  db_change_field(
+    'location_fax',
+    'fax',
+    'fax',
+    array(
+      'description' => 'Fax number',
+      'type' => 'varchar',
+      'length' => 31,
+      'not null' => TRUE,
+      'default' => '',
+    )
+  );
 }

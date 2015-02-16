@@ -1,7 +1,13 @@
 <?php
 
-// Rwanda
+/**
+ * @file
+ * Rwanda.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_rw() {
   return array(
     'BU' => "Butare",

@@ -1,7 +1,13 @@
 <?php
 
-// Netherlands Antilles
+/**
+ * @file
+ * Netherlands Antilles.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_an() {
   return array();
 }

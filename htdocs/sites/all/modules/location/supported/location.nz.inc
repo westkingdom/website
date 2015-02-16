@@ -1,9 +1,15 @@
 <?php
 
-// New Zealand
+/**
+ * @file
+ * New Zealand.
+ */
 
 /**
- * Returns an associative array of states/territories where
+ * Provinces list.
+ *
+ * @returns array
+ *   An associative array of states/territories where
  *   -> the keys are province codes
  *   -> the values are the English names for those states/territories
  *
@@ -12,31 +18,49 @@
  *
  * The territories are grouped together at the end of the array and sorted
  * alphabetically.
- *
  */
 function location_province_list_nz() {
   return array(
-    'AUK' => 'Auckland', // 1000-2xxx
-    'BOP' => 'Bay of Plenty', // 3xxx
-    'CAN' => 'Canterbury', // 8xxx
-    'GIS' => 'Gisborne', // 4xxx
-    'HKB' => 'Hawke\'s Bay', // 4xxx
-    'MBH' => 'Marlborough', // 7xxx
-    'MWT' => 'Manawatu-Wanganui', // 4xxx-4xxx
-    'NSN' => 'Nelson', // 7xxx-7xxx
-    'NTL' => 'Northland', // 0000-0999
-    'OTA' => 'Otago', // 9xxx-9xxx
-    'STL' => 'Southland', // 9xxx-9xxx
-    'TAS' => 'Tasman', // 7xxx-7xxx
-    'TKI' => 'Taranaki', // 4xxx-4xxx
-    'WGN' => 'Wellington', // 5000-6999
-    'WKO' => 'Waikato', // 2xxx-3xxx
-    'WTC' => 'West Coast', // 7xxx-7xxx
+    // 1000-2xxx
+    'AUK' => 'Auckland',
+    // 3xxx
+    'BOP' => 'Bay of Plenty',
+    // 8xxx
+    'CAN' => 'Canterbury',
+    // 4xxx
+    'GIS' => 'Gisborne',
+    // 4xxx
+    'HKB' => 'Hawke\'s Bay',
+    // 7xxx
+    'MBH' => 'Marlborough',
+    // 4xxx-4xxx
+    'MWT' => 'Manawatu-Wanganui',
+    // 7xxx-7xxx
+    'NSN' => 'Nelson',
+    // 0000-0999
+    'NTL' => 'Northland',
+    // 9xxx-9xxx
+    'OTA' => 'Otago',
+    // 9xxx-9xxx
+    'STL' => 'Southland',
+    // 7xxx-7xxx
+    'TAS' => 'Tasman',
+    // 4xxx-4xxx
+    'TKI' => 'Taranaki',
+    // 5000-6999
+    'WGN' => 'Wellington',
+    // 2xxx-3xxx
+    'WKO' => 'Waikato',
+    // 7xxx-7xxx
+    'WTC' => 'West Coast',
   );
 }
 
 /**
- * Returns an associative array of states/territories where
+ * Provinces keyed by number.
+ *
+ * @returns array
+ *   An associative array of states/territories where
  *   -> the keys are integers starting from 1
  *   -> the values are the English names for those states/territories
  *
@@ -76,9 +100,9 @@ function location_bounds_nz() {
 }
 
 /**
- * Returns a lat/lon pair of the approximate center of the given postal code in the given country
+ * Returns a lat/lon pair of the approximate center of the given postal code in the given country.
  *
- * @param $location
+ * @param array $location
  *   An associative array $location where
  *     'street'       => the street portion of the location
  *     'supplemental' => additional street portion of the location
@@ -86,20 +110,23 @@ function location_bounds_nz() {
  *     'country'      => lower-cased two-letter ISO code (REQUIRED)
  *     'postal_code'  => the international postal code for this location (REQUIRED)
  *
- * @return
+ * @return array
  *   An associative array where
  *      'lat' => approximate latitude of the center of the postal code's area
  *      'lon' => approximate longitude of the center of the postal code's area
- *
  */
 function location_latlon_rough_nz($location = array()) {
   if (!isset($location['postal_code'])) {
     return NULL;
   }
 
-  $result = db_query("SELECT latitude, longitude FROM {zipcodes} WHERE country = '%s' AND zip = '%s'", $location['country'], substr(str_pad($location['postal_code'], 4, '0', STR_PAD_LEFT), 0, 4));
+  $result = db_query(
+    "SELECT latitude, longitude FROM {zipcodes} WHERE country = '%s' AND zip = '%s'",
+    $location['country'],
+    substr(str_pad($location['postal_code'], 4, '0', STR_PAD_LEFT), 0, 4)
+  );
 
-  if ($row = db_fetch_object($result)) {
+  if ($row = $result->fetch()) {
     return array('lat' => $row->latitude, 'lon' => $row->longitude);
   }
   else {
@@ -108,9 +135,9 @@ function location_latlon_rough_nz($location = array()) {
 }
 
 /**
- * Returns a lat/lon pair of the approximate center of the given postal code in the given country
+ * Returns a lat/lon pair of the approximate center of the given postal code in the given country.
  *
- * @param $location
+ * @param array $location
  *   An associative array $location where only postal code and country are necessary, but can have the keys:
  *     'street'       => the street portion of the location
  *     'supplemental' => additional street portion of the location
@@ -118,21 +145,24 @@ function location_latlon_rough_nz($location = array()) {
  *     'country'      => lower-cased two-letter ISO code (REQUIRED)
  *     'postal_code'  => the international postal code for this location (REQUIRED)
  *
- * @return
- *   An associative array where
+ * @return array
+ *   An array associative array where
  *      'lat' => approximate latitude of the center of the postal code's area
  *      'lon' => approximate longitude of the center of the postal code's area
- *
  */
 function _location_latlon_postalcode_nz($location = array()) {
-  $res = db_query("SELECT * FROM {zipcodes} where country = '%s' AND zip = '%s'", $location['country'], str_pad($location['postal_code'], 4, "0", STR_PAD_LEFT));
-  if ($row = db_fetch_object($res)) {
+  $res = db_query(
+    "SELECT * FROM {zipcodes} where country = '%s' AND zip = '%s'",
+    $location['country'],
+    str_pad($location['postal_code'], 4, "0", STR_PAD_LEFT)
+  );
+  if ($row = $res->fetch()) {
     return array(
       'lat' => $row->latitude,
       'lon' => $row->longitude,
       'city' => $row->city,
       'province' => $row->state,
-      'country' => $row->country
+      'country' => $row->country,
     );
   }
   else {
@@ -141,34 +171,28 @@ function _location_latlon_postalcode_nz($location = array()) {
 }
 
 /**
- * Parameters:
- *   An associative array $location where
- *     'street'       => the street portion of the location
- *     'supplemental' => additional street portion of the location
- *     'province'     => the province, state, or territory
- *     'country'      => lower-cased two-letter ISO code (REQUIRED)
- *     'postal_code'  => the international postal code for this location (REQUIRED)
+ * LatLon exact nz.
  */
 function location_latlon_exact_nz($location = array()) {
   // By uncommenting the line of code below, you legally acknowledge that you understand that you can only
   // do so under the terms of the Non-Commercial Share-alike license described at http://creativecommons.org/licenses/by-nc-sa/2.0/
-  //return _location_latlon_exact_nz_geocoder($location);
+  // return _location_latlon_exact_nz_geocoder($location);
   return NULL;
 }
 
 /**
  * Calls up a web-service to retrieve a lat/lon pair for a full, correct NZ location.
  *
- * @param $location
- *    An associative array that represents an location where
+ * @param array $location
+ *   An associative array that represents an location where
  *        'street'       => is the street location
  *        'supplemental' => any supplemental portion to the street location
  *        'city'         => city name
  *        'province'     => state, province, or territorial abbreviation
  *        'postal_code'  => postal code
  *
- * @return
- *    An associative array where
+ * @return array
+ *   An associative array where
  *        'lat' => Is a float value in latitude
  *        'lon' => Is a float value in longitude
  *    If the location supplied does not provide enough information, NULL is returned.
@@ -181,10 +205,13 @@ function _location_latlon_exact_nz_geocoder($location = array()) {
     if (isset($location['postal_code'])) {
       $location_string = $location['street'] . ' ' . $location['postal_code'];
     }
-    elseif (isset($location['city']) && isset($location['province']) && trim($location['city']) != '' && trim($location['province'])) {
+    elseif (isset($location['city']) && isset($location['province']) && trim($location['city']) != '' && trim(
+        $location['province']
+      )
+    ) {
       $location_string = $location['street'] . ', ' . $location['city'] . ', ' . $location['province'];
     }
-    else { // else geocoder.us won't do bidness with you!
+    else {
       return NULL;
     }
   }
@@ -194,17 +221,24 @@ function _location_latlon_exact_nz_geocoder($location = array()) {
 
   $result = xmlrpc('http://rpc.geocoder.us/service/xmlrpc', 'geocode', $location_string);
 
-  if (is_array($result) && is_array($result[0]) && isset($result[0]['lat']) && is_numeric($result[0]['lat']) && isset($result[0]['long']) && is_numeric($result[0]['long'])) {
+  if (is_array($result) && is_array($result[0]) && isset($result[0]['lat']) && is_numeric(
+      $result[0]['lat']
+    ) && isset($result[0]['long']) && is_numeric($result[0]['long'])
+  ) {
     return array('lat' => $result[0]['lat'], 'lon' => $result[0]['long']);
   }
+
   return NULL;
 }
 
 /**
- * Return a Yahoo! map URL
+ * Return a Yahoo! map URL.
  *
- * @param array location data
- * @return string URL
+ * @param array $location
+ *   Location data.
+ *
+ * @return string
+ *   URL
  */
 function location_map_link_nz_yahoo($location = array()) {
   $get_query = '?';
@@ -215,14 +249,18 @@ function location_map_link_nz_yahoo($location = array()) {
     $get_query .= 'csz=' . _location_nz_yahoo_csz_get_field($location) . '&amp;';
   }
   $get_query .= 'country=' . urlencode($location['country']);
+
   return ('http://maps.yahoo.com/maps_result' . $get_query);
 }
 
 /**
- * Return a Google map URL
+ * Return a Google map URL.
  *
- * @param array location data
- * @return string URL
+ * @param array $location
+ *   Location data.
+ *
+ * @return string
+ *   URL
  */
 function location_map_link_nz_google($location = array()) {
   $query_params = array();
@@ -244,10 +282,14 @@ function location_map_link_nz_google($location = array()) {
 /**
  * Return a MapQuest map URL.
  *
- * @param array location data
- * @return string URL
+ * @param array $location
+ *   Location data.
+ *
+ * @return string
+ *   URL
  */
 function location_map_link_nz_mapquest($location = array()) {
+  $get_query = '';
   if (isset($location['street'])) {
     $get_query .= 'address=' . urlencode($location['street']) . '&amp;';
   }
@@ -272,7 +314,9 @@ function location_map_link_nz_mapquest($location = array()) {
 }
 
 /**
- * @return
+ * Link providers.
+ *
+ * @return array
  *   An array where
  *     -> the key is the word that helps identify the name of function that builds the link.  For example, a key of 'yahoo' means the name of the
  *        the function that builds a link to a map on Yahoo! Maps would be 'location_map_link_nz_yahoo'
@@ -287,23 +331,25 @@ function location_map_link_nz_providers() {
     'google' => array(
       'name' => t('Google Maps'),
       'url' => 'http://maps.google.com',
-      'tos' => 'http://www.google.com/help/terms_local.html'
+      'tos' => 'http://www.google.com/help/terms_local.html',
     ),
     'yahoo' => array(
       'name' => 'Yahoo! Maps',
       'url' => 'http://maps.yahoo.com',
-      'tos' => 'http://help.yahoo.com/help/us/maps/maps-24.html'
+      'tos' => 'http://help.yahoo.com/help/us/maps/maps-24.html',
     ),
     'mapquest' => array(
       'name' => 'MapQuest',
       'url' => 'http://www.mapquest.com',
-      'tos' => 'http://www.mapquest.com/features/main.adp?page=legal'
-    )
+      'tos' => 'http://www.mapquest.com/features/main.adp?page=legal',
+    ),
   );
 }
 
 /**
- * @return
+ * Default providers.
+ *
+ * @return array
  *   An array of values that work as keys to the array returned by location_map_link_nz_providers.  The idea is that if the
  *   administrator of the site has not yet had a chance to visit the "Map Links" subtab on the location module's settings page,
  *   that we can provide deep-linking to a relatively safe default.  By 'relatively safe', we mean that the Terms Of Service of
@@ -311,22 +357,27 @@ function location_map_link_nz_providers() {
  *
  *   For the case of the U.S., 'google' has relatively flexible Terms Of Service, whereas Yahoo! Maps and MapQuest have more
  *   restrictive Terms Of Service.
- *
  */
 function location_map_link_nz_default_providers() {
   return array('google');
 }
 
+/**
+ * Geocode providers.
+ */
 function location_geocode_nz_providers() {
   return array(
     'yahoo' => array(
       'name' => 'Yahoo! Maps Web Services',
       'url' => 'http://developer.yahoo.com/maps/rest/V1/geocode.html',
-      'tos' => 'http://developer.yahoo.com/maps/mapsTerms.html'
+      'tos' => 'http://developer.yahoo.com/maps/mapsTerms.html',
     ),
   );
 }
 
+/**
+ * Yahoo settings.
+ */
 function location_geocode_nz_yahoo_settings() {
   $form = array();
 
@@ -336,33 +387,42 @@ function location_geocode_nz_yahoo_settings() {
     '#size' => 64,
     '#maxlength' => 128,
     '#default_value' => variable_get('location_geocode_nz_yahoo_appid', 'YahooDemo'),
-    '#description' => t('Unless you are using this site to test and develop, you will need to obtain a Yahoo! Web Services Application ID from the %network_link.  If you are using for development and testing purposes, you can use \'YahooDemo\' as your AppID.  When getting an Application ID from Yahoo!, please also be sure to review the %usage_policy.', array(
-      '%network_link' => '<a href="http://api.search.yahoo.com/webservices/register_application">Yahoo! Developer Network</a>',
-      '%usage_policy' => '<a href="http://developer.yahoo.com/usagePolicy/index.html">usage policy</a>'
-    ))
+    '#description' => t(
+      'Unless you are using this site to test and develop, you will need to obtain a Yahoo! Web Services Application ID from the %network_link.  If you are using for development and testing purposes, you can use \'YahooDemo\' as your AppID.  When getting an Application ID from Yahoo!, be sure to review the %usage_policy.',
+      array(
+        '%network_link' => '<a href="http://api.search.yahoo.com/webservices/register_application">Yahoo! Developer Network</a>',
+        '%usage_policy' => '<a href="http://developer.yahoo.com/usagePolicy/index.html">usage policy</a>',
+      )
+    ),
   );
 
   return $form;
 }
 
+/**
+ * Geocode Yahoo.
+ */
 function location_geocode_nz_yahoo($location = array()) {
-  $service_url = "http://api.local.yahoo.com/MapsService/V1/geocode?appid=" . variable_get('location_geocode_nz_yahoo_appid', "YahooDemo") . "&location=";
+  $service_url = "http://api.local.yahoo.com/MapsService/V1/geocode?appid=" . variable_get(
+      'location_geocode_nz_yahoo_appid',
+      "YahooDemo"
+    ) . "&location=";
 
   $address = location_address2singleline($location);
 
   $http_reply = drupal_http_request($service_url . urlencode($address));
 
-  // address may have been improperly formatted or invalid
+  // Address may have been improperly formatted or invalid.
   if ($http_reply->code == 400) {
     return NULL;
   }
   else {
-    // got a successful reply, but we only want to return if we have address-level precision
+    // Got a successful reply, but we only want to return if we have address-level precision.
     $matches = array();
     preg_match('/precision="([a-z]*)"/', $http_reply->data, $matches);
 
     if ($matches[1] != 'address') {
-      // The precision we got back was not down to the street-address level
+      // The precision we got back was not down to the street-address level.
       return NULL;
     }
     else {
@@ -390,6 +450,8 @@ function location_geocode_nz_yahoo($location = array()) {
 }
 
 /**
+ * Direction links.
+ *
  * Parameters:
  *   -> $location_a is an associative array that represents a full location where
  *        'street'       => the street portions of the location
@@ -410,6 +472,8 @@ function location_driving_directions_link_nz($location_a, $location_b) {
 }
 
 /**
+ * Yahoo link.
+ *
  * Parameters:
  *    Function that is called by location_driving_directions_link_nz() under assumption that it
  *    is the chosen function
@@ -460,6 +524,9 @@ function _location_driving_directions_link_nz_yahoo($location_a, $location_b) {
   return ('http://maps.yahoo.com/' . $yahoo_maps_path . $get_query);
 }
 
+/**
+ * Yahoo fields.
+ */
 function _location_nz_enough_fields_for_yahoo($location) {
   // These are the fields that need to be in each location if we are to provide a direct
   // link to yahoo directions.  If all of these fields don't have values, then we generate
@@ -481,8 +548,9 @@ function _location_nz_enough_fields_for_yahoo($location) {
 }
 
 /**
- * Don't mess with this function unless you understand its logic.  It has to do with
- * the question of "to comma or not to comma?"
+ * Don't mess with this function unless you understand its logic.
+ *
+ * It has to do with the question of "to comma or not to comma?
  */
 function _location_nz_yahoo_csz_get_field($location) {
   // For some reasons, to the end of pinpointing a location, Yahoo! Maps and Driving Directions
@@ -515,9 +583,13 @@ function _location_nz_yahoo_csz_get_field($location) {
       return urlencode($location['state']);
     }
   }
+
   return '';
 }
 
+/**
+ * Geocode oneline.
+ */
 function _location_nz_geocoder_oneline($location = array()) {
   $line = '';
 
@@ -542,7 +614,5 @@ function _location_nz_geocoder_oneline($location = array()) {
       $line .= $location['postal_code'];
     }
   }
-  // DEBUG: commented code is for testing/debugging purposes
-  //print '_location_nz_geocoder_oneline() RETURNING '. $line ."<br/>\n";
   return $line;
 }

@@ -1,7 +1,13 @@
 <?php
 
-// Malawi
+/**
+ * @file
+ * Malawi.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mw() {
   return array(
     'BLK' => "Balaka",

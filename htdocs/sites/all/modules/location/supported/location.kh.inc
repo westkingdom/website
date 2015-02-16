@@ -1,7 +1,13 @@
 <?php
 
-// Cambodia
+/**
+ * @file
+ * Cambodia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_kh() {
   return array(
     'PP' => "Phnom Penh",

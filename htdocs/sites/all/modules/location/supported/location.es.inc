@@ -1,7 +1,13 @@
 <?php
 
-// Spain
+/**
+ * @file
+ * Spain.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_es() {
   return array(
     'AL' => "Alava",

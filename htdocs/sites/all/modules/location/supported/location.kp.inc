@@ -1,7 +1,13 @@
 <?php
 
-// Korea, Democratic People's Republic Of (North Korea)
+/**
+ * @file
+ * Korea, Democratic People's Republic Of (North Korea).
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_kp() {
   return array(
     'CHA' => "Chagang-do",

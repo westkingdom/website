@@ -1,7 +1,13 @@
 <?php
 
-// Cocos (Keeling) Islands
+/**
+ * @file
+ * Cocos (Keeling) Islands.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cc() {
   return array(
     'D' => "Direction Island",

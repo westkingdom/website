@@ -1,7 +1,13 @@
 <?php
 
-// Tanzania, United Republic of
+/**
+ * @file
+ * Tanzania, United Republic of.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_tz() {
   return array(
     'AR' => "Arusha",

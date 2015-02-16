@@ -1,7 +1,13 @@
 <?php
 
-// Chile
+/**
+ * @file
+ * Chile.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cl() {
   return array(
     'AI' => "Aisen del General Carlos Ibanez del Campo (XI)",

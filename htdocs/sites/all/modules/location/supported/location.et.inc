@@ -1,7 +1,13 @@
 <?php
 
-// Ethiopia
+/**
+ * @file
+ * Ethiopia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_et() {
   return array(
     'AF' => "Afar",

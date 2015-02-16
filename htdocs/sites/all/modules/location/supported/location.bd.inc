@@ -1,7 +1,13 @@
 <?php
 
-// Bangladesh
+/**
+ * @file
+ * Bangladesh.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_bd() {
   return array(
     'BAR' => "Barisal",

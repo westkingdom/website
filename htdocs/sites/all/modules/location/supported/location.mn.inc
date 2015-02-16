@@ -1,7 +1,13 @@
 <?php
 
-// Mongolia
+/**
+ * @file
+ * Mongolia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mn() {
   return array(
     '1' => "Ulanbaatar",

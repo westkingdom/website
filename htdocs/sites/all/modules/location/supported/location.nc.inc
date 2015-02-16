@@ -1,7 +1,13 @@
 <?php
 
-// New Caledonia
+/**
+ * @file
+ * New Caledonia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_nc() {
   return array(
     'L' => "Iles Loyaute",

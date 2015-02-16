@@ -1,7 +1,13 @@
 <?php
 
-// Dominica
+/**
+ * @file
+ * Dominica.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_dm() {
   return array(
     'AND' => "Saint Andrew Parish",

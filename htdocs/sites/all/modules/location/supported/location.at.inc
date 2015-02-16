@@ -1,7 +1,13 @@
 <?php
 
-// Austria
+/**
+ * @file
+ * Austria.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_at() {
   return array(
     'BUR' => "Burgenland",

@@ -1,8 +1,13 @@
 ﻿<?php
-// $Id: location.pt.inc,v 1.6 2008/01/24 09:00:03 bdragon Exp $
 
-// Portugal
+/**
+ * @file
+ * Portugal.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_pt() {
   return array(
     'Aveiro' => "Aveiro",
@@ -24,10 +29,13 @@ function location_province_list_pt() {
     'Setúbal' => "Setúbal",
     'Viana do Castelo' => "Viana do Castelo",
     'Vila Real' => "Vila Real",
-    'Viseu' => "Viseu"
+    'Viseu' => "Viseu",
   );
 }
 
+/**
+ * Link providers.
+ */
 function location_map_link_pt_providers() {
   return array(
     'google' => array(
@@ -38,10 +46,16 @@ function location_map_link_pt_providers() {
   );
 }
 
+/**
+ * Default providers.
+ */
 function location_map_link_pt_default_providers() {
   return array('google');
 }
 
+/**
+ * Google link.
+ */
 function location_map_link_pt_google($location = array()) {
   $query_params = array();
   $q = NULL;

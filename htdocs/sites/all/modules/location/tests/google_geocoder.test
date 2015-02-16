@@ -8,24 +8,27 @@
 require_once drupal_get_path('module', 'location') . '/tests/location_testcase.test';
 require_once drupal_get_path('module', 'location') . '/tests/geocoder_api_keys.inc';
 
+/**
+ * Class LocationGoogleGeocoderTest.
+ */
 class LocationGoogleGeocoderTest extends LocationTestCase {
 
   public static function getInfo() {
     return array(
       'name' => t('Location Google Geocoder tests(broken!!!)'),
       'description' => t('Test address mangling for the google geocoder.'),
-      'group' => t('Location'),
+      'group' => t('Location', array(), array('context' => 'geolocation')),
     );
   }
 
-  function setUp() {
+  public function setUp() {
     parent::setUp('location', 'location_node', 'devel');
     variable_set('location_geocode_google_apikey', TESTING_APIKEY_GOOGLE_MAPS);
     $web_admin = $this->drupalCreateUser(array_keys(module_invoke_all('permission')));
     $this->drupalLogin($web_admin);
   }
 
-  function testUSA() {
+  public function testUSA() {
     // Initialize the geocoder.
     $settings = array(
       'location_geocode_us' => 'google',
@@ -38,20 +41,22 @@ class LocationGoogleGeocoderTest extends LocationTestCase {
 
     $location1_name = $this->randomName();
 
-    $node = $this->drupalCreateNode(array(
-      'type' => $location_type,
-      'locations' => array(
-        0 => array(
-          'name' => $location1_name,
-          'location_settings' => $settings,
-          'street' => '1600 Amphitheatre Parkway',
-          'city' => 'Mountain View',
-          'province' => 'CA',
-          'postal_code' => '94043',
-          'country' => 'us',
+    $node = $this->drupalCreateNode(
+      array(
+        'type' => $location_type,
+        'locations' => array(
+          0 => array(
+            'name' => $location1_name,
+            'location_settings' => $settings,
+            'street' => '1600 Amphitheatre Parkway',
+            'city' => 'Mountain View',
+            'province' => 'CA',
+            'postal_code' => '94043',
+            'country' => 'us',
+          ),
         ),
-      ),
-    ));
+      )
+    );
 
     // Reload the node.
     $node2 = node_load($node->nid, NULL, TRUE);

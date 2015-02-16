@@ -1,7 +1,13 @@
 <?php
 
-// Greenland
+/**
+ * @file
+ * Greenland.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_gl() {
   return array(
     'A' => "Avannaa",

@@ -1,7 +1,13 @@
 <?php
 
-// Indonesia
+/**
+ * @file
+ * Indonesia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_id() {
   return array(
     'BA' => "Bali",

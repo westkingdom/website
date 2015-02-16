@@ -1,7 +1,13 @@
 <?php
 
-// Northern Mariana Islands
+/**
+ * @file
+ * Northern Mariana Islands.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mp() {
   return array(
     'N' => "Northern Islands",

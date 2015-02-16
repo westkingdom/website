@@ -1,7 +1,13 @@
 <?php
 
-// Guyana
+/**
+ * @file
+ * Guyana.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_gy() {
   return array(
     'BW' => "Barima-Waini",

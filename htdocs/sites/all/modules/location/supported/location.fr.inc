@@ -1,7 +1,13 @@
 <?php
 
-// France
+/**
+ * @file
+ * France.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_fr() {
   return array(
     'A01' => "Ain (01) ",
@@ -107,6 +113,9 @@ function location_province_list_fr() {
   );
 }
 
+/**
+ * Providers.
+ */
 function location_map_link_fr_providers() {
   return array(
     'google' => array(
@@ -117,10 +126,16 @@ function location_map_link_fr_providers() {
   );
 }
 
+/**
+ * Default providers.
+ */
 function location_map_link_fr_default_providers() {
   return array('google');
 }
 
+/**
+ * Google link.
+ */
 function location_map_link_fr_google($location = array()) {
   $query_params = array();
 

@@ -1,7 +1,13 @@
 <?php
 
-// Zambia
+/**
+ * @file
+ * Zambia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_zm() {
   return array(
     'CE' => "Central Province",

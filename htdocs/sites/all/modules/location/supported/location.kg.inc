@@ -1,7 +1,13 @@
 <?php
 
-// Kyrgyzstan
+/**
+ * @file
+ * Kyrgyzstan.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_kg() {
   return array(
     'GB' => "Bishkek",

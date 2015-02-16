@@ -1,7 +1,13 @@
 <?php
 
-// Monaco
+/**
+ * @file
+ * Monaco.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mc() {
   return array(
     'FV' => "Fontvieille",

@@ -1,7 +1,13 @@
 <?php
 
-// Timor Leste
+/**
+ * @file
+ * Timor Leste.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_tl() {
   return array(
     'AL' => "Aileu",

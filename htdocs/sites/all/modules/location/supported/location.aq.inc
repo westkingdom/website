@@ -1,7 +1,13 @@
 <?php
 
-// Antarctica
+/**
+ * @file
+ * Antarctica.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_aq() {
   return array();
 }

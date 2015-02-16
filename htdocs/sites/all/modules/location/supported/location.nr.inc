@@ -1,7 +1,13 @@
 <?php
 
-// Nauru
+/**
+ * @file
+ * Nauru.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_nr() {
   return array(
     'AO' => "Aiwo",

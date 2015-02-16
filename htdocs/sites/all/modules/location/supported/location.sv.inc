@@ -1,7 +1,13 @@
 <?php
 
-// El Salvador
+/**
+ * @file
+ * El Salvador.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_sv() {
   return array(
     'AH' => "Ahuachapan",

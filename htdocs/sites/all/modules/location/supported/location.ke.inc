@@ -1,7 +1,13 @@
 <?php
 
-// Kenya
+/**
+ * @file
+ * Kenya.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ke() {
   return array(
     'CE' => "Central",

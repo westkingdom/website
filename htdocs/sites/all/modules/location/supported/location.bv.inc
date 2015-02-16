@@ -1,7 +1,13 @@
 <?php
 
-// Bouvet Island
+/**
+ * @file
+ * Bouvet Island.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_bv() {
   return array();
 }

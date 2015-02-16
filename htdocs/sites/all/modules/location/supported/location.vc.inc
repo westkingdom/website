@@ -1,7 +1,13 @@
 <?php
 
-// Saint Vincent and the Grenadines
+/**
+ * @file
+ * Saint Vincent and the Grenadines.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_vc() {
   return array(
     'C' => "Charlotte",

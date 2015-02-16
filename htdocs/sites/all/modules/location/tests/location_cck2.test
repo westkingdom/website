@@ -11,33 +11,33 @@ class LocationCCK2Test extends LocationTestCase {
   /**
    * A global administrative user.
    */
-  var $admin_user;
+  public $admin_user;
 
   /**
    * A global normal user.
    */
-  var $normal_user;
+  public $normal_user;
 
   /**
    * A default content type.
    */
-  var $content_type;
+  public $content_type;
 
   /**
    * A default content name.
    */
-  static $name;
+  static public $name;
 
   /**
    * A default content name.
    */
-  static $field_name;
+  static public $field_name;
 
   public static function getInfo() {
     return array(
       'name' => t('Location CCK2 checks'),
       'description' => t('Yet One Test corner cases of the CCK Location module.'),
-      'group' => t('Location'),
+      'group' => t('Location', array(), array('context' => 'geolocation')),
     );
   }
 
@@ -52,6 +52,7 @@ class LocationCCK2Test extends LocationTestCase {
     if (!self::$name) {
       $this->addLocationContentType2();
     }
+
     return self::$name;
   }
 
@@ -59,6 +60,7 @@ class LocationCCK2Test extends LocationTestCase {
     if (!self::$field_name) {
       $this->addLocationContentType2();
     }
+
     return self::$field_name;
   }
 
@@ -76,7 +78,6 @@ class LocationCCK2Test extends LocationTestCase {
       $this->drupalPost('admin/structure/types/add', $form, 'Save content type');
       $this->assertText(t('The content type ' . self::$name . ' has been added'));
       unset($form);
-
 
       if (!self::$field_name) {
         self::$field_name = strtolower($this->randomName(8));
@@ -119,11 +120,11 @@ class LocationCCK2Test extends LocationTestCase {
     $this->assertTrue($this->getTestContentName(), t('Content type' . $this->getTestContentName() . ' created'));
 
     // test node creation
-    $node2 = $this->drupalCreateNode(array(
-      'type' => $this->getTestContentName(),
-    ));
-// @todo remove debug
-//    $this->fail('<pre>' . print_r($node2, TRUE) . '</pre>', 'Debug');
+    $node2 = $this->drupalCreateNode(
+      array(
+        'type' => $this->getTestContentName(),
+      )
+    );
     $fieldname = 'field_' . $this->getTestFieldName();
     $fielddata = $node2->$fieldname;
     // @todo remove debug

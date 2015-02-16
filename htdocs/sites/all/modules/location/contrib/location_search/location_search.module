@@ -9,7 +9,7 @@
  * Implements hook_menu().
  */
 function location_search_menu() {
-  $items['admin/settings/location/search'] = array(
+  $items['admin/config/content/location/search'] = array(
     'title' => 'Search options',
     'description' => 'Settings for Location Search module',
     'page callback' => 'drupal_get_form',
@@ -75,6 +75,7 @@ function location_search_search_reset() {
 function location_search_search_status() {
   $total = db_query('SELECT COUNT(lid) FROM {location}')->fetchField();
   $remaining = db_query('SELECT COUNT(lid) FROM {location_search_work}')->fetchField();
+
   return array('remaining' => $remaining, 'total' => $total);
 }
 
@@ -142,7 +143,7 @@ function location_search_search_execute($keys = NULL, $conditions = NULL) {
   }
   else {
     $query = db_select('location', 'l')->extend('PagerDefault');
-    // sid is the alias so that our results match the fulltext search results.
+    // Sid is the alias so that our results match the fulltext search results.
     $query->addField('l', 'lid', 'sid');
     // Add access control.
     if (!location_search_add_access_control($query)) {
@@ -197,7 +198,11 @@ function location_search_search_execute($keys = NULL, $conditions = NULL) {
   foreach ($lids as $lid) {
     $loc = location_load_location($lid);
 
-    $result = db_query('SELECT nid, uid, genid FROM {location_instance} WHERE lid = :lid', array(':lid' => $lid), array('fetch' => PDO::FETCH_ASSOC));
+    $result = db_query(
+      'SELECT nid, uid, genid FROM {location_instance} WHERE lid = :lid',
+      array(':lid' => $lid),
+      array('fetch' => PDO::FETCH_ASSOC)
+    );
     $instance_links = array();
     foreach ($result as $row) {
       $instance_links[] = $row;
@@ -210,16 +215,17 @@ function location_search_search_execute($keys = NULL, $conditions = NULL) {
     );
 
   }
+
   return $results;
 }
 
 /**
  * Add access control for users & nodes to the search query.
  *
- * @param $query
+ * @param object &$query
  *   The query object.
  *
- * @return
+ * @return bool
  *   Boolean for whether or not to run a query at all.
  */
 function location_search_add_access_control(&$query) {
@@ -265,15 +271,23 @@ function location_search_add_access_control(&$query) {
     // If we pass in the subselect query object then when the pager query is
     // run later on the node_access alterations don't get applied to the
     // subselect. So instead we pass in the array result set.
-    $query->condition(db_or()
-      ->condition('li.uid', 0, '<>')
-      ->condition(db_and()
-        ->condition('li.nid', 0, '<>')
-        ->condition('n.nid', $subselect->execute()->fetchCol(), 'IN')));
+    $query->condition(
+      db_or()
+        ->condition('li.uid', 0, '<>')
+        ->condition(
+          db_and()
+            ->condition('li.nid', 0, '<>')
+            ->condition('n.nid', $subselect->execute()->fetchCol(), 'IN')
+        )
+    );
   }
+
   return TRUE;
 }
 
+/**
+ * Implements hook_form_alter().
+ */
 function location_search_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'search_form' && arg(1) == 'location' && user_access('use advanced search')) {
     // @@@ Cache this.
@@ -370,7 +384,11 @@ function location_search_form_alter(&$form, &$form_state, $form_id) {
         $map_fields['address'] = 'locpick_address';
       }
       if (module_exists('gmap')) {
-        $form['advanced']['proximity']['map']['#value'] = gmap_set_location(variable_get('location_search_map_macro', '[gmap |behavior=+collapsehack]'), $form['advanced']['proximity'], $map_fields);
+        $form['advanced']['proximity']['map']['#value'] = gmap_set_location(
+          variable_get('location_search_map_macro', '[gmap |behavior=+collapsehack]'),
+          $form['advanced']['proximity'],
+          $map_fields
+        );
       }
     }
 
@@ -385,6 +403,9 @@ function location_search_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
+/**
+ * Validate callback.
+ */
 function location_search_validate($form, &$form_state) {
   $values = $form_state['values'];
 
@@ -395,7 +416,11 @@ function location_search_validate($form, &$form_state) {
     $keys = search_expression_insert($keys, 'country', $values['country']);
 
     if (!empty($values['province'])) {
-      $keys = search_expression_insert($keys, 'province', location_province_code($values['country'], $values['province']));
+      $keys = search_expression_insert(
+        $keys,
+        'province',
+        location_province_code($values['country'], $values['province'])
+      );
     }
   }
 
@@ -404,7 +429,11 @@ function location_search_validate($form, &$form_state) {
   }
 
   if (!empty($values['latitude']) && !empty($values['longitude']) && !empty($values['distance'])) {
-    $keys = search_expression_insert($keys, 'from', $values['latitude'] . ',' . $values['longitude'] . ',' . $values['distance'] . ',' . $values['units']);
+    $keys = search_expression_insert(
+      $keys,
+      'from',
+      $values['latitude'] . ',' . $values['longitude'] . ',' . $values['distance'] . ',' . $values['units']
+    );
   }
 
   if (!empty($keys)) {
@@ -421,7 +450,7 @@ function location_update_index() {
   $result = db_query_range('SELECT lid FROM {location_search_work}', 0, $limit);
   foreach ($result as $row) {
     $loc = location_load_location($row->lid);
-    $text = theme('location', array('location' => $loc, 'hide' => array())); // @@@ hide?
+    $text = theme('location', array('location' => $loc, 'hide' => array()));
 
     search_index($row->lid, 'location', $text);
     db_delete('location_search_work')
@@ -440,9 +469,11 @@ function location_search_locationapi(&$obj, $op, $a3 = NULL, $a4 = NULL, $a5 = N
       ->condition('lid', $obj['lid'])
       ->execute();
     db_insert('location_search_work')
-      ->fields(array(
-        'lid' => $obj['lid'],
-      ))
+      ->fields(
+        array(
+          'lid' => $obj['lid'],
+        )
+      )
       ->execute();
   }
   if ($op == 'delete') {
@@ -468,6 +499,9 @@ function location_search_search_page($results) {
   return $output;
 }
 
+/**
+ * Preprocess for search_result_locatio template.
+ */
 function template_preprocess_search_result_location(&$variables) {
   $result = $variables['result'];
 
@@ -479,7 +513,7 @@ function template_preprocess_search_result_location(&$variables) {
   }
   $variables['location_raw'] = $result['location'];
 
-  $variables['location'] = theme('location', array('location' => $result['location'], 'hide' => array())); // @@@ hide?
+  $variables['location'] = theme('location', array('location' => $result['location'], 'hide' => array()));
   $variables['links'] = theme('links', array('links' => $variables['links_raw']));
 
   // Provide alternate search result template.

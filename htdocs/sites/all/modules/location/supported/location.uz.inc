@@ -1,7 +1,13 @@
 <?php
 
-// Uzbekistan
+/**
+ * @file
+ * Uzbekistan.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_uz() {
   return array(
     'AN' => "Andijon",

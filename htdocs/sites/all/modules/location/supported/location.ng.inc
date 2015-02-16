@@ -1,7 +1,13 @@
 <?php
 
-// Nigeria
+/**
+ * @file
+ * Nigeria.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ng() {
   return array(
     'AB' => "Abia",

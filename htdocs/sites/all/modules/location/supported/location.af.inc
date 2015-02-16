@@ -1,7 +1,13 @@
 <?php
 
-// Afghanistan
+/**
+ * @file
+ * Afghanistan.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_af() {
   return array(
     'BDS' => "Badakhshan province",

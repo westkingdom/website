@@ -1,7 +1,13 @@
 <?php
 
-// Cameroon
+/**
+ * @file
+ * Cameroon.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cm() {
   return array(
     'ADA' => "Adamawa Province (Adamaoua)",

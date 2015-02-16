@@ -167,6 +167,7 @@ function media_menu_local_tasks_alter(&$data, $router_item, $root_path) {
  */
 function media_admin_paths() {
   $paths['media/*/edit/*'] = TRUE;
+  $paths['media/*/format-form'] = TRUE;
 
   // If the media browser theme is set to the admin theme, ensure it gets set
   // as an admin path as well.
@@ -355,6 +356,14 @@ function media_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
     // Do not increase maxlength of file extensions for image fields, since
     // presumably they will not need a long list of extensions.
   }
+
+  // Add a validation function to any field instance which uses the media widget
+  // to ensure that the upload destination scheme is one of the allowed schemes
+  // if any defined by settings.
+  if ($form['instance']['widget']['type']['#value'] == 'media_generic' && isset($form['#field']['settings']['uri_scheme'])) {
+    $form['#validate'][] = 'media_field_instance_validate';
+  }
+
   if ($form['#instance']['entity_type'] == 'file') {
     $form['instance']['settings']['wysiwyg_override'] = array(
       '#type' => 'checkbox',
@@ -366,14 +375,32 @@ function media_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
 }
 
 /**
+ * Validation handler; ensure that the upload destination scheme is one of the
+ * allowed schemes.
+ */
+function media_field_instance_validate($form, &$form_state) {
+  $allowed_schemes = array_filter($form_state['values']['instance']['widget']['settings']['allowed_schemes']);
+  $upload_destination = $form_state['values']['field']['settings']['uri_scheme'];
+
+  if (!empty($allowed_schemes) && !in_array($upload_destination, $allowed_schemes)) {
+    form_set_error('allowed_schemes', t('The upload destination must be one of the allowed schemes.'));
+  }
+}
+
+/**
  * Implements hook_form_alter().
  */
 function media_form_alter(&$form, &$form_state, $form_id) {
   // If we're in the media browser, set the #media_browser key to true
   // so that if an ajax request gets sent to a different path, the form
   // still uses the media_browser_form_submit callback.
-  if (current_path() == 'media/browser' && $form_id != 'views_exposed_form') {
-    $form_state['#media_browser'] = TRUE;
+  if (current_path() == 'media/browser') {
+    if ($form_id == 'views_exposed_form') {
+      $form['render'] = array('#type' => 'hidden', '#value' => 'media-popup');
+      $form['#action'] = '/media/browser';
+    } else {
+      $form_state['#media_browser'] = TRUE;
+    }
   }
 
   // If the #media_browser key isset and is true we are using the browser

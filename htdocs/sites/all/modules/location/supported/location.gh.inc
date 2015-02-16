@@ -1,7 +1,13 @@
 <?php
 
-// Ghana
+/**
+ * @file
+ * Ghana.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_gh() {
   return array(
     'AS' => "Ashanti Region",

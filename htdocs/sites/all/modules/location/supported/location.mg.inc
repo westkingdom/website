@@ -1,7 +1,13 @@
 <?php
 
-// Madagascar
+/**
+ * @file
+ * Madagascar.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mg() {
   return array(
     'AN' => "Antananarivo province",

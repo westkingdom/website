@@ -1,7 +1,13 @@
 <?php
 
-// Papua New Guinea
+/**
+ * @file
+ * Papua New Guinea.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_pg() {
   return array(
     'BV' => "Bougainville",

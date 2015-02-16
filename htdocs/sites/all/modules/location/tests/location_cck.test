@@ -7,31 +7,34 @@
 
 require_once drupal_get_path('module', 'location') . '/tests/location_testcase.test';
 
+/**
+ * Class LocationCCKTest.
+ */
 class LocationCCKTest extends LocationCCK2Test {
   /**
    * A global administrative user.
    */
-  var $admin_user;
+  public $admin_user;
 
   /**
    * A global normal user.
    */
-  var $normal_user;
+  public $normal_user;
 
   /**
    * A default content type.
    */
-  var $content_type;
+  public $content_type;
 
   public static function getInfo() {
     return array(
       'name' => t('Location CCK checks(broken!!!)'),
       'description' => t('Test corner cases of the CCK Location module.'),
-      'group' => t('Location'),
+      'group' => t('Location', array(), array('context' => 'geolocation')),
     );
   }
 
-  function setUp() {
+  public function setUp() {
     parent::setUp('location', 'location_cck', 'devel', 'field_ui');
     $this->admin_user = $this->drupalCreateUser(array_keys(module_invoke_all('permission')));
     $this->normal_user = $this->drupalCreateUser(array('access content'));
@@ -59,7 +62,6 @@ class LocationCCKTest extends LocationCCK2Test {
 
     $name = strtolower($this->randomName(8));
 
-
     $form = array(
       'name' => $name,
       'type' => $name,
@@ -84,43 +86,44 @@ class LocationCCKTest extends LocationCCK2Test {
 
     $form = array();
     $this->drupalPost(NULL, $form, 'Save field settings');
+
     return $name;
   }
 
   /**
    * @
    */
-  function testCreateLocation() {
+  public function testCreateLocation() {
     // @todo fixme
     return TRUE;
   }
 
-  function testLocpickOnly() {
+  public function testLocpickOnly() {
     // @todo fixme
     return TRUE;
   }
 
-  function testMultipleLocationOnSingleNode() {
+  public function testMultipleLocationOnSingleNode() {
     // @todo fixme
     return TRUE;
   }
 
-  function testSharedLocation() {
+  public function testSharedLocation() {
     // @todo fixme
     return TRUE;
   }
 
-  function testNodeRevisionCOW() {
+  public function testNodeRevisionCOW() {
     // @todo fixme
     return TRUE;
   }
 
-  function testNodeRevisionCleanup() {
+  public function testNodeRevisionCleanup() {
     // @todo fixme
     return TRUE;
   }
 
-  function testCOWConservation() {
+  public function testCOWConservation() {
     // @todo fixme
     return TRUE;
   }

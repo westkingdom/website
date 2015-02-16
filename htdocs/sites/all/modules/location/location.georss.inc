@@ -6,7 +6,6 @@
  */
 
 /**
- * @function
  * Return an array of namespaces needed for a mode.
  */
 function location_rss_namespaces($mode = 'simple') {
@@ -14,8 +13,10 @@ function location_rss_namespaces($mode = 'simple') {
     case 'w3c':
     case 'w3c_bugcompat':
       return array('xmlns:geo' => 'http://www.w3.org/2003/01/geo/wgs84_pos#');
+
     case 'simple':
       return array('xmlns:georss' => 'http://www.georss.org/georss');
+
     case 'gml':
       return array(
         'xmlns:georss' => 'http://www.georss.org/georss',
@@ -25,14 +26,13 @@ function location_rss_namespaces($mode = 'simple') {
 }
 
 /**
- * @function
  * Return an array of RSS items for a location.
  */
 function _location_rss_item($location, $mode = 'simple') {
   $ret = FALSE;
   if (location_has_coordinates($location, TRUE)) {
     switch ($mode) {
-      // W3C Basic Geo Vocabulary
+      // W3C Basic Geo Vocabulary.
       case 'w3c':
         $ret = array(
           'key' => 'geo:Point',
@@ -42,7 +42,9 @@ function _location_rss_item($location, $mode = 'simple') {
             array('key' => 'geo:long', 'value' => $location['longitude']),
           ),
         );
+
         break;
+
       // Location 1.x-2.x bug compatible.
       // W3C Basic Geo Vocabulary with a misspelled longitude tag.
       case 'w3c_bugcompat':
@@ -54,16 +56,19 @@ function _location_rss_item($location, $mode = 'simple') {
             array('key' => 'geo:lon', 'value' => $location['longitude']),
           ),
         );
+
         break;
-      // GeoRSS-Simple
+
+      // GeoRSS-Simple.
       case 'simple':
         $ret = array(
           'key' => 'georss:point',
           'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss'),
           'value' => "$location[latitude] $location[longitude]",
         );
+
         break;
-      //
+
       case 'gml':
         $ret = array(
           'key' => 'georss:where',
@@ -80,5 +85,6 @@ function _location_rss_item($location, $mode = 'simple') {
         break;
     }
   }
+
   return $ret;
 }

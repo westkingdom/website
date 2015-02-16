@@ -1,16 +1,22 @@
 <?php
 
-// This file contributed by Avi Alkalay <avi unix sh> to the
-// Location Drupal module, based on other files on same folder.
-//
-// - Fixed Unicode chars and accents
-// - Added support for Google Maps on location_map_link_*_providers()
-//
-// March, 2010
-// São Paulo, Brazil
+/**
+ * @file
+ * Brazil.
+ *
+ * This file contributed by Avi Alkalay <avi unix sh> to the
+ * Location Drupal module, based on other files on same folder.
+ *
+ * - Fixed Unicode chars and accents
+ * - Added support for Google Maps on location_map_link_*_providers()
+ *
+ * March, 2010
+ * São Paulo, Brazil
+ */
 
-// Brazil
-
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_br() {
   return array(
     'AC' => "Acre",
@@ -43,6 +49,9 @@ function location_province_list_br() {
   );
 }
 
+/**
+ * Providers.
+ */
 function location_map_link_br_providers() {
   return array(
     'google' => array(
@@ -53,11 +62,16 @@ function location_map_link_br_providers() {
   );
 }
 
+/**
+ * Default providers.
+ */
 function location_map_link_br_default_providers() {
   return array('google');
 }
 
-
+/**
+ * Google link.
+ */
 function location_map_link_br_google($location = array()) {
   $query_params = array();
   $q = NULL;

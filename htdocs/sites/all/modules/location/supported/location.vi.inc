@@ -1,7 +1,13 @@
 <?php
 
-// Virgin Islands, U. S.
+/**
+ * @file
+ * Virgin Islands, U. S.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_vi() {
   return array(
     'C' => "Saint Croix",

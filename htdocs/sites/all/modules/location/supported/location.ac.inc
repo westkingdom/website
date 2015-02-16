@@ -1,7 +1,13 @@
 <?php
 
-// Ascension Island
+/**
+ * @file
+ * Ascension Island.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ac() {
   return array();
 }

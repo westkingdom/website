@@ -1,7 +1,13 @@
 <?php
 
-// Mozambique
+/**
+ * @file
+ * Mozambique.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mz() {
   return array(
     'CD' => "Cabo Delgado",

@@ -93,7 +93,10 @@ function location_taxonomy_vocabulary_form_submit($form, &$form_state) {
 function location_taxonomy_term_form_submit($form, &$form_state) {
   $settings = variable_get('location_taxonomy_' . $form_state['values']['vid'], FALSE);
   if ($settings && $settings['multiple']['max']) {
-    location_save_locations($form_state['values']['locations'], array('genid' => 'taxonomy:' . $form_state['values']['tid']));
+    location_save_locations(
+      $form_state['values']['locations'],
+      array('genid' => 'taxonomy:' . $form_state['values']['tid'])
+    );
   }
 }
 

@@ -1,7 +1,13 @@
 <?php
 
-// Algeria
+/**
+ * @file
+ * Algeria.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_dz() {
   return array(
     'ADR' => "Adrar",

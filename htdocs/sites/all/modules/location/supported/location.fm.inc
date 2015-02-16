@@ -1,7 +1,13 @@
 <?php
 
-// Micronesia, Federated States of
+/**
+ * @file
+ * Micronesia, Federated States of.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_fm() {
   return array(
     'C' => "Chuuk",

@@ -1,7 +1,13 @@
 <?php
 
-// Saudia Arabia
+/**
+ * @file
+ * Saudia Arabia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_sa() {
   return array(
     'BH' => "Al Bahah",

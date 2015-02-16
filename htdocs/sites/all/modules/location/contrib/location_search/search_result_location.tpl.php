@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @file search_result_location.tpl.php
+ * @file
  * Theme a location search result.
  *
  * Available variables:

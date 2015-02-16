@@ -1,7 +1,13 @@
 <?php
 
-// Bosnia and Herzegovina
+/**
+ * @file
+ * Bosnia and Herzegovina.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ba() {
   return array(
     'BRO' => "Brcko district",

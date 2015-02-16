@@ -13,10 +13,12 @@ function location_phone_locationapi(&$location, $op, $a3 = NULL, $a4 = NULL) {
     case 'fields':
       return array('phone' => t('Phone number'));
 
+    // @codingStandardsIgnoreStart
     case 'defaults':
       return array(
         'phone' => array('default' => '', 'collect' => 0, 'weight' => 25),
       );
+    // @codingStandardsIgnoreEnd
 
     case 'field_expand':
       if ($a3 == 'phone') {
@@ -38,18 +40,24 @@ function location_phone_locationapi(&$location, $op, $a3 = NULL, $a4 = NULL) {
         ->execute();
       if (!empty($location['phone'])) {
         db_insert('location_phone')
-          ->fields(array(
-            'lid' => $location['lid'],
-            'phone' => $location['phone'],
-          ))
+          ->fields(
+            array(
+              'lid' => $location['lid'],
+              'phone' => $location['phone'],
+            )
+          )
           ->execute();
       }
       break;
 
     case 'load':
       $fields = array();
-      $phone = db_query('SELECT phone FROM {location_phone} WHERE lid = :lid', array(':lid' => $location['lid']))->fetchField();
+      $phone = db_query(
+        'SELECT phone FROM {location_phone} WHERE lid = :lid',
+        array(':lid' => $location['lid'])
+      )->fetchField();
       $fields['phone'] = $phone ? $phone : '';
+
       return $fields;
 
     case 'delete':
@@ -74,7 +82,10 @@ function location_phone_views_api() {
  */
 function location_phone_token_list($type = 'all') {
   if ($type == 'node' || $type == 'user' || $type == 'all') {
-    $tokens['location']['location-phone_N'] = t('Location Phone number (If there are multiple locations per node, N is the iteration, starting with 0)');
+    $tokens['location']['location-phone_N'] = t(
+      'Location Phone number (If there are multiple locations per node, N is the iteration, starting with 0)'
+    );
+
     return $tokens;
   }
 }

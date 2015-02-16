@@ -1,7 +1,13 @@
 <?php
 
-// Botswana
+/**
+ * @file
+ * Botswana.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_bw() {
   return array(
     'CE' => "Central",

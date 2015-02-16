@@ -1,7 +1,13 @@
 <?php
 
-// Seychelles
+/**
+ * @file
+ * Seychelles.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_sc() {
   return array(
     'AP' => "Anse aux Pins",

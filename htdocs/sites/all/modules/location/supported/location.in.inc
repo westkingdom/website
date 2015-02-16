@@ -1,7 +1,13 @@
 <?php
 
-// India
+/**
+ * @file
+ * India.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_in() {
   return array(
     'AP' => "Andhra Pradesh",

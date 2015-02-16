@@ -1,8 +1,16 @@
 <?php
 
-// Russian Federation principal subdivisions list
-// returns an array of ISO 3166 standard list
-// see http://en.wikipedia.org/wiki/ISO_3166-2:RU
+/**
+ * @file
+ * Russian Federation principal subdivisions list
+ * returns an array of ISO 3166 standard list.
+ *
+ * @see http://en.wikipedia.org/wiki/ISO_3166-2:RU
+ */
+
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ru() {
   return array(
     'AD' => t("Adygeya, Respublika"),

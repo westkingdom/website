@@ -1,7 +1,13 @@
 <?php
 
-// Norfolk Island
+/**
+ * @file
+ * Norfolk Island.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_nf() {
   return array();
 }

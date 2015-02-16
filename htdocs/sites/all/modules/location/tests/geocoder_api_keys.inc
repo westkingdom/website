@@ -9,4 +9,4 @@
 // This is a requirement for testing because test instances do not have access
 // to the testing host's variables.
 
-define('TESTING_APIKEY_GOOGLE_MAPS', '');
+define('TESTING_APIKEY_GOOGLE_MAPS', 'AIzaSyA-rGgkOfGFMQ6YvQb1H9ETdz2qRhcnIIM');

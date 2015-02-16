@@ -1,7 +1,13 @@
 <?php
 
-// French Southern Territories
+/**
+ * @file
+ * French Southern Territories.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_tf() {
   return array(
     'C' => "Iles Crozet",

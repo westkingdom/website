@@ -1,7 +1,13 @@
 <?php
 
-// Estonia
+/**
+ * @file
+ * Estonia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ee() {
   return array(
     '37' => "Harju County",

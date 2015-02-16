@@ -1,7 +1,13 @@
 <?php
 
-// Czech Republic
+/**
+ * @file
+ * Czech Republic.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cz() {
   return array(
     'JC' => "South Bohemian Region (Jihocesky kraj)",
@@ -17,11 +23,13 @@ function location_province_list_cz() {
     'PR' => "Prague - the Capital (Praha - hlavni mesto)",
     'ST' => "Central Bohemian Region (Stredocesky kraj)",
     'US' => "Usti nad Labem Region (Ustecky kraj)",
-    'ZL' => "Zlin Region (Zlinsky kraj)"
+    'ZL' => "Zlin Region (Zlinsky kraj)",
   );
 }
 
-
+/**
+ * Providers.
+ */
 function location_map_link_cz_providers() {
   return array(
     'google' => array(
@@ -32,10 +40,16 @@ function location_map_link_cz_providers() {
   );
 }
 
+/**
+ * Default providers.
+ */
 function location_map_link_cz_default_providers() {
   return array('google');
 }
 
+/**
+ * Google link.
+ */
 function location_map_link_cz_google($location = array()) {
   $query_params = array();
 
@@ -52,7 +66,6 @@ function location_map_link_cz_google($location = array()) {
     return NULL;
   }
 }
-
 
 /**
  * Returns minimum and maximum latitude and longitude needed to create a bounding box.

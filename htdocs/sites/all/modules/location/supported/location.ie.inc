@@ -1,7 +1,13 @@
 <?php
 
-// Ireland
+/**
+ * @file
+ * Ireland.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ie() {
   return array(
     'DB' => "Dublin",

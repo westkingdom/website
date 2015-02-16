@@ -1,7 +1,13 @@
 <?php
 
-// Aland Islands
+/**
+ * @file
+ * Aland Islands.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ax() {
   return array();
 }

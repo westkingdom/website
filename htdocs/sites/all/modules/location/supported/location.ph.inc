@@ -1,7 +1,13 @@
 <?php
 
-// Philippines
+/**
+ * @file
+ * Philippines.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ph() {
   return array(
     'ABR' => "Abra",

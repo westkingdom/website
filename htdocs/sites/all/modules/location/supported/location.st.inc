@@ -1,7 +1,13 @@
 <?php
 
-// Sao Tome and Principe
+/**
+ * @file
+ * Sao Tome and Principe.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_st() {
   return array(
     'S' => "Sao Tome",

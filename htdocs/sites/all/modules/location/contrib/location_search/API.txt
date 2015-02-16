@@ -7,7 +7,7 @@ The location search api is not ready for location 3.
 This file describes the public API for the CivicSpace location system as defined by
  in the library implemented by "location.inc" and its supporting files.
 
-For a example of this API's usage, please consult "location.module"
+For a example of this API's usage, consult "location.module"
 
 
 FUNCTION SPECIFICATIONS DESCRIBED IN THIS FILE:

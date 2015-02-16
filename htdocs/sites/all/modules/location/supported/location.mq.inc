@@ -1,7 +1,13 @@
 <?php
 
-// Martinique
+/**
+ * @file
+ * Martinique.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_mq() {
   return array();
 }

@@ -1,7 +1,13 @@
 <?php
 
-// Andorra
+/**
+ * @file
+ * Andorra.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_ad() {
   return array(
     'ALV' => "Andorra la Vella",

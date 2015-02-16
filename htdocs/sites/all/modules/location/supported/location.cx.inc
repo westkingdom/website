@@ -1,7 +1,13 @@
 <?php
 
-// Christmas Island
+/**
+ * @file
+ * Christmas Island.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cx() {
   return array();
 }

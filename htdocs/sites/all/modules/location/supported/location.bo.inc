@@ -1,7 +1,13 @@
 <?php
 
-// Bolivia
+/**
+ * @file
+ * Bolivia.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_bo() {
   return array(
     'BEN' => "Departmento Beni",

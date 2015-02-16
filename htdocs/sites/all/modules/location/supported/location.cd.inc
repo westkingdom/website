@@ -1,7 +1,13 @@
 <?php
 
-// Congo, The Democratic Republic of the
+/**
+ * @file
+ * Congo, The Democratic Republic of the.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_cd() {
   return array(
     'BC' => "Bas-Congo",

@@ -1,8 +1,15 @@
 <?php
 
-// Jersey
-// See http://www.statoids.com/uje.html
+/**
+ * @file
+ * Jersey.
+ *
+ * @see http://www.statoids.com/uje.html
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_je() {
   return array(
     'GR' => 'Grouville',

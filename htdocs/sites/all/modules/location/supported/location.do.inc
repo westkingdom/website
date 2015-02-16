@@ -1,7 +1,13 @@
 <?php
 
-// Dominican Republic
+/**
+ * @file
+ * Dominican Republic.
+ */
 
+/**
+ * Returns an associative array of states/territories.
+ */
 function location_province_list_do() {
   return array(
     'DN' => "Distrito Nacional",
