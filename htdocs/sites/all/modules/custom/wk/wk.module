@@ -633,7 +633,8 @@ function wk_create_calendar_date_request($node, $additional_delta = 0) {
 }
 
 function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$form_state) {
-  //dpm($form);
+  array_unshift($form['#validate'], '_wk_form_validate_branch_groups_must_be_siblings');
+  $form_state['#branch_group_msg'] = t("For example, if the event is a War between the Principality of the Mists, and the Principality of Cynagua, then both the Mists and Cynagua should be selected. In most other cases, only one branch group should be selected here.");
   global $user;
   $menu = menu_get_item();
   //dpm($menu);
@@ -714,6 +715,45 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       $form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
     }
   }
+}
+
+function _wk_form_validate_branch_groups_must_be_siblings($form, &$form_state) {
+  $groups = array();
+  foreach($form_state['values']['taxonomy_vocabulary_2'][LANGUAGE_NONE] as $info) {
+    $groups[$info['tid']] = array('tid' => $info['tid']);
+  }
+  $branch_group_tree = taxonomy_get_tree(2);
+  foreach($branch_group_tree as $tinfo) {
+    if (array_key_exists($tinfo->tid, $groups)) {
+      $groups[$tinfo->tid] = $tinfo;
+    }
+  }
+  $parents = array();
+  $saw_parent_and_child = FALSE;
+  foreach ($groups as $tid => $ginfo) {
+    $parent_id = $ginfo->parents[0];
+    $parents[] = $parent_id;
+    if (array_key_exists($parent_id, $groups)) {
+      $saw_parent_and_child = TRUE;
+    }
+  }
+  if ($saw_parent_and_child && (count($parents) == 2)) {
+    return form_set_error('taxonomy_vocabulary_2', t("It is not permitted to select both a branch group and its parent group on this form.  Please select only one of these, and uncheck the other."));
+  }
+  if (count($parents) > 1) {
+    return form_set_error('taxonomy_vocabulary_2', t("Only sibling branch groups may be selected on this form. !example", array('!example' => isset($form_state['#branch_group_msg']) ? $form_state['#branch_group_msg'] : '')));
+  }
+}
+
+function _wk_form_validate_exactly_one_branch_group($form, &$form_state) {
+  $count = count($form_state['values']['taxonomy_vocabulary_2'][LANGUAGE_NONE]);
+  if ($count > 1) {
+    return form_set_error('taxonomy_vocabulary_2', t("You may only select one branch group on this form."));
+  }
+}
+
+function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state) {
+  array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
 }
 
 /**
