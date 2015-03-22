@@ -473,6 +473,10 @@ div.media img,
   width: 50%;
 }
 
+.prefilled-taxonomy-tree {
+  display: none;
+}
+
 #regnum-change-entityform-edit-form #entityform_regnum_change_form_group_office h3 {
   display: none;
 }
