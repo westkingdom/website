@@ -477,10 +477,14 @@ div.media img,
   display: none;
 }
 
-.prefilled-taxonomy-icon {
+.prefilled-taxonomy-icon img {
   max-width: 175px;
   width: 90%;
+}
+
+.prefilled-taxonomy-icon {
   text-align: center;
+  width: 100%;
 }
 
 #regnum-change-entityform-edit-form #entityform_regnum_change_form_group_office h3 {
