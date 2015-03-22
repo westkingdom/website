@@ -784,9 +784,10 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   // If the office is pre-filled, then make the office selection
   // field uneditable.
   if ($office_tid) {
-    unset($form['field_office'][LANGUAGE_NONE]);
-    $form['field_office']['#type'] = 'hidden';
-    $form['field_office']['#default_value'] = $office_tid;
+    $form['field_office'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
+    $form['field_office'][LANGUAGE_NONE]['#sufix'] = '</div>';
+    $form['field_office'][LANGUAGE_NONE]['#default_value'] = array($office_tid => $office_tid);
+
     $term = taxonomy_term_load($office_tid);
     $icon = '';
     $view = field_view_field('taxonomy_term', $term, 'field_badge');
@@ -800,8 +801,9 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   // If the group is pre-filled, then make the group selection
   // field uneditable.
   if ($group_tid) {
-    unset($form['taxonomy_vocabulary_2'][LANGUAGE_NONE]);
-    $form['taxonomy_vocabulary_2']['#type'] = 'hidden';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
     $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
     $term = taxonomy_term_load($group_tid);
     $icon = '';
