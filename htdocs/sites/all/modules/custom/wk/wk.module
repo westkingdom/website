@@ -753,6 +753,62 @@ function _wk_form_validate_exactly_one_branch_group($form, &$form_state) {
 }
 
 function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state) {
+  $office_tid = FALSE;
+  $group_tid = FALSE;
+  $menu = menu_get_item();
+  if (count($menu['page_arguments']) > 2) {
+    $group_from_menu = $menu['page_arguments'][2];
+    $terms = taxonomy_get_tree(2);
+    foreach ($terms as $tinfo) {
+      $term = taxonomy_term_load($tinfo->tid);
+      $short_name = _wk_term_short_name($term);
+      $machine_name = _wk_to_machine_name($short_name);
+      if (strtolower($group_from_menu) == $machine_name) {
+	$group_tid = $term->tid;
+      }
+    }
+  }
+  if (count($menu['page_arguments']) > 3) {
+    $office_from_menu = $menu['page_arguments'][3];
+    $terms = taxonomy_get_tree(3);
+    foreach ($terms as $tinfo) {
+      $term = taxonomy_term_load($tinfo->tid);
+      $short_name = _wk_term_short_name($term);
+      $machine_name = _wk_to_machine_name($short_name);
+      if (strtolower($office_from_menu) == $machine_name) {
+	$office_tid = $term->tid;
+      }
+    }
+  }
+ 
+  // If the office is pre-filled, then make the office selection
+  // field uneditable.
+  if ($office_tid) {
+    $form['field_office'][LANGUAGE_NONE]['#type'] = 'hidden';
+    $form['field_office'][LANGUAGE_NONE]['#default_value'] = array($office_tid => $office_tid);
+    $term = taxonomy_term_load($office_tid);
+    $form['field_office'][LANGUAGE_NONE]['#prefix'] = '<b>' . $term->name . '</b>';
+    $view = field_view_field('taxonomy_term', $term, 'field_badge');
+      if (!empty($view)) {
+        $view['#label_display'] = 'hidden';
+        $form['field_office'][LANGUAGE_NONE]['#prefix'] .= render($view);
+      }
+  }
+
+  // If the group is pre-filled, then make the group selection
+  // field uneditable.
+  if ($group_tid) {
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#type'] = 'hidden';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
+    $term = taxonomy_term_load($group_tid);
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<b>' . $term->name . '</b>';
+    $view = field_view_field('taxonomy_term', $term, 'field_arms');
+    if (!empty($view)) {
+      $view['#label_display'] = 'hidden';
+      $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] .= render($view);
+    }
+  }
+
   array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
 }
 

@@ -37,7 +37,7 @@ function _regnum_configured_entityforms() {
 function regnum_form_alter(&$form, &$form_state) {
   global $user;
   if ($form['#form_id'] == 'regnum_change_entityform_edit_form') {
-    if (!isset($form['#entity']->uid)) {
+    if ($user->uid && !isset($form['#entity']->uid)) {
       //dpm($form_state);
       //dpm($user);
       foreach ($form as $key => $item) {
