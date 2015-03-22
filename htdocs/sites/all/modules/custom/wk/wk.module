@@ -2869,11 +2869,17 @@ function _wk_create_branch_menu($branch_term, $homepage_path) {
   return $menu;
 }
 
+/**
+ * Implement hook_go_role_grant
+ */
 function wk_og_role_grant($entity_type, $gid, $uid, $rid) {
   _wk_rewrite_email_for_group($gid);
 }
 
-function hook_og_role_revoke($entity_type, $gid, $uid, $rid) {
+/**
+ * Implement hook_og_role_revoke
+ */
+function wk_og_role_revoke($entity_type, $gid, $uid, $rid) {
   _wk_rewrite_email_for_group($gid);
 }
 
@@ -2942,7 +2948,7 @@ function wk_export_mailinglists() {
   $branch_tree = taxonomy_get_tree(2);
   $officer_tree = taxonomy_get_tree(3);
 
-  $west_aliases = array();
+  $top_level_aliases = array();
 
   $officer_map = array();
   foreach ($officer_tree as $info) {
@@ -2986,11 +2992,11 @@ function wk_export_mailinglists() {
         $aliases['officers'][] = $list_name;
 
         foreach ($office_shortname_components as $one_office_shortname) {
-          $all_listname = 'all-' . $one_office_shortname;
+          $all_listname = $one_office_shortname;
           if (substr($all_listname, strlen($all_listname) - 1) != "s") {
             $all_listname .= 's';
           }
-          $west_aliases[$all_listname][] = $list_name;
+          $top_level_aliases[$all_listname][] = $list_name;
         }
         if (isset($officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value'])) {
           foreach (explode("\n", $officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value']) as $alias_shortname)
@@ -3009,7 +3015,7 @@ function wk_export_mailinglists() {
       }
     }
   }
-  $branches['west']['aliases'] = array_merge($branches['west']['aliases'], $west_aliases);
+  $branches['all']['aliases'] = $top_level_aliases;
   return $branches;
 }
 
