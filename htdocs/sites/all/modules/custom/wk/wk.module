@@ -795,7 +795,7 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
       $view['#label_display'] = 'hidden';
       $icon = render($view);
     }
-    $form['field_office']['#prefix'] = '<div id="entityform_regnum_change_form_group_office"><b>' . $term->name . '</b>' . $icon . '</div>';
+    $form['field_office']['#prefix'] = '<div id="entityform_regnum_change_form_group_office" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
   }
 
   // If the group is pre-filled, then make the group selection
@@ -812,7 +812,7 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
       $view['#label_display'] = 'hidden';
       $icon = render($view);
     }
-    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2"><b>' . $term->name . '</b>' . $icon . '</div>';
+    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
   }
 
   array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
