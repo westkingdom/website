@@ -787,12 +787,14 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
     unset($form['field_office'][LANGUAGE_NONE]);
     $form['field_office']['#type'] = 'hidden';
     $form['field_office']['#default_value'] = $office_tid;
-    $term = taxonomy_term_load($office_tid);    $form['field_office']['#prefix'] = '<b>' . $term->name . '</b>';
+    $term = taxonomy_term_load($office_tid);
+    $icon = '';
     $view = field_view_field('taxonomy_term', $term, 'field_badge');
-      if (!empty($view)) {
-        $view['#label_display'] = 'hidden';
-        $form['field_office']['#prefix'] .= '<div id="entityform_regnum_change_form_group_office">' . render($view) . '</div>';
-      }
+    if (!empty($view)) {
+      $view['#label_display'] = 'hidden';
+      $icon = render($view);
+    }
+    $form['field_office']['#prefix'] = '<div id="entityform_regnum_change_form_group_office"><b>' . $term->name . '</b>' . $icon . '</div>';
   }
 
   // If the group is pre-filled, then make the group selection
@@ -802,12 +804,13 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
     $form['taxonomy_vocabulary_2']['#type'] = 'hidden';
     $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
     $term = taxonomy_term_load($group_tid);
-    $form['taxonomy_vocabulary_2']['#prefix'] = '<b>' . $term->name . '</b>';
+    $icon = '';
     $view = field_view_field('taxonomy_term', $term, 'field_arms');
     if (!empty($view)) {
       $view['#label_display'] = 'hidden';
-      $form['taxonomy_vocabulary_2']['#prefix'] .= '<div id="edit-taxonomy-vocabulary-2">' . render($view) . '</div>';
+      $icon = render($view);
     }
+    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2"><b>' . $term->name . '</b>' . $icon . '</div>';
   }
 
   array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
