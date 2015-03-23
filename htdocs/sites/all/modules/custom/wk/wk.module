@@ -3051,6 +3051,7 @@ function wk_export_mailinglists() {
           }
         }
         $offices[$office_shortname]['members'] = $members;
+        $offices[$office_shortname]['properties']['group-name'] = $officeNode->name;
         $aliases['officers'][] = $list_name;
 
         foreach ($office_shortname_components as $one_office_shortname) {
