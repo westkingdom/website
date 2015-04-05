@@ -3047,7 +3047,7 @@ function wk_export_mailinglists() {
         foreach ($group_info as $uid => $user_info) {
           if (isset($user_info['user']->mail)) {
             $member_email_address = $user_info['user']->mail;
-            $members[] = $member_email_address;
+            $members[] = strtolower($member_email_address);
           }
         }
         $offices[$office_shortname]['members'] = $members;
