@@ -3052,20 +3052,11 @@ function wk_export_mailinglists() {
         }
         $offices[$office_shortname]['members'] = $members;
         $offices[$office_shortname]['properties']['group-name'] = $officeNode->title;
-        $aliases['officers'][] = $list_name;
-
-        foreach ($office_shortname_components as $one_office_shortname) {
-          $all_listname = $one_office_shortname;
-          if (substr($all_listname, strlen($all_listname) - 1) != "s") {
-            $all_listname .= 's';
-          }
-          $top_level_aliases[$all_listname][] = $list_name;
-        }
         if (isset($officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value'])) {
           foreach (explode("\n", $officeNode->field_additional_email_aliases[LANGUAGE_NONE][0]['value']) as $alias_shortname)
           {
             if (!empty($alias_shortname)) {
-              $aliases[trim($alias_shortname)] = $list_name;
+              $offices[$office_shortname]['properties']['alternate-addresses'] = $alias_shortname;
             }
           }
         }
@@ -3073,12 +3064,8 @@ function wk_export_mailinglists() {
     }
     if (!empty($offices)) {
       $branches[$branch_shortname]['lists'] = $offices;
-      if (!empty($aliases)) {
-        $branches[$branch_shortname]['aliases'] = $aliases;
-      }
     }
   }
-  $branches['all']['aliases'] = $top_level_aliases;
   return $branches;
 }
 
