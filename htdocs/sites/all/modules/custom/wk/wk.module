@@ -764,7 +764,7 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
       $short_name = _wk_term_short_name($term);
       $machine_name = _wk_to_machine_name($short_name);
       if (strtolower($group_from_menu) == $machine_name) {
-	$group_tid = $term->tid;
+	      $group_tid = $term->tid;
       }
     }
   }
@@ -776,10 +776,11 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
       $short_name = _wk_term_short_name($term);
       $machine_name = _wk_to_machine_name($short_name);
       if (strtolower($office_from_menu) == $machine_name) {
-	$office_tid = $term->tid;
+	      $office_tid = $term->tid;
       }
     }
   }
+  $volunteer = ((count($menu['page_arguments']) > 4) && ($menu['page_arguments'][4]));
 
   // If the office is pre-filled, then make the office selection
   // field uneditable.
@@ -801,6 +802,8 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   // If the group is pre-filled, then make the group selection
   // field uneditable.
   if ($group_tid) {
+    drupal_set_title('Volunteer');
+    $form['#prefix'] = '<p>' . t("Thank you for volunteering!  Please provide us with some personal information, so that we can create an account for you on this site.") . '</p>';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
@@ -813,6 +816,16 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
       $icon = render($view);
     }
     $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
+  }
+
+  if ($volunteer) {
+    hide($form['field_deputy']);
+    $form['field_deputy'][LANGUAGE_NONE]['#default_value'] = 1;
+    hide($form['field_type_of_deputy']);
+    hide($form['field_purpose_of_change']);
+    hide($form['field_institutional_memory_email']);
+    hide($form['field_signed_warrant']);
+    hide($form['field_effective_date']);
   }
 
   array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
@@ -952,6 +965,10 @@ function wk_block_info() {
     'info' => t('Related Sites'),
     'cache' => DRUPAL_NO_CACHE,
   );
+  $blocks['wk_office_volunteer'] = array(
+    'info' => t('Volunteer'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
 
   return $blocks;
 }
@@ -987,8 +1004,51 @@ function wk_block_view($delta = '') {
       $block['subject'] = t('Related Sites');
       $block['content'] = $content;
       break;
+
+    case 'wk_office_volunteer':
+      $node = menu_get_object();
+
+      $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
+      if (isset($node->volunteer[LANGUAGE_NONE][0])) {
+        $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
+      }
+
+      if (!empty($text) && ($text != 'n/a') && ($text != 'na')) {
+        $branch_term = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+        $branch_term = taxonomy_term_load($branch_term);
+
+        $office_term = $node->field_office[LANGUAGE_NONE][0]['tid'];
+        $office_term = taxonomy_term_load($office_term);
+
+        $branch_shortname = strtolower(_wk_term_short_name($branch_term));
+        $office_shortname = strtolower(_wk_term_short_name($office_term));
+
+        $block['content'] = drupal_get_form('wk_volunteer_for_office', $text, "regnum/$branch_shortname/$office_shortname/volunteer");
+      }
+      break;
   }
   return $block;
+}
+
+function wk_volunteer_for_office($form, &$form_state, $text, $url) {
+  $form['description'] = array(
+    '#type' => 'item',
+    '#markup' => $text,
+  );
+  $form['url'] = array(
+    '#type' => 'hidden',
+    '#value' => $url,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Volunteer',
+  );
+  return $form;
+}
+
+function wk_volunteer_for_office_submit(&$form_state) {
+  $url = $form_state['url']['#value'];
+  drupal_goto($url);
 }
 
 /**
@@ -1015,7 +1075,7 @@ function wk_block_view_alter(&$data, $block) {
   // node.  Therefore, we test explicitly for node type
   // of 'officers', and remove the block for all other
   // node types.
-  if ($block->delta == "officers_list-block_1") {
+  if (($block->delta == "officers_list-block_1") || ($block->delta == 'wk_office_volunteer')) {
     $node = menu_get_object();
     $menu = menu_get_item();
     if (($node && $node->type != 'officers') || ($menu && $menu['path'] != 'node/%')) {
@@ -2782,7 +2842,7 @@ function _wk_term_email_name($term) {
 
 
 function _wk_shorten_name($name) {
-  $remove = array("Kingdom of ", "Principality of ", "Palatine Barony of ", "Barony of ", "Kingdom of ", "Shire of ", "Province of ", "Canton of ", "College of ", "Stronghold of ", "the ", " (incipiant)");
+  $remove = array("Kingdom of ", "Principality of ", "Palatine Barony of ", "Barony of ", "Kingdom of ", "Shire of ", "Province of ", "Canton of ", "College of ", "Stronghold of ", "the ", "The ", " (incipiant)");
 
   foreach ($remove as $string_to_remove) {
     $name = str_replace($string_to_remove, '', $name);
@@ -3016,6 +3076,10 @@ function wk_export_mailinglists() {
   foreach ($officer_tree as $info) {
     $officer_map[$info->tid] = taxonomy_term_load($info->tid);
   }
+  $obranch_map = array();
+  foreach ($branch_tree as $info) {
+    $branch_map[$info->tid] = taxonomy_term_load($info->tid);
+  }
 
   $branches = array();
   foreach ($branch_tree as $branch_info) {
@@ -3024,7 +3088,7 @@ function wk_export_mailinglists() {
     $office_info = array();
 
     $branch_tid = $branch_info->tid;
-    $branch_shortname = _wk_term_email_name($branch_info);
+    $branch_shortname = _wk_term_email_name($branch_map[$branch_tid]);
 
     // Find all of the officer nodes for the specified branch
     $query = new EntityFieldQuery();
@@ -3064,6 +3128,19 @@ function wk_export_mailinglists() {
     }
     if (!empty($offices)) {
       $branches[$branch_shortname]['lists'] = $offices;
+    }
+  }
+  // Build the heirarchy information -- branch subgroups.
+  // Ignore any group with no offices.
+  foreach ($branch_tree as $branch_info) {
+    $branch_tid = $branch_info->tid;
+    $branch_shortname = _wk_term_email_name($branch_map[$branch_tid]);
+    $parent_tid = $branch_info->parents[0];
+    if (!empty($branch_shortname) && array_key_exists($branch_shortname, $branches) && $parent_tid) {
+      $parent_shortname = _wk_term_email_name($branch_map[$parent_tid]);
+      if (!empty($parent_shortname) && array_key_exists($parent_shortname, $branches)) {
+        $branches[$parent_shortname]['subgroups'][] = $branch_shortname;
+      }
     }
   }
   return $branches;
