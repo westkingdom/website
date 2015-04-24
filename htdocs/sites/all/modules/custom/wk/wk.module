@@ -802,8 +802,6 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   // If the group is pre-filled, then make the group selection
   // field uneditable.
   if ($group_tid) {
-    drupal_set_title('Volunteer');
-    $form['#prefix'] = '<p>' . t("Thank you for volunteering!  Please provide us with some personal information, so that we can create an account for you on this site.") . '</p>';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
@@ -819,6 +817,8 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   }
 
   if ($volunteer) {
+    drupal_set_title('Volunteer');
+    $form['#prefix'] = '<p>' . t("Thank you for volunteering!  Please provide us with some personal information, so that we can create an account for you on this site.") . '</p>';
     hide($form['field_deputy']);
     $form['field_deputy'][LANGUAGE_NONE]['#default_value'] = 1;
     hide($form['field_type_of_deputy']);
