@@ -638,8 +638,40 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
   global $user;
   $menu = menu_get_item();
   //dpm($menu);
+  $nid = FALSE;
+  $group_tid = FALSE;
   if (count($menu['page_arguments']) > 2) {
-    $nid = $menu['page_arguments'][2];
+    if ((count($menu['page_arguments']) > 3) && ($menu['page_arguments'][2] == 'group')) {
+      $group_from_menu = $menu['page_arguments'][3];
+      $terms = taxonomy_get_tree(2);
+      foreach ($terms as $tinfo) {
+        $term = taxonomy_term_load($tinfo->tid);
+        $short_name = _wk_term_short_name($term);
+        $machine_name = _wk_to_machine_name($short_name);
+        if (strtolower($group_from_menu) == $machine_name) {
+          $group_tid = $term->tid;
+        }
+      }
+    }
+    else {
+      $nid = $menu['page_arguments'][2];
+    }
+  }
+  if ($group_tid) {
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
+    $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
+    $term = taxonomy_term_load($group_tid);
+    $icon = '';
+    $view = field_view_field('taxonomy_term', $term, 'field_arms');
+    if (!empty($view)) {
+      $view['#label_display'] = 'hidden';
+      $icon = render($view);
+    }
+    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
+  }
+  if ($nid) {
     $node = node_load($nid);
     $additional_delta = 0;
     if (count($menu['page_arguments']) > 3) {
