@@ -657,6 +657,23 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       $nid = $menu['page_arguments'][2];
     }
   }
+  // If there was no group or nid specified on the URL,
+  // then set the group if the currently logged-in user
+  // is a seneschal.
+  if (!$group_tid && !$nid) {
+    $branches = _wk_is_seneschal();
+    if (!empty($branches)) {
+      $group_tid = $branches[0];
+      if (isset($form['field_society_name']) && empty($form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'])) {
+        $form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
+        hide($form['field_society_name']);
+      }
+      if (isset($form['field_email_address']) && empty($form['field_email_address'][LANGUAGE_NONE][0]['value']['#default_value'])) {
+        $form['field_email_address'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->mail;
+        hide($form['field_email_address']);
+      }
+    }
+  }
   if ($group_tid) {
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
     $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
@@ -739,12 +756,6 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
           '!prevdate' => $previous_event_date,
           '!nextyear' => $nextyear,
           '!cancelurl' => '/calendar-date-request')));
-    }
-  }
-  else {
-    // TODO: Only fill this in if the current user is a seneschal
-    if (isset($form['field_society_name']) && empty($form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'])) {
-      $form['field_society_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $user->name;
     }
   }
 }
