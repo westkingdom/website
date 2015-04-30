@@ -1235,7 +1235,7 @@ function wk_menu() {
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
-  $itemffs['calendar-status'] = array(
+  $items['calendar-status'] = array(
     'title' => 'Calendar Status',
     'description' => 'Show whether the calendar is open for new date requests',
     'page callback' => 'drupal_get_form',
