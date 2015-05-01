@@ -1250,7 +1250,7 @@ function wk_menu() {
     'access callback' => 'user_access',
     'access arguments' => array('configure calendar requests'),
   );
-
+/*
   // "mail" tab on group node
   $items['node/%wk_og_group_node/mail'] = array(
     'title' => 'Mail',
@@ -1269,7 +1269,7 @@ function wk_menu() {
     'access arguments' => array(1),
     'type' => MENU_CALLBACK,
   );
-
+*/
   return $items;
 }
 
