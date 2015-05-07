@@ -2878,8 +2878,8 @@ function _wk_term_short_name($term) {
 
 function _wk_term_email_name($term) {
   $email_name = strtolower(_wk_term_short_name($term));
-  $email_name = strtr($email_name, ' ', '-');
-  $email_name = preg_replace('/[^a-z-]+/', '', $email_name);
+  //$email_name = strtr($email_name, ' ', '-');
+  $email_name = preg_replace('/[^a-z]+/', '', $email_name);
   return $email_name;
 }
 
