@@ -161,7 +161,7 @@ function og_contact_mail($key, &$message, $params) {
       else {
         $message['subject'] = t('!subject', array('!subject' => $params['subject']), array('langcode' => $language->language));
       }
-      $message['body'][] = t("!name sent a message using the contact form at !form.", array('!name' => $params['name'], '!form' => url($_GET['q'], array('absolute' => TRUE, 'language' => $language))), array('langcode' => $language->language));
+      $message['body'][] = t("!name (!mail) sent a message using the contact form at !form.", array('!name' => $params['name'], '!mail' => $params['mail'], '!form' => url($_GET['q'], array('absolute' => TRUE, 'language' => $language))), array('langcode' => $language->language));
       $message['body'][] = $params['message'];
       break;
     case 'page_autoreply':
