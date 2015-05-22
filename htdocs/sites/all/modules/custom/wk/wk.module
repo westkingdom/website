@@ -2757,10 +2757,27 @@ function wk_node_field_date_render_array($node) {
   if (isset($node->field_date[LANGUAGE_NONE][0]['rrule'])) {
     // Repeating events:  special checking for "weekly", then make our
     // own formatted string.  Question: could we do this with a date format?
-    if (substr($node->field_date[LANGUAGE_NONE][0]['rrule'], 0, 28) == "RRULE:FREQ=WEEKLY;INTERVAL=1") {
+    if (substr($node->field_date[LANGUAGE_NONE][0]['rrule'], 0, 29) == "RRULE:FREQ=WEEKLY;INTERVAL=1;") {
       // See http://drupal.org/node/1108164 for other options.
       $date = new DateObject($node->field_date[LANGUAGE_NONE][0]['value'],$node->field_date[LANGUAGE_NONE][0]['timezone'],DATE_FORMAT_ISO);
       $cal_event_date = array('#markup' => '<div class="field-name-field-date">' . format_date($date->format('U'),'custom','\E\v\e\r\y l \a\t g:ia') . '</div>');
+    }
+    if (substr($node->field_date[LANGUAGE_NONE][0]['rrule'], 0, 30) == "RRULE:FREQ=MONTHLY;INTERVAL=1;") {
+      preg_match('/;BYDAY=[^0-9]*([0-9]*)([^;]*);/', $node->field_date[LANGUAGE_NONE][0]['rrule'], $matches);
+      //preg_match('/;BYDAY=[^0-9]*([0-9]*)([^;]*);/', 'RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=+1WE;BYMONTH=1,2,3,4,5,6,7,8,9,10,11,12;COUNT=11;WKST=SU', $matches);
+
+      $which = array("", "First", "Second", "Third", "Fourth", "Fifth");
+      $daymap = array(
+        "MO" => "Monday",
+        "TU" => "Tuesday",
+        "WE" => "Wednesday",
+        "TH" => "Thursday",
+        "FR" => "Friday",
+        "SA" => "Saturday",
+        "SU" => "Sunday",
+      );
+
+      $cal_event_date = t("!which !day of the Month", array('!which' => $which[$matches[1]], '!day' => $daymap[$matches[2]]));
     }
   }
   else {
