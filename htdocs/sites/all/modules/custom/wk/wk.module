@@ -2777,7 +2777,7 @@ function wk_node_field_date_render_array($node) {
         "SU" => "Sunday",
       );
 
-      $cal_event_date = t("!which !day of the Month", array('!which' => $which[$matches[1]], '!day' => $daymap[$matches[2]]));
+      $cal_event_date = '<div class="field-name-field-date">' . t("!which !day of every Month", array('!which' => $which[$matches[1]], '!day' => $daymap[$matches[2]])) . '</div>';
     }
   }
   else {
