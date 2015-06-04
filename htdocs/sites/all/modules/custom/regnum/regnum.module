@@ -612,6 +612,17 @@ function _regnum_find_officer_node($group_info) {
   return _regnum_get_officer_node($group_info['group-bundle'], $group_info['field-map'], $group_info['tids']);
 }
 
+// Search for all of the submissions with a given email address.
+// This might be used for something in the future.
+function _regnum_get_submissions($email) {
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','entityform')
+    ->fieldCondition('field_email_address', 'value', $email, '=');
+  $entities = $query->execute();
+
+  return $entities;
+}
+
 function _regnum_get_officer_node($group_bundle, $field_map, $tids) {
   $node = FALSE;
   $query = new EntityFieldQuery();
