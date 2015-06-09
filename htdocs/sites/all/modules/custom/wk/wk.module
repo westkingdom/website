@@ -3549,13 +3549,7 @@ function wk_user_view($account, $view_mode) {
   // On the ordinary user view page, on the user's own
   // user page, put in a note advising them to log on
   // to their Google Apps account with this address.
-  if (($user->id == $account->id) && ($view_mode == 'full')) {
-    // TODO: Remove this after the 'organization mail' field is deleted
-    if (isset($account->field_organization_mail) && !empty($account->field_organization_mail[LANGUAGE_NONE][0]['value'])) {
-      hide($account->content['field_organization_mail']);
-      $account->content['field_organization_mail']['#suffix'] = t('<span class="note">E-mail sent to %org will be forwarded to %email.  Also, use %org to log on to your <a href="!url">West Kingdom Google Apps</a> account.</span>', array('%org' => $account->field_organization_mail[LANGUAGE_NONE][0]['value'], '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org'));
-    }
-
+  if (($user->uid == $account->uid) && ($view_mode == 'full')) {
     $mmail_record = wk_get_organization_mail($account);
     if ($mmail_record) {
       $org_mail = $mmail_record->email;
@@ -3607,8 +3601,6 @@ function wk_user_view($account, $view_mode) {
       );
     }
   }
-
-  // dpm($account);
 }
 
 function wk_request_organization_email($form, &$form_state, $account) {
