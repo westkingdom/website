@@ -3171,6 +3171,12 @@ function wk_export_mailinglists() {
         foreach ($group_info as $uid => $user_info) {
           if (isset($user_info['user']->mail)) {
             $member_email_address = $user_info['user']->mail;
+            // Favor the user's Organization mail if it is set.
+            // This address should forward to $user_info['user']->mail anyway.
+            // TODO: maybe we should have a preference indicating
+            if (isset($user_info['user']->field_organization_mail) && !empty($user_info['user']->field_organization_mail[LANGUAGE_NONE][0]['value'])) {
+              $member_email_address = $user_info['user']->field_organization_mail[LANGUAGE_NONE][0]['value'];
+            }
             $members[] = strtolower($member_email_address);
           }
         }
@@ -3457,4 +3463,194 @@ function wk_views_query_alter(&$view, &$query) {
       }
     }
   }
+}
+
+/**
+ * Given a society name, return a list of potential names
+ * that might be used as an email address.
+ */
+function wk_potential_email_names($name) {
+  $result = array();
+
+  $name = strtolower($name);
+
+  // First convert all of the different forms of "aka" to "/"
+  $name = preg_replace('/ (called|formerly|also|aka) /', '/', $name);
+  $names = explode('/', $name);
+  foreach ($names as $one_name) {
+    $result = array_merge($result, _wk_potential_email_names_parts($one_name));
+  }
+  return $result;
+}
+
+function _wk_potential_email_names_parts($name) {
+  $result = array();
+
+  // Strip off any titles from the beginning of the name.
+  // TODO: We need a longer list of titles
+  $name = preg_replace('/(duke|duchess|count|countess|vicount|vicountess|mistress|master|lord|lady) /', '', $name);
+
+  $full_email_name = _wk_transliterate_potential_name($name);
+  $result[] = $full_email_name;
+
+  // Get rid of any "the" or "of the" parts in the name
+  $name_part_only = preg_replace('/\.(the|of\.the)\..*/', '', $full_email_name);
+  if ($full_email_name != $name_part_only) {
+    $result[] = $name_part_only;
+  }
+
+  $email_name_parts = explode('.', $name_part_only);
+  if (count($email_name_parts) > 1) {
+    // First part only
+    $result[] = $email_name_parts[0];
+    // Last part only
+    $result[] = $email_name_parts[count($email_name_parts)-1];
+    if (count($email_name_parts) > 2) {
+      $result[] = $email_name_parts[0] . '.' .  $email_name_parts[count($email_name_parts)-1];
+    }
+  }
+  return $result;
+}
+
+function _wk_transliterate_potential_name($name) {
+  // Convert special characters (umlauts and so on) to their non-transliterated counterpart
+  $name = iconv("utf-8","ascii//TRANSLIT", $name);
+
+  // Get rid of non-alphabetic characters
+  $name = preg_replace('/[^a-z-]/', '.', $name);
+  // Combine multiple dots into single dots
+  $name = preg_replace('/\.\.*/', '.', $name);
+  return $name;
+}
+
+function wk_get_organization_mail($account) {
+  // Load the multiple email addresses for this account.
+  // The return result here is a little odd; $addresses[0] is
+  // a list of all of the addresses (string values); the
+  // other elements of $addresses are the multiple email
+  // objects from the database, keyed by their $eid.
+  $addresses = multiple_email_load_addresses($account->uid);
+  unset($addresses[0]);
+  foreach ($addresses as $eid => $mmail_record) {
+    $address = $mmail_record->email;
+    if (substr($address, -15) == 'westkingdom.org') {
+      return $mmail_record;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_user_view().
+ */
+function wk_user_view($account, $view_mode) {
+  global $user;
+
+  // On the ordinary user view page, on the user's own
+  // user page, put in a note advising them to log on
+  // to their Google Apps account with this address.
+  if (($user->id == $account->id) && ($view_mode == 'full')) {
+    // TODO: Remove this after the 'organization mail' field is deleted
+    if (isset($account->field_organization_mail) && !empty($account->field_organization_mail[LANGUAGE_NONE][0]['value'])) {
+      hide($account->content['field_organization_mail']);
+      $account->content['field_organization_mail']['#suffix'] = t('<span class="note">E-mail sent to %org will be forwarded to %email.  Also, use %org to log on to your <a href="!url">West Kingdom Google Apps</a> account.</span>', array('%org' => $account->field_organization_mail[LANGUAGE_NONE][0]['value'], '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org'));
+    }
+
+    $mmail_record = wk_get_organization_mail($account);
+    if ($mmail_record) {
+      $org_mail = $mmail_record->email;
+      if ($mmail_record->confirmed) {
+        $account->content['show_organization_email'] = array(
+          '#type' => 'org-email',
+          '#weight' => 100,
+          'organization_email_display' => array(
+            // Duplicate the markup for a field, even though this
+            // is not a field.
+            '#markup' => t('
+<div class="field simulated-field-name-field-organization-mail field-type-text field-label-above">
+  <div class="field-label">Confirmed Organization E-mail</div>
+  <div class="field-items">
+    <div class="field-item">@org</div>
+  </div>
+</div>
+<span class="note">E-mail sent to %org will be forwarded to %email.  Also, use %org to log on to your <a href="!url">West Kingdom Google Apps</a> account.</span>', array('@org' => $org_mail, '%org' => $org_mail, '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org')),
+          ),
+        );
+
+      }
+      else {
+
+        $account->content['requested_organization_email'] = array(
+          '#type' => 'org-email',
+          '#weight' => 100,
+          'organization_email_display' => array(
+            // Duplicate the markup for a field, even though this
+            // is not a field.
+            '#markup' => t('
+<div class="field simulated-field-name-field-organization-mail field-type-text field-label-above">
+  <div class="field-label">Requested Organization E-mail</div>
+  <div class="field-items">
+    <div class="field-item">@org</div>
+  </div>
+</div>
+<span class="note">Waiting for %org to be approved.  You will not be able to log on to your West Kingdom Google Apps account until this address is created.</span>', array('@org' => $org_mail, '%org' => $org_mail)),
+          ),
+        );
+
+      }
+    }
+    else {
+      $account->content['request_organization_email'] = array(
+        '#type' => 'request-org-email',
+        '#weight' => 100,
+        'organization_email_display' => drupal_get_form('wk_request_organization_email', $account),
+      );
+    }
+  }
+
+  // dpm($account);
+}
+
+function wk_request_organization_email($form, &$form_state, $account) {
+  $names = wk_potential_email_names($account->name);
+  // Add '@westkingdom.org' on the end of each name.
+  $names = array_map(function($v) {
+      return $v . '@westkingdom.org';
+    }, $names);
+  $names = array_combine($names, $names);
+  $form['uid'] = array(
+    '#type' => 'hidden',
+    '#value' => $account->uid,
+  );
+  $form['choices'] = array(
+    '#title' => t('Request Organization E-mail Address'),
+    '#description' => t('Select the email address you would like to use.'),
+    '#type' => 'radios',
+    '#options' => $names,
+    '#default_value' => reset($names),
+  );
+  $form['description'] = array(
+    '#type' => 'item',
+    '#markup' => t('An organization email address is needed to use Google Apps.'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Request',
+  );
+  return $form;
+
+}
+
+function wk_request_organization_email_submit(&$form_state) {
+  $uid = $form_state['uid']['#value'];
+  $account = user_load($uid);
+
+  $mail = $form_state['choices']['#value'];
+
+  // Create a record in the multiple-email module's tables.
+  // This will be marked as "unconfirmed".
+  $eid = multiple_email_register_email($account->uid, $mail);
+
+  // Let the user know something happened.
+  drupal_set_message(t("Your request to create %mail was recieved; please be patient while your request is processed.", array("%mail" => $mail)));
 }
