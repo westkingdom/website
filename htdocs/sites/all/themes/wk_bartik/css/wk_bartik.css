@@ -374,6 +374,10 @@ div.media img,
 
 /* ############# Begin General Field CSS ############# */
 
+.note {
+  font-size: 75%;
+}
+
 .page-taxonomy-term article {
   clear: both;
 }
