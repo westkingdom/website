@@ -1193,6 +1193,14 @@ function wk_permission() {
       'title' => t('Administer theme configuration for assigned domains'),
       'description' => t("Allow a user who cannot change the domain theme to configure the selected theme's configuration."),
     ),
+    'view/request own organization email' => array(
+      'title' => t('View and request your own Organization email'),
+      'description' => t("Allow users to see their own Organization email, or make a request to create one."),
+    ),
+    'view/request organization email for any user' => array(
+      'title' => t('View and request Organization email for any user'),
+      'description' => t("See the Organization email for any user, and make a request to create on on behalf of any user."),
+    ),
   );
   return $permissions;
 }
@@ -3549,7 +3557,11 @@ function wk_user_view($account, $view_mode) {
   // On the ordinary user view page, on the user's own
   // user page, put in a note advising them to log on
   // to their Google Apps account with this address.
-  if (($user->uid == $account->uid) && ($view_mode == 'full')) {
+  $can_access = user_access('view/request organization email for any user');
+  if (!$can_access && ($user->uid == $account->uid)) {
+    $can_access = user_access('view/request own organization email');
+  }
+  if ($can_access && ($view_mode == 'full')) {
     $mmail_record = wk_get_organization_mail($account);
     if ($mmail_record) {
       $org_mail = $mmail_record->email;
