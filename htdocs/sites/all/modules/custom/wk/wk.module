@@ -3651,10 +3651,115 @@ function wk_request_organization_email_submit(&$form_state) {
 
   $mail = $form_state['choices']['#value'];
 
+  if (!isset($account->field_real_name[LANGUAGE_NONE][0]['value']) || empty($account->field_real_name[LANGUAGE_NONE][0]['value'])) {
+    drupal_set_message(t("Your request to create %mail cannot be processed, because the 'Real Name' field has not been provided for your account.", array("%mail" => $mail)), 'error');
+    return;
+  }
+
   // Create a record in the multiple-email module's tables.
   // This will be marked as "unconfirmed".
   $eid = multiple_email_register_email($account->uid, $mail);
 
   // Let the user know something happened.
   drupal_set_message(t("Your request to create %mail was recieved; please be patient while your request is processed.", array("%mail" => $mail)));
+}
+
+function wk_unconfirmed_addresses() {
+  $addresses = array();
+
+  $query = db_select('multiple_email', 'a')
+    ->fields('a')
+    ->condition('a.confirmed', 0);
+  $query->addJoin('INNER', 'users', 'u', 'u.uid = a.uid');
+  $query->addExpression('IF(LOWER(a.email) = LOWER(u.mail), 1, 0)', 'primary_address');
+
+  $result = $query->execute();
+
+  while ($row = $result->fetchObject()) {
+    $addresses[$row->eid] = $row;
+  }
+
+  return $addresses;
+}
+
+function wk_unconfirmed_addresses_in_domain($domain) {
+  $unconfirmed = wk_unconfirmed_addresses();
+  $result = array();
+  foreach ($unconfirmed as $eid => $mmail) {
+    $address = $mmail_record->email;
+    if (substr($address, -strlen($domain)) == $domain) {
+      $result[$eid] = $mmail;
+    }
+  }
+  return $result;
+}
+
+function _wk_random_password($length=16) {
+  $candidates = 'aeuyAEUY@#$*23456789bdghjmnpqrstvzBDGHJLMNPQRSTVWXZ';
+  $password = '';
+  for ($i = 0; $i < $length; $i++) {
+    $password .= $candidates[(rand() % strlen($candidates))];
+  }
+  return $password;
+}
+
+function wk_add_organization_account($service, $account, $org_email, $eid, $password = FALSE) {
+  $real_name = $account->field_real_name[LANGUAGE_NONE][0]['value'];
+
+  $name_parts = explode(' ', $real_name);
+  $family_name = array_pop($name_parts);
+  $given_name = implode(' ', $name_parts);
+
+  if (!$password) {
+    $password = _wk_random_password();
+  }
+
+  $result = FALSE;
+  try {
+    // Add a user
+    $org_user = new Google_Service_Directory_User(array(
+        'name' => array(
+          'familyName' => $family_name,
+          'givenName' => $given_name,
+        ),
+        'primaryEmail' => $org_email,
+        'password' => sha1(($password)),
+        'hashfunction' => 'SHA-1',
+      ));
+
+    $result = $service->users->insert($org_user);
+  }
+  catch (\Exception $e) {
+    return FALSE;
+  }
+
+  // TODO: we need to set up the email address to forward
+  // to $account->mail.  We need to make sure that this address
+  // is DIFFERENT than the org email address.  We should not
+  // mark the address as confirmed unless the forward is set
+  // up correctly.
+
+  // Get info about a user
+  //$data = $service->users->get($org_email);
+
+  // If the user account was created successfully, then
+  // mark the email address as 'confirmed'.
+  multiple_email_register_email($account->uid, $org_email, TRUE, $eid);
+}
+
+function wk_cron() {
+  $service == FALSE;
+
+  $unconfirmed = wk_unconfirmed_addresses_in_domain('@westkingdom.org');
+  foreach ($unconfirmed as $eid => $mmail) {
+    $address = $mmail_record->email;
+    $account = user_load($mmail->uid);
+
+/*
+    if ($service == FALSE) {
+      $service = new Google_Service_Directory($client);
+    }
+    wk_add_organization_account($service, $account, $address, $eid);
+*/
+  }
 }
