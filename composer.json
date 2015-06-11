@@ -8,9 +8,6 @@
         },
 
         {
-          "type": "vcs",
-          "url": ""
-
             "type": "package",
             "package": {
                 "name": "pantheon-systems/drops-7",
@@ -21,7 +18,6 @@
                     "reference": "master"
                 }
             }
-
         }
     ],
     "require": {
