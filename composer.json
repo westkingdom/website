@@ -9,7 +9,19 @@
 
         {
           "type": "vcs",
-          "url": "https://github.com/pantheon-systems/drops-7.git"
+          "url": ""
+
+            "type": "package",
+            "package": {
+                "name": "pantheon-systems/drops-7",
+                "version": "7.37",
+                "source": {
+                    "url": "https://github.com/pantheon-systems/drops-7.git",
+                    "type": "git",
+                    "reference": "master"
+                }
+            }
+
         }
     ],
     "require": {
