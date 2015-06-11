@@ -20,4 +20,4 @@ mv $TRAVIS_BUILD_DIR/htdocs/sites/sites/default $TRAVIS_BUILD_DIR/htdocs/sites/d
 cp $TRAVIS_BUILD_DIR/htdocs/sites/default/default.settings.php $TRAVIS_BUILD_DIR/htdocs/sites/default/settings.php
 
 # Add vendor/bin and $HOME/bin to our $PATH
-export PATH="$TRAVIS_BUILD_DIR/htdocs/sites/all/vendor/bin:$HOME/bin:$PATH"
+export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"

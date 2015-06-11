@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Add vendor/bin and $HOME/bin to our $PATH
-export PATH="$TRAVIS_BUILD_DIR/htdocs/sites/all/vendor/bin:$HOME/bin:$PATH"
+export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
 
 # Do not attempt to push the site up to Pantheon unless the PPASS
 # environment variable is set.  If we receive a PR from an external

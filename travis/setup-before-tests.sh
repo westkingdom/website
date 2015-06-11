@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# Set up our $PATH
-export PATH="$TRAVIS_BUILD_DIR/htdocs/sites/all/vendor/bin:$HOME/bin:$PATH"
+SELF_DIRNAME="`dirname -- "$0"`"
+ROOT_PATH="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
 
-# Set the 'sendmail_path' to point to the program 'true'; this
-# will cause the system to essentially swallow any emails Drupal
-# tries to send.
-echo "sendmail_path='true'" >> `php --ini | grep "Loaded Configuration" | awk '{print $4}'`
+# Set up our $PATH
+export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
 
 # Use Drush to install Drupal and spin up PHP's built-in webserver
-cd htdocs
-drush site-install -y standard --site-name="$SITE_NAME" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass=admin
-drush runserver --server=builtin 8080 --strict=0 &
-cd ..
+(
+  cd $ROOT_PATH/htdocs
+  drush site-install -y standard --site-name="$SITE_NAME Travis Test Site" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass=admin
+  drush runserver --server=builtin 8088 --strict=0 &
+)
 
 # Wait for a little while to let the webserver spin up
-until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do sleep 0.2; done
+echo "Waiting for the web server to finish spinning up."
+until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 0.2; done
+echo "Got a response from our webserver; continuing."
