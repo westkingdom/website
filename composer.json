@@ -143,7 +143,10 @@
         },
         "preserve-paths": [
             "htdocs/sites/all/modules/contrib",
+            "htdocs/sites/all/modules/custom",
+            "htdocs/sites/all/modules/modified",
             "htdocs/sites/all/themes/contrib",
+            "htdocs/sites/all/themes/custom",
             "htdocs/sites/all/libraries",
             "htdocs/sites/all/drush",
             "htdocs/sites/all/vendor",
