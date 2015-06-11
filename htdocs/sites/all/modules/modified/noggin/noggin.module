@@ -1,0 +1,723 @@
+<?php
+/**
+ * Get a list of all available header images.
+ *
+ * @param $key
+ *   The name of the theme fom which to load additional images.
+ *
+ * TODO: predefined images broken (not implemented).  Need to
+ * design a new feature that is more suited to multiple image assets
+ */
+function noggin_get_available_images($key = NULL) {
+  $defaults = array(
+    t('Sample headers') => array(
+      'noggin:boots.jpg' => t('Black and white boots'),
+      'noggin:denim.jpg' => t('Blue jeans'),
+      'noggin:dewflower.jpg' => t('Orange petals and dew'),
+      'noggin:flower.jpg' => t('Purple flower on black'),
+      'noggin:hearts.jpg' => t('Candy hearts'),
+      'noggin:lens.jpg' => t('Camera lens on white'),
+      'noggin:lensdrop.jpg' => t('Dew drop on green'),
+      'noggin:mountain.jpg' => t('Blue mountainscape'),
+      'noggin:speaker.jpg' => t('Grey speaker'),
+      'noggin:sunset.jpg' => t('Warm sunset'),
+      'noggin:whitebrick.jpg' => t('White bricks'),
+      'noggin:yarn.jpg' => t('Colorful yarn'),
+    ),
+  );
+  if ($key == NULL) {
+    // No need for futher processing
+    return $defaults;
+  }
+  // Search for png and jpg files by default
+  $allowed_extensions = array('jpg', 'png');
+  // Path to theme
+  $theme_path = drupal_get_path('theme', $key);
+  // Build the available images array
+  $images = array();
+  foreach ($allowed_extensions as $extension) {
+    $files = drupal_system_listing("/\.$extension$/", "$theme_path/header-images", 'name', 0);
+    foreach ($files as $name => $image) {
+      $images["$key:{$image->filename}"] = $image->filename;
+    }
+  }
+  if (count($images)) {
+    $defaults[$key] = $images;
+  }
+  return $defaults;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function noggin_form_alter(&$form, &$form_state, $form_id) {
+  // Display the form on theme-specific settings page only.
+  if ($form_id == 'system_theme_settings' && isset($form['var']['#value']) && $form['var']['#value'] != 'theme_settings') {
+    // Get saved theme settings.
+    $theme_settings = variable_get($form['var']['#value'], array());
+    // Logo settings
+    $form['noggin'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Image asset settings'),
+      '#description' => t('Choose a graphical header, or upload a custom image.'),
+      '#attributes' => array('class' => array('theme-settings-bottom')),
+    );
+    $theme_key = $form_state['build_info']['args'][0];
+    $options = array_merge(
+      array(
+       '' => t('None'),
+       'custom' => t('Custom image'),
+      ),
+      noggin_get_available_images(isset($theme_key) ? $theme_key : NULL)
+    );
+    $form['noggin']['image_assets'] = array(
+      '#type' => 'select',
+      '#title' => t('Selected asset set'),
+      '#options' => $options,
+      '#description' => t('To have images supplied by your theme show here place them in yourtheme/header-images folder. They must be png or jpg.'),
+      '#default_value' => isset($theme_settings['image_assets']) ? $theme_settings['image_assets'] : FALSE,
+      '#tree' => FALSE,
+    );
+    $form['noggin']['settings'] = array(
+      '#type' => 'container',
+      '#states' => array(
+        // Don't show any extra forms when none is selected.
+        'invisible' => array(
+          ':input[name="image_assets"]' => array('value' => ''),
+        ),
+      ),
+    );
+    $form['noggin']['settings']['path_settings'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Custom image'),
+      '#states' => array(
+        // Only show the path and upload form when custom image is selected.
+        'visible' => array(
+          ':input[name="image_assets"]' => array('value' => 'custom'),
+        ),
+      ),
+    );
+    $asset_areas = noggin_get_theme_asset_areas($theme_key, $theme_settings);
+    $asset_number = 0;
+    $asset_path = NULL;
+    while (!empty($asset_path) || !$asset_number) {
+      $asset_number = $asset_number + 1;
+      $asset_path = isset($theme_settings['asset_path_' . $asset_number]) ? $theme_settings['asset_path_' . $asset_number] : NULL;
+      // If $asset_path is a public:// URI, display the path relative to the files
+      // directory; stream wrappers are not end-user friendly.
+      if (file_uri_scheme($asset_path) == 'public') {
+        $asset_path = file_uri_target($asset_path);
+      }
+      $asset_placement_options = array('' => t('Not used'), 'advanced' => t('Advanced'));
+      foreach ($asset_areas as $key => $area) {
+        $selectable = !isset($area['#used']);
+        if ((isset($theme_settings['asset_selector_' . $asset_number]) && !empty($theme_settings['asset_path_' . $asset_number]) && ($theme_settings['asset_selector_' . $asset_number] == $area['selector']))) {
+          $theme_settings['asset_placement_' . $asset_number] = $key;
+        }
+        if ((isset($theme_settings['asset_placement_' . $asset_number]) && ($theme_settings['asset_placement_' . $asset_number] == $key))) {
+          $selectable = TRUE;
+        }
+        if ($selectable) {
+          $asset_placement_options[$key] = $area['title'];
+        }
+      }
+      $form['noggin']['settings']['path_settings'] += _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path, $asset_placement_options);
+    }
+    $form['noggin']['settings']['path_settings']['asset_upload'] = array(
+      '#type' => 'file',
+      '#title' => t('Upload a new image asset'),
+      '#maxlength' => 40,
+      '#description' => t("If you don't have direct file access to the server, use this field to upload your image asset.")
+    );
+
+    $form['#validate'][] = 'noggin_theme_settings_validate';
+    array_unshift($form['#submit'], 'noggin_theme_settings_submit');
+  }
+}
+
+/**
+ * Return the asset areas defined in the specified theme's .info file
+ */
+function noggin_get_theme_asset_areas($theme_key, $theme_settings) {
+  $asset_areas = array(
+    'header' => array('title' => 'Header', 'selector' => '#header', ),
+    'background' => array('title' => 'Background', 'selector' => 'body', ),
+  );
+  if (isset($theme_key)) {
+    $themes = list_themes();
+    $theme_info = $themes[$theme_key];
+    if (isset($theme_info->info['asset_areas'])) {
+      $asset_areas = $theme_info->info['asset_areas'];
+    }
+  }
+  $asset_number = 1;
+  while (isset($theme_settings['asset_path_' . $asset_number])) {
+    if (isset($theme_settings['asset_placement_' . $asset_number]) && array_key_exists($theme_settings['asset_placement_' . $asset_number], $asset_areas)) {
+      $key = $theme_settings['asset_placement_' . $asset_number];
+      $asset_areas[$key]['#used'] = TRUE;
+    }
+    $asset_number = $asset_number + 1;
+  }
+  return $asset_areas;
+}
+
+/**
+ *  Return the form edit controls for the Nth image asset
+ */
+function _noggin_asset_edit_controls($theme_settings, $asset_number, $asset_path, $asset_placement_options) {
+  $form['asset_path_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Path to custom asset #!asset_number', array('!asset_number' => $asset_number)),
+    '#default_value' => $asset_path,
+    '#description' => t('The path to the file you would like to use as your image asset.'),
+  );
+  $form['asset_placement_' . $asset_number] = array(
+    '#type' => 'select',
+    '#title' => t('Placement of asset #' . $asset_number),
+    '#options' => $asset_placement_options,
+    '#description' => t('Select the area where this asset will be used.'),
+    '#default_value' => isset($theme_settings['asset_placement_' . $asset_number]) ? $theme_settings['asset_placement_' . $asset_number] : '',
+    '#tree' => FALSE,
+  );
+  $form['asset_selector_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('CSS selector for asset #' . $asset_number),
+    '#states' => array(
+      // Only show the asset selector control when "advanced" placement is selected
+      'visible' => array(
+        ':input[name="asset_placement_' . $asset_number . '"]' => array('value' => 'advanced'),
+      ),
+    ),
+    '#default_value' => isset($theme_settings['asset_selector_' . $asset_number]) ? $theme_settings['asset_selector_' . $asset_number] : '',
+    '#description' => t('The CSS selector to use when placing the image asset.'),
+    '#size' => 30,
+  );
+  $form['css_settings_' . $asset_number] = array(
+    '#type' => 'fieldset',
+    '#title' => t('CSS settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['css_settings_' . $asset_number]['asset_horizontal_alignment_' . $asset_number] = array(
+    '#type' => 'radios',
+    '#title' => t('Image alignment - horizontal'),
+    '#default_value' => isset($theme_settings['asset_horizontal_alignment_' . $asset_number]) ? $theme_settings['asset_horizontal_alignment_' . $asset_number] : 'center',
+    '#options' => array(
+      'left' => t('Left'),
+      'center' => t('Center'),
+      'right' => t('Right'),
+    ),
+  );
+  $form['css_settings_' . $asset_number]['asset_vertical_alignment_' . $asset_number] = array(
+    '#type' => 'radios',
+    '#title' => t('Image alignment - vertical'),
+    '#default_value' => isset($theme_settings['asset_vertical_alignment_' . $asset_number]) ? $theme_settings['asset_vertical_alignment_' . $asset_number] : 'top',
+    '#options' => array(
+      'top' => t('Top'),
+      'center' => t('Middle'),
+      'bottom' => t('Bottom'),
+    ),
+  );
+  $form['css_settings_' . $asset_number]['asset_image_repeat_' . $asset_number] = array(
+    '#type' => 'radios',
+    '#title' => t('Image repeat'),
+    '#default_value' => isset($theme_settings['asset_image_repeat_' . $asset_number]) ? $theme_settings['asset_image_repeat_' . $asset_number] : 'no-repeat',
+    '#options' => array(
+      'no-repeat' => t('No repeat'),
+      'repeat-x' => t('Horizontal repeat'),
+      'repeat-y' => t('Vertical repeat'),
+      'repeat' => t('Repeat'),
+    ),
+  );
+
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Optional settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['asset_image_width_' . $asset_number] = array(
+    '#type' => 'radios',
+    '#title' => t('Image width'),
+    '#default_value' => theme_get_setting('asset_image_width_' . $asset_number),
+    '#default_value' => isset($theme_settings['asset_image_width_' . $asset_number]) ? $theme_settings['asset_image_width_' . $asset_number] : 'auto',
+    '#options' => array(
+      'auto' => t('Auto <span class="description">- use actual image dimensions</span>'),
+      '100%' => t('100% width <span class="description"> - stretch to fit, this only works in modern CSS3 capable browsers</span>'),
+    ),
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['asset_color_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Background color'),
+    '#default_value' => isset($theme_settings['asset_color_' . $asset_number]) ? $theme_settings['asset_color_' . $asset_number] : NULL,
+    '#description' => t('This must be valid CSS e.g. #000, rgba(0,0,0,0.5), transparent, etc.'),
+    '#size' => 30,
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['asset_image_height_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Image asset height'),
+    '#default_value' => isset($theme_settings['asset_image_height_' . $asset_number]) ? $theme_settings['asset_image_height_' . $asset_number] : '',
+    '#description' => t('Enter a value/unit combination, e.g. 200px, 12em etc. This may not work for all themes. See the README for help if this does not work as expected.'),
+    '#size' => 30,
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['extra_attributes_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Additional CSS attributes'),
+    '#default_value' => isset($theme_settings['extra_attributes_' . $asset_number]) ? $theme_settings['extra_attributes_' . $asset_number] : NULL,
+    '#description' => t('Any additional CSS attributes that should be applied to the image asset.'),
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['additional_css_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Additional CSS'),
+    '#default_value' => isset($theme_settings['additional_css_' . $asset_number]) ? $theme_settings['additional_css_' . $asset_number] : NULL,
+    '#description' => t('Any additional CSS that should be applied to the same element as the image asset.'),
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['media_wrapper_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Media wrapper'),
+    '#default_value' => isset($theme_settings['media_wrapper_' . $asset_number]) ? $theme_settings['media_wrapper_' . $asset_number] : NULL,
+    '#description' => t('Example: @media all and (min-width: 901px)'),
+  );
+  $form['css_settings_' . $asset_number]['optional_' . $asset_number]['hover_css_' . $asset_number] = array(
+    '#type' => 'textfield',
+    '#title' => t('Hover css'),
+    '#default_value' => isset($theme_settings['hover_css_' . $asset_number]) ? $theme_settings['hover_css_' . $asset_number] : NULL,
+    '#description' => t('Example: background-position:left -60px;'),
+  );
+  return $form;
+}
+
+/**
+ * Validate system_theme_settings form submissions, handling extra values
+ * from the Noggin fields.
+ *
+ * Turns an uploaded file into a real filesystem item.
+ */
+function noggin_theme_settings_validate($form, &$form_state) {
+  // Handle file uploads.
+  // n.b. If we do not provide file_validate_extensions, then
+  // file_save_upload will add one with default extensions.
+  $validators = array(
+    'noggin_file_validate_is_image_or_zip' => array(),
+    'file_validate_extensions' => array('jpg jpeg gif png zip'),
+  );
+  // Check for a new uploaded logo.
+  $file = file_save_upload('asset_upload', $validators);
+  if (isset($file)) {
+    // File upload was attempted.
+    if ($file) {
+      // Put the temporary file in form_values so we can save it on submit.
+      $form_state['values']['asset_upload'] = $file;
+    }
+    else {
+      // File upload failed.
+      form_set_error('asset_upload', t('The image asset could not be uploaded.'));
+    }
+  }
+  // If the user provided a path for an image asset, make sure a file
+  // exists at that path.
+  $asset_number = 1;
+  while (isset($form_state['values']['asset_path_' . $asset_number])) {
+    if (!empty($form_state['values']['asset_path_' . $asset_number])) {
+      $path = noggin_settings_validate_path($form_state['values']['asset_path_' . $asset_number]);
+      if (!$path) {
+        form_set_error('asset_path_' . $asset_number, t('The custom image asset path !path is invalid.', array('!path' => $form_state['values']['asset_path_' . $asset_number])));
+      }
+    }
+    $asset_number = $asset_number + 1;
+  }
+}
+
+/**
+ * Copy of _system_theme_settings_validate_path(),
+ * but uses 'file_exists' instead of 'is_file'.
+ */
+function noggin_settings_validate_path($path) {
+  // Absolute local file paths are invalid.
+  if (drupal_realpath($path) == $path) {
+    return FALSE;
+  }
+  // A path relative to the Drupal root or a fully qualified URI is valid.
+  if (file_exists($path)) {
+    return $path;
+  }
+  // Prepend 'public://' for relative file paths within public filesystem.
+  if (file_uri_scheme($path) === FALSE) {
+    $path = 'public://' . $path;
+  }
+  if (file_exists($path)) {
+    return $path;
+  }
+  return FALSE;
+}
+
+/**
+ *  Copy of file_validate_is_image(), but also accepts
+ *  zip files if they contain nothing but images.
+ */
+function noggin_file_validate_is_image_or_zip(stdClass $file) {
+  $errors = array();
+
+  $path_parts = pathinfo($file->filename);
+  if ($path_parts['extension'] == "zip") {
+    $zip = new ArchiverZip($file->uri);
+    foreach($zip->listContents() as $zip_entry) {
+      // Ignore the directories
+      if (substr($zip_entry, -1) != '/') {
+        // Check to see if each file is an image, or something else
+        $path_parts = pathinfo($zip_entry);
+        switch ($path_parts['extension']) {
+          case 'jpg':
+          case 'jpeg':
+          case 'gif':
+          case 'png':
+            break;
+          default:
+            $errors[] = t('Zip file can only contain images; the file !entry is not allowed.', array('!entry' => $zip_entry));
+        }
+      }
+    }
+  }
+  else {
+    $info = image_get_info($file->uri);
+    if (!$info || empty($info['extension'])) {
+      $errors[] = t('Only JPEG, PNG and GIF images, or zip files containing images, are allowed.');
+    }
+  }
+
+  return $errors;
+}
+
+/**
+ * Process system_theme_settings form submissions, handling extra values
+ * from the Noggin fields.
+ */
+function noggin_theme_settings_submit($form, &$form_state) {
+  $values = &$form_state['values'];
+  $theme_key = $form_state['build_info']['args'][0];
+  $asset_areas = noggin_get_theme_asset_areas($theme_key, $values);
+  // If the user provided a path for an image asset, make sure a file
+  // exists at that path.
+  $asset_number = 1;
+  $i = 1;
+  $unused_asset_number = FALSE;
+  while (isset($values['asset_path_' . $i])) {
+    if ($i > $asset_number) {
+      // Copy the i'th item to the current slot ($asset_number)
+      $values['asset_path_' . $asset_number] = $values['asset_path_' . $i];
+      $values['asset_placement_' . $asset_number] = $values['asset_placement_' . $i];
+      $values['asset_selector_' . $asset_number] = $values['asset_selector_' . $i];
+      $values['asset_horizontal_alignment_' . $asset_number] = $values['asset_horizontal_alignment_' . $i];
+      $values['asset_vertical_alignment_' . $asset_number] = $values['asset_vertical_alignment_' . $i];
+      $values['asset_image_repeat_' . $asset_number] = $values['asset_image_repeat_' . $i];
+      $values['asset_image_width_' . $asset_number] = $values['asset_image_width_' . $i];
+      $values['asset_image_height_' . $asset_number] = $values['asset_image_height_' . $i];
+      $values['extra_attributes_' . $asset_number] = $values['extra_attributes_' . $i];
+      $values['additional_css_' . $asset_number] = $values['additional_css_' . $i];
+      $values['media_wrapper_' . $asset_number] = $values['media_wrapper_' . $i];
+      $values['hover_css_' . $asset_number] = $values['hover_css_' . $i];
+      // Clear out the i'th item (prevent duplicates)
+      $values['asset_path_' . $i] = '';
+    }
+    // If the user entered a path relative to the system files directory for
+    // a image asset, store a public:// URI so the theme system can handle it.
+    if (!empty($values['asset_path_' . $asset_number])) {
+      $values['asset_path_' . $asset_number] = noggin_settings_validate_path($values['asset_path_' . $asset_number]);
+      $placement = $values['asset_placement_' . $asset_number];
+      if (!empty($placement) && (array_key_exists($placement, $asset_areas))) {
+        $values['asset_selector_' . $asset_number] = $asset_areas[$placement]['selector'];
+      }
+      $asset_number = $asset_number + 1;
+    }
+    $i = $i + 1;
+  }
+  $unused_asset_number = $asset_number;
+  // Pick a directory to store our assets in.
+  $asset_dir = "public://image_assets/$theme_key";
+  // If domain access is in use, also further
+  // segregate images for different domains sharing
+  // the same theme.
+  if (module_exists('domain')) {
+    if (array_key_exists('domain_id', $form)) {
+      $domain_id = $form['domain_id']['#value'];
+      $domain = domain_lookup($domain_id);
+      $asset_dir .= '/' . $domain['machine_name'];
+    }
+  }
+  // Create the asset dir if it does not already exist
+  if (!is_dir($asset_dir)) {
+    drupal_mkdir($asset_dir, NULL, TRUE);
+  }
+  // If the user uploaded a new image asset, save it to a permanent location
+  if ($file = $values['asset_upload']) {
+    unset($values['asset_upload']);
+    $path_parts = pathinfo($file->filename);
+    // If the upload is a zip file, extract it.
+    if ($path_parts['extension'] == "zip") {
+      $zip = new ArchiverZip(drupal_realpath($file->uri));
+      $contents = $zip->listContents();
+      $first_zip_entry = reset($contents);
+      $zip_base_directory = (substr($first_zip_entry, -1) == '/') ? $first_zip_entry : '';
+      $zip->extract($asset_dir);
+      // If there are no directories in the zipfile, then
+      // upload each image, creating a separate asset for each.
+      if (empty($zip_base_directory)) {
+        foreach ($contents as $zip_entry) {
+          // Hopefully, there is either one single base directory,
+          // or no directories at all in this zipfile.  We'll test
+          // to be sure, though, and skip any directories.
+          if (substr($zip_entry, -1) != '/') {
+            $values += _noggin_get_values_for_asset($unused_asset_number);
+            $values['asset_path_' . $unused_asset_number] = $asset_dir . '/' . $zip_entry;
+            $unused_asset_number = $unused_asset_number + 1;
+          }
+        }
+      }
+      else {
+        // If this is a zip file with a folder full of images,
+        // then create just one new asset entry pointing at the
+        // folder full of files.
+        $values['asset_path_' . $unused_asset_number] = $asset_dir . '/' . $zip_base_directory;
+      }
+    }
+    // If the upload is not a zip file, then copy it.
+    else {
+      $filename = file_unmanaged_copy($file->uri, $asset_dir);
+      $values['asset_path_' . $unused_asset_number] = $filename;
+    }
+  }
+  // pre-generate our cached css file any time a our settings page is saved
+  // TODO: test to see if anything changed in our settings first?
+  // This clears the css cache.
+  $css_file = $asset_dir . '/noggin.css';
+  $values['css_file'] = $css_file;
+  _noggin_generate_static_css_file($css_file, $values);
+}
+
+/**
+ * Rebuild our cached css file after all of the other
+ * submit hooks have had a chance to run.
+ */
+function noggin_rebuild_css_file() {
+  $css_file = theme_get_setting('css_file');
+  if (!empty($css_file)) {
+    $values = _noggin_get_values_from_theme_settings();
+    _noggin_generate_static_css_file($css_file, $values);
+  }
+}
+
+/**
+ *  If we need to rebuild our css file at any time other than
+ *  during a form_submit, we need to recreate a $values[] array
+ *  from theme_get_settings().
+ */
+function _noggin_get_values_from_theme_settings() {
+  $values = array();
+  $asset_number = 1;
+  while ($path = theme_get_setting('asset_path_' . $asset_number)) {
+    $values += _noggin_get_values_for_asset($asset_number);
+    $asset_number = $asset_number + 1;
+  }
+  return $values;
+}
+
+/**
+ * Get the current values for one particular asset.
+ */
+function _noggin_get_values_for_asset($asset_number) {
+  $values['asset_path_' . $asset_number] = theme_get_setting('asset_path_' . $asset_number);
+  $values['asset_horizontal_alignment_' . $asset_number] = theme_get_setting('asset_horizontal_alignment_' . $asset_number);
+  $values['asset_vertical_alignment_' . $asset_number] = theme_get_setting('asset_vertical_alignment_' . $asset_number);
+  $values['asset_image_repeat_' . $asset_number] = theme_get_setting('asset_image_repeat_' . $asset_number);
+  $values['asset_color_' . $asset_number] = theme_get_setting('asset_color_' . $asset_number);
+  $values['extra_attributes_' . $asset_number] = theme_get_setting('extra_attributes_' . $asset_number);
+  $values['asset_image_width_' . $asset_number] = theme_get_setting('asset_image_width_' . $asset_number);
+  $values['asset_image_height_' . $asset_number] = theme_get_setting('asset_image_height_' . $asset_number);
+  $values['asset_selector_' . $asset_number] = theme_get_setting('asset_selector_' . $asset_number);
+  $values['asset_placement_' . $asset_number] = theme_get_setting('asset_placement_' . $asset_number);
+  $values['additional_css_' . $asset_number] = theme_get_setting('additional_css_' . $asset_number);
+  $values['media_wrapper_' . $asset_number] = theme_get_setting('media_wrapper_' . $asset_number);
+  $values['hover_css_' . $asset_number] = theme_get_setting('hover_css_' . $asset_number);
+
+  return $values;
+}
+
+/**
+ *  Generate the css for our static assets, and cache
+ *  them in a file that will be provided to Drupal in
+ *  a way that allows it to be aggregated with other css
+ *  files (if css aggregation is turned on).
+ */
+function _noggin_generate_static_css_file($file_path, $values) {
+  $css = _noggin_generate_static_css($values);
+
+  file_put_contents($file_path, $css);
+  // Clear the Drupal css cache whenever we regenerate our
+  // asset css, so that our generated file will be included
+  // in the new agregated content
+  _drupal_flush_css_js();
+  drupal_clear_css_cache();
+}
+
+/**
+ *  Generate the raw css text for our static assets.
+ */
+function _noggin_generate_static_css($values) {
+  $asset_number = 1;
+  $css = "";
+  while (array_key_exists('asset_path_' . $asset_number, $values)) {
+    // skip dynamic assets
+    if (_noggin_asset_is_static($values, $asset_number)) {
+      $asset_css = _noggin_generate_asset_css($values, $asset_number);
+      $css .= $asset_css;
+    }
+    $asset_number = $asset_number + 1;
+  }
+  return $css;
+}
+
+/**
+ *  Return TRUE if the asset is static
+ */
+function _noggin_asset_is_static($values, $asset_number) {
+  $path = $values['asset_path_' . $asset_number];
+
+  return !is_dir($path);
+}
+
+/**
+ *  Generate the raw css text for our dynamic assets.
+ */
+function _noggin_generate_dynamic_css($values) {
+  $asset_number = 1;
+  $css = "";
+  while (array_key_exists('asset_path_' . $asset_number, $values)) {
+    // include only dynamic assets
+    if (!_noggin_asset_is_static($values, $asset_number)) {
+      $asset_css = _noggin_generate_asset_css($values, $asset_number);
+      $css .= $asset_css;
+    }
+    $asset_number = $asset_number + 1;
+  }
+  return $css;
+}
+
+/**
+ * Calculate the css for one image asset.
+ */
+function _noggin_generate_asset_css($values, $asset_number) {
+  $css = '';
+  // Get the CSS attribute settings
+  $attributes = array();
+  $attributes[] = $values['asset_horizontal_alignment_' . $asset_number];
+  $attributes[] = $values['asset_vertical_alignment_' . $asset_number];
+  $attributes[] = $values['asset_image_repeat_' . $asset_number];
+  $attributes[] = $values['asset_color_' . $asset_number];
+  $attributes[] = $values['extra_attributes_' . $asset_number];
+  $all_attributes = implode(' ', $attributes);
+  // Get width and height
+  $width = $values['asset_image_width_' . $asset_number];
+  $height = $values['asset_image_height_' . $asset_number] ? $values['asset_image_height_' . $asset_number] : 'auto';
+  $selector = $values['asset_selector_' . $asset_number];
+  $path = $values['asset_path_' . $asset_number];
+  $additional_css = $values['additional_css_' . $asset_number];
+  $media_wrapper = $values['media_wrapper_' . $asset_number];
+  $hover_css = $values['hover_css_' . $asset_number];
+  $important = '!important';
+
+  if (!empty($hover_css)) {
+    $additional_css .= " :hover { $hover_css }";
+  }
+
+  $additional_css_selectors = '';
+  if (preg_match_all('#([.:][a-z0-9]+) +(\{[^}]*\})#', $additional_css, $matches, PREG_SET_ORDER)) {
+    foreach ($matches as $match) {
+      $full_match = $match[0];
+      $matched_selector = $match[1];
+      $matched_css_terms = $match[2];
+      $additional_css = str_replace($full_match, '', $additional_css);
+      $modified_selector = _noggin_generate_sub_selector($selector, $matched_selector);
+      $additional_css_selectors .= "\n$modified_selector $matched_css_terms";
+      // '!important' interferes with hover
+      if (strstr($modified_selector, 'hover') !== FALSE) {
+        $important = '';
+      }
+    }
+  }
+  // If the asset points to a directory instead of a file,
+  // then find and return a random file from that directory.
+  if (is_dir($path)) {
+    $images = file_scan_directory($path, '/.*\.(png|jpg|jpeg|gif)/');
+    if (empty($images)) {
+      $path = '';
+    }
+    else {
+      $path = array_rand($images);
+    }
+  }
+  // If we have a selector and an image, generate the css
+  if (!empty($selector) && !empty($path)) {
+    $image_path =  file_create_url($path);
+    $image_path =  parse_url($image_path, PHP_URL_PATH);
+    $css = "$selector {background:url('$image_path') $all_attributes $important;height:$height;-o-background-size:$width auto;-webkit-background-size:$width auto;-khtml-background-size:$width auto;-moz-background-size:$width auto;background-size:$width auto;background-origin:border-box;$additional_css}$additional_css_selectors\n";
+    if (!empty($media_wrapper)) {
+      $css = "$media_wrapper {\n$css\n}\n";
+    }
+    // Collapse multiple adjacent spaces into a single space
+    $css = preg_replace('/  */', ' ', $css);
+  }
+  return $css;
+}
+
+function _noggin_generate_sub_selector($selector, $selector_modifier) {
+  $sub_selector = array();
+  foreach (explode(',', $selector) as $sel) {
+    if (strpos($sel, ':') === FALSE) {
+      $modified_selector = trim($sel) . $selector_modifier;
+      // If the selector is 'li a', then
+      // move any :hover to the li
+      $modified_selector = str_replace("li a:hover", "li:hover a", $modified_selector);
+      $sub_selector[] = $modified_selector;
+    }
+  }
+  return implode(', ', $sub_selector);
+}
+
+/**
+ * Implements hook_init
+ *
+ * According to https://api.drupal.org/api/drupal/includes!common.inc/function/drupal_add_css/7,
+ * hook_ini is the best place to call drupal_add_css
+ * when setting $options['preprocess']
+ */
+function noggin_init() {
+  if (!function_exists('drush_main')) {
+    $css_file = theme_get_setting('css_file');
+    if (!empty($css_file)) {
+      if (file_exists($css_file)) {
+        drupal_add_css($css_file, array(
+            'type' => 'file',
+            'group' => CSS_THEME,
+            'weight' => 99,
+            'every_page' => TRUE,
+            'preprocess' => TRUE,
+          )
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function noggin_preprocess_page(&$vars) {
+  $values = _noggin_get_values_from_theme_settings();
+  $css = _noggin_generate_dynamic_css($values);
+  drupal_add_css($css, array(
+    'type' => 'inline',
+    'group' => CSS_THEME,
+    'weight' => 99,
+    )
+  );
+}

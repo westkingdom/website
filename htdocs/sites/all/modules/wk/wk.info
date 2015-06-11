@@ -1,0 +1,5 @@
+name = wk
+description = West Kingdom Customizations
+core = 7.x
+files[] = wk.module
+scripts[] = js/wk.js
