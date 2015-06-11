@@ -130,6 +130,7 @@
         ]
     },
     "config": {
+        "bin-dir": "bin/",
         "vendor-dir": "htdocs/sites/all/vendor"
     },
     "extra": {
