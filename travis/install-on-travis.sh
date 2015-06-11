@@ -29,7 +29,7 @@ chmod +x $HOME/bin/terminus
 echo "Log in to Pantheon via Terminus"
 terminus auth login "$PEMAIL" --password="$PPASS"
 echo "Fetch aliases via Terminus"
-terminus auth aliases
+terminus sites aliases
 terminus site wake --site=$PUUID --env=$PENV
 
 # Identify the automation user
