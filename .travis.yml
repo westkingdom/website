@@ -50,6 +50,11 @@ install:
   - bash travis/install-on-travis.sh
 
 before_script:
+  # Set the 'sendmail_path' to point to the program 'true'; this
+  # will cause the system to essentially swallow any emails Drupal
+  # tries to send.
+  - echo "sendmail_path='true'" >> `php --ini | grep "Loaded Configuration" | awk '{print $4}'`
+  # Install Drupal and launch the PHP built-in webserver
   - bash travis/setup-before-tests.sh
 
 script:
