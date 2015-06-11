@@ -5,4 +5,4 @@ Feature: Homepage
 
   Scenario: The homepage title
     Given I am on "/"
-    Then I should see "Travis Did It"
+    Then I should see "Travis Test Site"
