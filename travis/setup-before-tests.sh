@@ -27,3 +27,10 @@ cd $PROJECT_BASE_DIR/htdocs
 drush site-install -y standard --site-name="$SITE_NAME Travis Test Site" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass=admin
 drush runserver --server=builtin 8088 --strict=0 </dev/null &>$HOME/server.log &
 cd $PROJECT_BASE_DIR
+
+# Wait for a little while to let the webserver spin up
+echo "Waiting for the web server to finish spinning up."
+sleep 1
+cat $HOME/server.log
+until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 2; netstat -an ; tail -n 1 $HOME/server.log ; done
+echo "Got a response from our webserver; continuing."

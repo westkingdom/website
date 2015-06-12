@@ -44,7 +44,12 @@ env:
     - secure: SfJl20e1vjJY9BdIt6m5juNC39T4vFRIpxnLo+p9o+SB3WsP/0bqj+HoQtomsXnVMqIiGABzmHzf7H2EBEgTgkJ41OJpNQEKFoZUR9aghUzZSpcd2ilGlWp0NIICTPGzkKxT9tJc3/WUVjzS8EMnaZwywq8n3szYDefl+TlFaY/V0oQ8mmjvPqrYDkieJaMz2aDceZiD3yVAra8qdfbHFfLpdy9VB3KoFT6JbcZfqU9svmzF6CRD0elLq2d9RhLrRIbPhgB07IxWk/OGMuPd1ptaN9qspXX9blHyVDyBhLwBiLTDl4DIv/wSTbe2nM8Mzp+5wR8YLGDIfCvlHPAnLddwWQfk5sJAya8SJdCr5Cec39usXt5lrHjoW5+k2NpmSGpYuWyBba0Y9/ZvT0IHwfWjB+mtySm++J5qE4EmtS5tPmvenE+uQ1mlJ8ZB8Tp7wLrBA8bAHUYvzebuW9K3iQ82Qsit2xWK7ZT7xTj8DMl+ma/LflmTTlCG4s856jPF5pVnwqYNe54XuKnxi2uzAsqrZ17buG8ZVN/Uud7wFRR/YY15/vs3t0bPWsnNeRxPJqqBHzmfZhIJJ2ELTRfaL4QqNiXGdn0y/CjZ2QmfoVEvdUtE/7EXBrj8C7G6g8QgXaVyU135w/TFhaHM2oySOUiluwNEf/+AkAs2C6TPR3A=
 
 before_install:
+  # Make sure composer is up-to-date
   - composer self-update
+  # Get netstat
+  - sudo apt-get update -qq
+  - sudo apt-get install net-tools
+
 
 install:
   - bash travis/install-on-travis.sh
@@ -56,18 +61,9 @@ before_script:
   - echo "sendmail_path='true'" >> `php --ini | grep "Loaded Configuration" | awk '{print $4}'`
   # Install Drupal and launch the PHP built-in webserver
   - bash travis/setup-before-tests.sh
-  # Wait for a little while to let the webserver spin up
-  - echo "Waiting for the web server to finish spinning up."
-  - sleep 1
-  - cat $HOME/server.log
-  - until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 2; netstat -an ; tail -n 1 $HOME/server.log ; done
-  - echo "Got a response from our webserver; continuing."
 
 script:
   - ./htdocs/sites/all/vendor/bin/behat
-
-after_script:
-  # General-purpose clean-up could go here.
 
 after_success:
   # Place a passphrase-free ssh key so that you can clone and push to your
@@ -82,7 +78,10 @@ after_success:
   - bash travis/push-to-pantheon.sh
 
 after_failure:
-  # Nothing to do here yet.
+  - if [ -f $HOME/server.log ] ; then echo "Server log:" && cat $HOME/server.log ; fi
+
+after_script:
+  - rm $HOME/server.log
 
 notifications:
   email:
