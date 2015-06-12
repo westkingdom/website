@@ -1,5 +1,32 @@
 #!/bin/bash
 
+#
+# Exit with a message if the previous function returned an error.
+#
+# Usage:
+#
+#   aborterr "Description of what went wrong"
+#
+function aborterr() {
+  if [ $? != 0 ]
+  then
+    echo "$1" >&2
+    exit 1
+  fi
+}
+
+#
+# Check the result of the last operation, and either print progress or call aborterr
+#
+# Usage:
+#
+#   check "Something the script did" "Message to display if it did not work"
+#
+function check() {
+  aborterr "$2"
+  echo "$1"
+}
+
 # Add vendor/bin and $HOME/bin to our $PATH
 export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
 
@@ -27,20 +54,16 @@ then
   # to conceal the email address used, to make it harder for a third party
   # to try to log in via a brute-force password-guessing attack.
   terminus auth login "$PEMAIL" --password="$PPASS" >/dev/null 2>&1
-  if [ $? == 0 ]
-  then
-    echo "Login successful"
-  else
-    echo "Could not log in"
-    exit 1
-  fi
+  check "Logged in to Pantheon via Terminus" "Could not log in to Pantheon with Terminus"
   echo "Fetch aliases via Terminus"
   mkdir -p $HOME/.drush
   terminus sites aliases
+  aborterr "Could not fetch aliases via Terminus"
   echo "Wake up the site $PSITE"
   terminus site wake --site="$PSITE" --env="$PENV"
-  echo "Look up site UUID"
+  check "Site wakeup successful" "Could not wake up site"
   PUUID=$(terminus site info --site="$PSITE" --field=id)
+  aborterr "Could not get UUID for $PSITE"
 
   # Identify the automation user
   git config --global user.email "bot@westkingdom.org"
@@ -49,7 +72,9 @@ then
   # Clone the Pantheon repository into a separate directory, then
   # move the .git file to the location where we placed our composer targets
   cd $TRAVIS_BUILD_DIR
-  git clone --depth 1 ssh://codeserver.dev.$PUUID@codeserver.dev.$PUUID.drush.in:2222/~/repository.git $HOME/pantheon
+  REPO="ssh://codeserver.dev.$PUUID@codeserver.dev.$PUUID.drush.in:2222/~/repository.git"
+  git clone --depth 1 "$REPO" $HOME/pantheon
+  check "git clone successful" "Could not clone repository from $REPO"
   mv $HOME/pantheon/.git $TRAVIS_BUILD_DIR/htdocs
   cd $TRAVIS_BUILD_DIR/htdocs
 
@@ -59,9 +84,13 @@ then
 
   # Make sure we are in git mode
   terminus site connection-mode --site="$PSITE" --env="$PENV" --set=git
+  check "Changed connection mode to 'git' for $PSITE $PENV environment" "Could not change connection mode to 'git' for $PSITE $PENV environment"
 
   # Push our built files up to Pantheon
   git add --all
+  aborterr "'git add --all' failed"
   git commit -a -m "Makefile build by CI: '$TRAVIS_COMMIT_MSG'"
+  aborterr "'git commit' failed"
   git push origin master
+  aborterr "'git push' failed"
 fi
