@@ -22,7 +22,18 @@ then
 
   # Set up Terminus and aliases, and wake up the site
   echo "Log in to Pantheon via Terminus"
-  terminus auth login "$PEMAIL" --password="$PPASS"
+  # Redirect output when logging in.  Terminus prints the email address
+  # used during login to stdout, which will end up in the log.  It's better
+  # to conceal the email address used, to make it harder for a third party
+  # to try to log in via a brute-force password-guessing attack.
+  terminus auth login "$PEMAIL" --password="$PPASS" >/dev/null 2>&1
+  if [ $? == 0 ]
+  then
+    echo "Login successful"
+  else
+    echo "Could not log in"
+    exit 1
+  fi
   echo "Fetch aliases via Terminus"
   mkdir -p $HOME/.drush
   terminus sites aliases
