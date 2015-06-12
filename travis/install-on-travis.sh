@@ -12,12 +12,5 @@ then
   exit 1
 fi
 
-# Fix bug in our custom installer
-mv $TRAVIS_BUILD_DIR/htdocs/sites/sites/default $TRAVIS_BUILD_DIR/htdocs/sites/default
-
-# Do the settings.php shuffle for an empty settings.php
-# This prevents permissions issues with the sites/default directory
-cp $TRAVIS_BUILD_DIR/htdocs/sites/default/default.settings.php $TRAVIS_BUILD_DIR/htdocs/sites/default/settings.php
-
 # Add vendor/bin and $HOME/bin to our $PATH
 export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
