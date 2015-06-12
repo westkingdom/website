@@ -1,4 +1,5 @@
 travis/travis-ci-key
+bin
 htdocs/.gitignore
 htdocs/.htaccess
 htdocs/CHANGELOG.txt
