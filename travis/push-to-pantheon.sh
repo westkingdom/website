@@ -94,6 +94,14 @@ then
   git push origin master
   aborterr "'git push' failed"
 
+  echo "Drush status on the remote site:"
+  echo drush @pantheon.$PSITE.$PENV status
+  drush @pantheon.$PSITE.$PENV status
+
+  echo "Just the bootstrap line:"
+  echo drush @pantheon.$PSITE.$PENV status "Drupal bootstrap"
+  drush @pantheon.$PSITE.$PENV status "Drupal bootstrap"
+
   # Check to see if there is already a site installed on the specified environment
   BOOTSTRAPPED=$(drush @pantheon.$PSITE.$PENV status "Drupal bootstrap")
   aborterr "Could not look up status of $PSITE on Pantheon"
