@@ -6,7 +6,7 @@ mkdir -p $HOME/bin
 # Create a local policy file that causes Travis to use 'drush 7' remotely.
 # n.b. we want to use drush8 for Drupal 8 sites
 mkdir -p "$HOME/.drush"
-cat << __EOF__ >> "$HOME/.drush/policy.drush.inc"
+cat << __EOF__ > "$HOME/.drush/policy.drush.inc"
 <?php
 
 function policy_drush_sitealias_alter(&\$alias_record) {
