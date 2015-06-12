@@ -14,3 +14,16 @@ fi
 
 # Add vendor/bin and $HOME/bin to our $PATH
 export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
+
+# Create a local policy file that causes Travis to use 'drush 7' remotely.
+# n.b. we want to use drush8 for Drupal 8 sites
+cat << __EOF__ >> "$LOCAL_ALIAS_FILE"
+<?php
+
+function policy_drush_sitealias_alter(&\$alias_record) {
+  // Fix pantheon aliases!
+  if (isset(\$alias_record['remote-host']) && (substr(\$alias_record['remote-host'], 0, 10) == 'appserver.')) {
+    \$alias_record['path-aliases']['%drush-script'] = 'drush7';
+  }
+}
+__EOF__
