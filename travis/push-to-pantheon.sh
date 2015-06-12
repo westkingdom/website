@@ -8,7 +8,7 @@ export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
 # repository, then the secure environment variables will not be set;
 # if we test PRs, we cannot send them to Pantheon in this instance.
 if [ -n "$PPASS" ]
-do
+then
   # Dynamic hosts through Pantheon mean constantly checking interactively
   # that we mean to connect to an unknown host. We ignore those here.
   echo "StrictHostKeyChecking no" > ~/.ssh/config
@@ -50,4 +50,4 @@ do
   git add --all
   git commit -a -m "Makefile build by CI: '$TRAVIS_COMMIT_MSG'"
   git push origin master
-done
+fi
