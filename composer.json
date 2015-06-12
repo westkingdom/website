@@ -116,13 +116,13 @@
         "drupal/zen": "7.5.*"
     },
     "require-dev": {
-        "behat/behat": "2.5.*@stable",
-        "behat/mink": "1.5.*@stable",
+        "behat/behat": "3.*",
+        "behat/mink": "*",
+        "drupal/drupal-extension": "*",
         "drush/drush": "~7",
         "behat/mink-extension": "*",
         "behat/mink-goutte-driver": "*",
-        "phpunit/phpunit": ">=3.5",
-        "symfony/process": "2.4.5"
+        "phpunit/phpunit": ">=3.5"
     },
     "scripts": {
         "post-create-project-cmd": [
