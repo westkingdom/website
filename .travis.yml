@@ -13,10 +13,10 @@ env:
     # Your site's name -- used in `drush site-install`.
     - SITE_NAME='West Kingdom'
 
-    # Your Pantheon site's UUID (e.g. from your dashboard URL)
-    - PUUID='3fd8d76d-1302-4b3e-9b64-e2cbccaf29e9'
+    # Your Pantheon site's idenfying name (i.e. as shown on the dashboard)
+    - PSITE='westkingdom'
 
-    # The Pantheon environment to test against.
+    # The Pantheon environment to push to after tests succeed.
     - PENV='dev'
 
     # A random password for the Drupal site install.

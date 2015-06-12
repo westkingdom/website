@@ -37,7 +37,10 @@ then
   echo "Fetch aliases via Terminus"
   mkdir -p $HOME/.drush
   terminus sites aliases
-  terminus site wake --site=$PUUID --env=$PENV
+  echo "Wake up the site $PSITE"
+  terminus site wake --site="$PSITE" --env="$PENV"
+  echo "Look up site UUID"
+  PUUID=$(terminus site info --site="$PSITE" --field=id)
 
   # Identify the automation user
   git config --global user.email "bot@westkingdom.org"
@@ -55,7 +58,7 @@ then
   git status
 
   # Make sure we are in git mode
-  terminus site connection-mode --site="$PUUID" --env="$PENV" --set=git
+  terminus site connection-mode --site="$PSITE" --env="$PENV" --set=git
 
   # Push our built files up to Pantheon
   git add --all
