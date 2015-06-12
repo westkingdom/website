@@ -30,7 +30,5 @@ cd $PROJECT_BASE_DIR
 
 # Wait for a little while to let the webserver spin up
 echo "Waiting for the web server to finish spinning up."
-sleep 1
-cat $HOME/server.log
-until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 2; netstat -an ; tail -n 1 $HOME/server.log ; done
-echo "Got a response from our webserver; continuing."
+until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 2; done
+echo "Webserver ready; continuing."

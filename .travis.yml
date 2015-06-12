@@ -63,7 +63,8 @@ before_script:
   - bash travis/setup-before-tests.sh
 
 script:
-  - ./htdocs/sites/all/vendor/bin/behat
+  # Run our behat tests
+  - ./bin/behat
 
 after_success:
   # Place a passphrase-free ssh key so that you can clone and push to your
