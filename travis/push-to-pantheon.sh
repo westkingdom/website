@@ -94,13 +94,10 @@ then
   git push origin master
   aborterr "'git push' failed"
 
+  # We'll run 'drush status' once to fire up the ssh connection
+  # (get rid of the junk line it prints on first run)
   echo "Drush status on the remote site:"
-  echo drush @pantheon.$PSITE.$PENV status
   drush @pantheon.$PSITE.$PENV status
-
-  echo "Just the bootstrap line:"
-  echo drush @pantheon.$PSITE.$PENV status "Drupal bootstrap"
-  drush @pantheon.$PSITE.$PENV status "Drupal bootstrap"
 
   # Check to see if there is already a site installed on the specified environment
   BOOTSTRAPPED=$(drush @pantheon.$PSITE.$PENV status "Drupal bootstrap")
@@ -115,8 +112,8 @@ then
     RANDPASS=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 )
     drush user-password admin --password="$RANDPASS"
     aborterr "Could not reset password on travis test site"
-    drush sql-sync @self @pantheon.$PSITE.$PENV -y
-    aborterr "Could not copy database via drush sql-sync"
+    drush sql-sync @self @pantheon.$PSITE.$PENV -y --target-dump="/tmp/$PSITE.sql"
+    aborterr "Could not copy database from travis test site to Pantheon via drush sql-sync"
   else
     # We already copied an installed database from a previous test run.  We
     # therefore will not re-copy the database, in case the user has made some
