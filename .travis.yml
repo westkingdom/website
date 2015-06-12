@@ -19,9 +19,6 @@ env:
     # The Pantheon environment to push to after tests succeed.
     - PENV='dev'
 
-    # A random password for the Drupal site install.
-    - RANDPASS=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 )
-
     # SECRET/PRIVATE VARIABLES
     #
     # These are created by using the travis command locally to encrypt some values.

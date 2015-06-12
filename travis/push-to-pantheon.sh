@@ -93,4 +93,27 @@ then
   aborterr "'git commit' failed"
   git push origin master
   aborterr "'git push' failed"
+
+  # Check to see if there is already a site installed on the specified environment
+  BOOTSTRAPPED=$(drush @pantheon.$PSITE.$PENV status "Drupal bootstrap")
+  if [ -z "$BOOTSTRAPPED" ]
+  then
+    # No site present.  Use sql-sync to copy the site we just installed over.
+    # First, though, change the password, so someone cannot look it up in the
+    # travis logs and use it to log in to the Pantheon site.  The site owner
+    # can use `drush uli` to log in.
+    cd $TRAVIS_BUILD_DIR/htdocs
+    RANDPASS=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 )
+    drush user-password admin --password="$RANDPASS"
+    drush sql-sync @self @pantheon.$PSITE.$PENV -y
+  else
+    # We already copied an installed database from a previous test run.  We
+    # therefore will not re-copy the database, in case the user has made some
+    # test data that they would like to preserve.  Instead, we will just run
+    # updatedb, to bring the Pantheon site's database up to date with the
+    # code we just pushed.
+    # n.b. If we wanted to re-run our behat tests on the pantheon site, then
+    # we would want to copy the fresh database over every time.
+    drush @pantheon.$PSITE.$PENV updatedb
+  fi
 fi
