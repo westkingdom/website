@@ -80,6 +80,7 @@ then
 
   # Do the settings.php shuffle for an empty settings.php
   # This prevents permissions issues with the sites/default directory
+  chmod 664 sites/default/settings.php
   cp sites/default/default.settings.php sites/default/settings.php
 
   # Output of the diff vs upstream.
