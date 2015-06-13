@@ -78,6 +78,10 @@ then
   mv $HOME/pantheon/.git $TRAVIS_BUILD_DIR/htdocs
   cd $TRAVIS_BUILD_DIR/htdocs
 
+  # Do the settings.php shuffle for an empty settings.php
+  # This prevents permissions issues with the sites/default directory
+  cp sites/default/default.settings.php sites/default/settings.php
+
   # Output of the diff vs upstream.
   echo "Here's the status change!"
   git status
