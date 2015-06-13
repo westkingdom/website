@@ -107,8 +107,10 @@ then
     # We need to go back to sftp mode to run site-install
     terminus site connection-mode --site="$PSITE" --env="$PENV" --set=sftp
     check "Changed connection mode to 'sftp' for $PSITE $PENV environment" "Could not change connection mode to 'sftp' for $PSITE $PENV environment"
-    # No site present.  Create a new one with site-install.
-    drush @pantheon.$PSITE.$PENV -y site-install standard --site-name="$SITE_NAME Pantheon Test Site" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass="[REDACTED]"
+    # Wipe the site before running site-install
+    terminus site wipe --site="$PSITE" --env="$PENV"
+    # Create a new site with site-install.
+    drush @pantheon.$PSITE.$PENV -y site-install standard --site-name="$SITE_NAME Pantheon Test Site" --account-name=admin --account-pass="[REDACTED]"
     # Because the site password is in the log, generate a new random
     # password for the site, and change it.  The site owner can use
     # `drush uli` to log in.
