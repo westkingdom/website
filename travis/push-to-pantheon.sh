@@ -97,10 +97,10 @@ then
   # We'll run 'drush status' once to fire up the ssh connection
   # (get rid of the junk line it prints on first run)
   echo "Drush status on the remote site:"
-  drush @pantheon.$PSITE.$PENV status
+  drush --strict=0 @pantheon.$PSITE.$PENV status
 
   # Check to see if there is already a site installed on the specified environment
-  BOOTSTRAPPED=$(drush @pantheon.$PSITE.$PENV status "Drupal bootstrap")
+  BOOTSTRAPPED=$(drush  --strict=0 @pantheon.$PSITE.$PENV status "Drupal bootstrap")
   aborterr "Could not look up status of $PSITE on Pantheon"
   if [ -z "$BOOTSTRAPPED" ]
   then
@@ -110,19 +110,19 @@ then
     # Wipe the site before running site-install
     terminus site wipe --site="$PSITE" --env="$PENV"
     # Create a new site with site-install.
-    drush @pantheon.$PSITE.$PENV -y site-install standard --site-name="$SITE_NAME Pantheon Test Site" --account-name=admin --account-pass="[REDACTED]"
+    drush --strict=0 @pantheon.$PSITE.$PENV -y site-install standard --site-name="$SITE_NAME Pantheon Test Site" --account-name=admin --account-pass="[REDACTED]"
     # Because the site password is in the log, generate a new random
     # password for the site, and change it.  The site owner can use
     # `drush uli` to log in.
     RANDPASS=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 )
-    drush @pantheon.$PSITE.$PENV user-password admin --password="$RANDPASS"
+    drush --strict=0 @pantheon.$PSITE.$PENV user-password admin --password="$RANDPASS"
     aborterr "Could not reset password on Pantheon test site"
   else
     # If the database already exists, just run updatedb to bring it up-to-date
     # with the code we just pushed.
     # n.b. If we wanted to re-run our behat tests on the pantheon site, then
     # we would probably want to install a fresh site every time.
-    drush @pantheon.$PSITE.$PENV updatedb
+    drush --strict=0 @pantheon.$PSITE.$PENV updatedb
     aborterr "updatedb failed on Pantheon site"
   fi
 fi
