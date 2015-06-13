@@ -104,24 +104,19 @@ then
   aborterr "Could not look up status of $PSITE on Pantheon"
   if [ -z "$BOOTSTRAPPED" ]
   then
-    # No site present.  Use sql-sync to copy the site we just installed over.
-    # First, though, change the password, so someone cannot look it up in the
-    # travis logs and use it to log in to the Pantheon site.  The site owner
-    # can use `drush uli` to log in.
-    cd $TRAVIS_BUILD_DIR/htdocs
+    # No site present.  Create a new one with site-install.
+    drush @pantheon.$PSITE.$PENV -y site-install standard --site-name="$SITE_NAME Pantheon Test Site" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass="[REDACTED]"
+    # Because the site password is in the log, generate a new random
+    # password for the site, and change it.  The site owner can use
+    # `drush uli` to log in.
     RANDPASS=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 )
-    drush user-password admin --password="$RANDPASS"
-    aborterr "Could not reset password on travis test site"
-    drush sql-sync @self @pantheon.$PSITE.$PENV -y --target-dump="/tmp/$PSITE.sql"
-    aborterr "Could not copy database from travis test site to Pantheon via drush sql-sync"
+    drush @pantheon.$PSITE.$PENV user-password admin --password="$RANDPASS"
+    aborterr "Could not reset password on Pantheon test site"
   else
-    # We already copied an installed database from a previous test run.  We
-    # therefore will not re-copy the database, in case the user has made some
-    # test data that they would like to preserve.  Instead, we will just run
-    # updatedb, to bring the Pantheon site's database up to date with the
-    # code we just pushed.
+    # If the database already exists, just run updatedb to bring it up-to-date
+    # with the code we just pushed.
     # n.b. If we wanted to re-run our behat tests on the pantheon site, then
-    # we would want to copy the fresh database over every time.
+    # we would probably want to install a fresh site every time.
     drush @pantheon.$PSITE.$PENV updatedb
     aborterr "updatedb failed on Pantheon site"
   fi
