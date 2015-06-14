@@ -98,6 +98,10 @@ then
   # Push our built files up to Pantheon
   git add --all
   aborterr "'git add --all' failed"
+  # We also need to add settings.php.  It is excluded by our .gitignore, but
+  # we need one on Pantheon in order to use drush si.
+  git add -f sites/default/settings.php
+  aborterr "Could not add settings.php"
   git commit -a -m "Makefile build by CI: '$TRAVIS_COMMIT_MSG'"
   aborterr "'git commit' failed"
   git push origin master
