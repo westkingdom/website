@@ -1,10 +1,22 @@
 #!/bin/bash
+#
+# setup-before-tests.sh
+#
+# The purpose of this script is to prepare a Drupal site to run
+# the behat tests on.
+#
+# Usage:
+#
+#    compser install
+#    ./travis/setup-before-tests.sh
+#    ./bin/behat
+#
 
 SELF_DIRNAME="`dirname -- "$0"`"
 PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
 
 # Set up our $PATH
-export PATH="$TRAVIS_BUILD_DIR/bin:$HOME/bin:$PATH"
+export PATH="$PROJECT_BASE_DIR/bin:$HOME/bin:$PATH"
 
 # Fix bug in our custom installer
 if [ -d $PROJECT_BASE_DIR/htdocs/sites/sites/default ]
@@ -28,7 +40,7 @@ drush site-install -y standard --site-name="$SITE_NAME Travis Test Site" --db-ur
 drush runserver --server=builtin 8088 --strict=0 </dev/null &>$HOME/server.log &
 cd $PROJECT_BASE_DIR
 
-# Wait for a little while to let the webserver spin up
+# Wait for the webserver to spin up; stop when we find someone listening on the right port.
 echo "Waiting for the web server to finish spinning up."
-until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 2; done
+until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 0.2; done
 echo "Webserver ready; continuing."

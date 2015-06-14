@@ -56,11 +56,11 @@ before_script:
   # will cause the system to essentially swallow any emails Drupal
   # tries to send.
   - echo "sendmail_path='true'" >> `php --ini | grep "Loaded Configuration" | awk '{print $4}'`
-  # Install Drupal and launch the PHP built-in webserver
-  - bash travis/setup-before-tests.sh
 
 script:
-  # Run our behat tests
+  # Run our behat tests on Travis
+  # Install Drupal and launch the PHP built-in webserver
+  - bash travis/setup-before-tests.sh
   - ./bin/behat
 
 after_success:

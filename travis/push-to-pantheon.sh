@@ -1,4 +1,15 @@
 #!/bin/bash
+#
+# push-to-pantheon.sh
+#
+# This script will push all of the generated build results created
+# on Travis to a Drupal site hosted on Pantheon.
+#
+# This script is designed only to be called by Travis.  It relies
+# on special encrypted environment variables set by Travis to provide
+# the credentials used to log in to the Pantheon dashboard.  See
+# travis.yml for details.
+#
 
 #
 # Exit with a message if the previous function returned an error.
