@@ -80,8 +80,12 @@ then
 
   # Do the settings.php shuffle for an empty settings.php
   # This prevents permissions issues with the sites/default directory
+  chmod 775 sites/default
+  aborterr "Could not chmod sites/default."
   chmod 664 sites/default/settings.php
+  aborterr "Could not chmod old sites/default/settings.php."
   cp sites/default/default.settings.php sites/default/settings.php
+  aborterr "Could not overwrite old settings with the default settings file."
 
   # Output of the diff vs upstream.
   echo "Here's the status change!"
