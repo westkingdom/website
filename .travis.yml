@@ -49,7 +49,7 @@ before_install:
 
 
 install:
-  - bash travis/install-on-travis.sh
+  - bash bin/install-on-travis
 
 before_script:
   # Set the 'sendmail_path' to point to the program 'true'; this
@@ -60,7 +60,7 @@ before_script:
 script:
   # Run our behat tests on Travis
   # Install Drupal and launch the PHP built-in webserver
-  - bash travis/setup-before-tests.sh
+  - bash bin/setup-before-tests
   - ./bin/behat
 
 after_success:
@@ -73,12 +73,14 @@ after_success:
   #
   - openssl aes-256-cbc -K $encrypted_dbae4a756345_key -iv $encrypted_dbae4a756345_iv -in travis/travis-ci-key.enc -out ~/.ssh/id_rsa -d
   - chmod 0600 ~/.ssh/id_rsa
-  - bash travis/push-to-pantheon.sh
+  - bash bin/push-to-pantheon
 
 after_failure:
   - if [ -f $HOME/server.log ] ; then echo "Server log:" && cat $HOME/server.log ; fi
 
 after_script:
+  # Kill our webserver, if it is running.
+  - PID=$(ps auxw | grep '127.0.0.1[:]8088' | awk '{ print $2; }'); if [ -n "$PID" ] ; then kill -9 $PID; fi
   - rm $HOME/server.log
 
 notifications:
