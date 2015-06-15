@@ -37,7 +37,17 @@ cp $PROJECT_BASE_DIR/htdocs/sites/default/default.settings.php $PROJECT_BASE_DIR
 # Use Drush to install Drupal and spin up PHP's built-in webserver
 cd $PROJECT_BASE_DIR/htdocs
 drush site-install -y standard --site-name="$SITE_NAME Travis Test Site" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass=admin
+if [ $? != 0 ]
+then
+  echo "Could not install Drupal" >&2
+  exit 1
+fi
 drush runserver --server=builtin 8088 --strict=0 </dev/null &>$HOME/server.log &
+if [ $? != 0 ]
+then
+  echo "Could nt start php built-in webserver" >&2
+  exit 1
+fi
 cd $PROJECT_BASE_DIR
 
 # Wait for the webserver to spin up; stop when we find someone listening on the right port.
