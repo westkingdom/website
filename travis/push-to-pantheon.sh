@@ -134,6 +134,7 @@ then
   aborterr "Could not look up status of $PSITE on Pantheon"
   if [ -z "$BOOTSTRAPPED" ]
   then
+    echo "'Bootstrapped' test failed; run site-install again."
     # We need to go back to sftp mode to run site-install
     terminus site connection-mode --site="$PSITE" --env="$PENV" --set=sftp
     check "Changed connection mode to 'sftp' for $PSITE $PENV environment" "Could not change connection mode to 'sftp' for $PSITE $PENV environment"
@@ -148,6 +149,7 @@ then
     drush --strict=0 @pantheon.$PSITE.$PENV user-password admin --password="$RANDPASS"
     aborterr "Could not reset password on Pantheon test site"
   else
+    echo "'Bootstraped' test returned: $BOOTSTRAPPED"
     # If the database already exists, just run updatedb to bring it up-to-date
     # with the code we just pushed.
     # n.b. If we wanted to re-run our behat tests on the pantheon site, then
@@ -156,3 +158,4 @@ then
     aborterr "updatedb failed on Pantheon site"
   fi
 fi
+
