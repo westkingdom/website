@@ -98,6 +98,7 @@ then
   git status
 
   # If there is no settings.php file, then we will create one.
+  INSTALL_SITE=false
   if [ ! -f sites/default/settings.php ]
   then
     sed -e 's/^$databases/# $databases/' sites/default/default.settings.php > sites/default/settings.php
@@ -107,6 +108,7 @@ then
     # so we will add it with `git add -f`.
     git add -f sites/default/settings.php
     aborterr "Could not add settings.php"
+    INSTALL_SITE=true
   fi
 
   # Push our built files up to Pantheon
@@ -122,19 +124,20 @@ then
   echo "Drush status on the remote site:"
   drush --strict=0 @pantheon.$PSITE.$PENV status
 
-  # Check to see if there is already a site installed on the specified environment
-  BOOTSTRAPPED=$(drush  --strict=0 @pantheon.$PSITE.$PENV status "Drupal bootstrap")
-  aborterr "Could not look up status of $PSITE on Pantheon"
-  if [ -z "$BOOTSTRAPPED" ]
+  # If we created a settings.php file, then run 'site install'
+  if $INSTALL_SITE
   then
-    echo "'Bootstrapped' test failed; run site-install again."
     # We need to go back to sftp mode to run site-install
     terminus site connection-mode --site="$PSITE" --env="$PENV" --set=sftp
     check "Changed connection mode to 'sftp' for $PSITE $PENV environment" "Could not change connection mode to 'sftp' for $PSITE $PENV environment"
-    # Wipe the site before running site-install
-    terminus site wipe --site="$PSITE" --env="$PENV"
     # Create a new site with site-install.
     drush --strict=0 @pantheon.$PSITE.$PENV -y site-install standard --site-name="$SITE_NAME Pantheon Test Site" --account-name=admin --account-pass="[REDACTED]"
+    aborterr "Could not install Drupal on Pantheon test site"
+    # Commit the modification made to settings.php and switch back to git mode
+    terminus site code commit --site="$PSITE" --env="$PENV" --message="Settings.php modifications made by site-install"
+    aborterr "Could not commit settings.php changes"
+    terminus site connection-mode --site="$PSITE" --env="$PENV" --set=git
+    aborterr "Could not switch back to git mode"
     # Because the site password is in the log, generate a new random
     # password for the site, and change it.  The site owner can use
     # `drush uli` to log in.
@@ -142,7 +145,6 @@ then
     drush --strict=0 @pantheon.$PSITE.$PENV user-password admin --password="$RANDPASS"
     aborterr "Could not reset password on Pantheon test site"
   else
-    echo "'Bootstraped' test returned: $BOOTSTRAPPED"
     # If the database already exists, just run updatedb to bring it up-to-date
     # with the code we just pushed.
     # n.b. If we wanted to re-run our behat tests on the pantheon site, then
@@ -151,4 +153,3 @@ then
     aborterr "updatedb failed on Pantheon site"
   fi
 fi
-
