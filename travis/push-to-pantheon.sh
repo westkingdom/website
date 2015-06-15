@@ -112,7 +112,7 @@ then
   # Push our built files up to Pantheon
   git add --all
   aborterr "'git add --all' failed"
-  git commit -a -m "Makefile build by CI: '$TRAVIS_COMMIT_MSG'"
+  git commit -a -m "Built by CI: '$TRAVIS_COMMIT_MSG'"
   aborterr "'git commit' failed"
   git push origin master
   aborterr "'git push' failed"
