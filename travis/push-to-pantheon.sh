@@ -89,13 +89,19 @@ then
   mv $HOME/pantheon/.git $TRAVIS_BUILD_DIR/htdocs
   cd $TRAVIS_BUILD_DIR/htdocs
 
-  # Do the settings.php shuffle for an empty settings.php
-  # This prevents permissions issues with the sites/default directory
+  # Overwrite the existing settings.php file with a new empty settings
+  # file based on default.settings.php.  We do this because the site-install
+  # command will set the permissions on the settings.php file to make it
+  # unwritable.  If we later try to run site-install again, it will fail
+  # because of this.  Overwriting the file will cause git to reset the
+  # permissions to writable when the file is pulled on Pantheon.
+  # We also comment out the assignment to $databases, so that our settings.php
+  # file will never override the database configuratoin provided by Pantheon.
   chmod 775 sites/default
   aborterr "Could not chmod sites/default."
   chmod 664 sites/default/settings.php
   aborterr "Could not chmod old sites/default/settings.php."
-  cp sites/default/default.settings.php sites/default/settings.php
+  sed -e 's/^$databases/# $databases/' sites/default/default.settings.php > sites/default/settings.php
   aborterr "Could not overwrite old settings with the default settings file."
 
   # Output of the diff vs upstream.
