@@ -76,6 +76,10 @@ then
   PUUID=$(terminus site info --site="$PSITE" --field=id)
   aborterr "Could not get UUID for $PSITE"
 
+  # Make sure we are in git mode
+  terminus site connection-mode --site="$PSITE" --env="$PENV" --set=git
+  check "Changed connection mode to 'git' for $PSITE $PENV environment" "Could not change connection mode to 'git' for $PSITE $PENV environment"
+
   # Identify the automation user
   git config --global user.email "bot@westkingdom.org"
   git config --global user.name "West Kingdom Automation"
@@ -89,36 +93,25 @@ then
   mv $HOME/pantheon/.git $TRAVIS_BUILD_DIR/htdocs
   cd $TRAVIS_BUILD_DIR/htdocs
 
-  # Overwrite the existing settings.php file with a new empty settings
-  # file based on default.settings.php.  We do this because the site-install
-  # command will set the permissions on the settings.php file to make it
-  # unwritable.  If we later try to run site-install again, it will fail
-  # because of this.  Overwriting the file will cause git to reset the
-  # permissions to writable when the file is pulled on Pantheon.
-  # We also comment out the assignment to $databases, so that our settings.php
-  # file will never override the database configuratoin provided by Pantheon.
-  chmod 775 sites/default
-  aborterr "Could not chmod sites/default."
-  chmod 664 sites/default/settings.php
-  aborterr "Could not chmod old sites/default/settings.php."
-  sed -e 's/^$databases/# $databases/' sites/default/default.settings.php > sites/default/settings.php
-  aborterr "Could not overwrite old settings with the default settings file."
-
   # Output of the diff vs upstream.
   echo "Here's the status change!"
   git status
 
-  # Make sure we are in git mode
-  terminus site connection-mode --site="$PSITE" --env="$PENV" --set=git
-  check "Changed connection mode to 'git' for $PSITE $PENV environment" "Could not change connection mode to 'git' for $PSITE $PENV environment"
+  # If there is no settings.php file, then we will create one.
+  if [ ! -f sites/default/settings.php ]
+  then
+    sed -e 's/^$databases/# $databases/' sites/default/default.settings.php > sites/default/settings.php
+    aborterr "Could not create settings.php with default.settings.php."
+    # settings.php is excluded by our .gitignore, but
+    # we need one on Pantheon in order to use drush si,
+    # so we will add it with `git add -f`.
+    git add -f sites/default/settings.php
+    aborterr "Could not add settings.php"
+  fi
 
   # Push our built files up to Pantheon
   git add --all
   aborterr "'git add --all' failed"
-  # We also need to add settings.php.  It is excluded by our .gitignore, but
-  # we need one on Pantheon in order to use drush si.
-  git add -f sites/default/settings.php
-  aborterr "Could not add settings.php"
   git commit -a -m "Makefile build by CI: '$TRAVIS_COMMIT_MSG'"
   aborterr "'git commit' failed"
   git push origin master
