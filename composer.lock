@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "0738c6f05da157e0591d477959cbb767",
+    "hash": "d513b81b51020b0f9cd4917a2a70e231",
     "packages": [
         {
             "name": "davidbarratt/custom-installer",
@@ -1335,6 +1335,39 @@
                 "webtest"
             ],
             "time": "2015-04-05 19:52:55"
+        },
+        {
+            "name": "pantheon-systems/travis-scripts",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/pantheon-systems/travis-scripts.git",
+                "reference": "3e77a9da0ca81ecfd4721db60fe36b38542edc49"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/pantheon-systems/travis-scripts/zipball/3e77a9da0ca81ecfd4721db60fe36b38542edc49",
+                "reference": "3e77a9da0ca81ecfd4721db60fe36b38542edc49",
+                "shasum": ""
+            },
+            "require": {
+                "behat/behat": "3.*",
+                "behat/mink": "*",
+                "behat/mink-extension": "*",
+                "behat/mink-goutte-driver": "*",
+                "drupal/drupal-extension": "*",
+                "drush/drush": "*",
+                "phpunit/phpunit": ">=3.5"
+            },
+            "bin": [
+                "scripts/install-on-travis",
+                "scripts/push-to-pantheon",
+                "scripts/setup-before-tests"
+            ],
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "description": "Use Travis to build a Drupal site with Composer, test with Behat, and then deploy to Pantheon.",
+            "time": "2015-06-15 22:16:11"
         },
         {
             "name": "pear/console_table",

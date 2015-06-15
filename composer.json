@@ -30,13 +30,7 @@
         "drupal/responsive_bartik": "7.1.*"
     },
     "require-dev": {
-        "behat/behat": "3.*",
-        "behat/mink": "*",
-        "drupal/drupal-extension": "*",
-        "drush/drush": "~7",
-        "behat/mink-extension": "*",
-        "behat/mink-goutte-driver": "*",
-        "phpunit/phpunit": ">=3.5"
+        "pantheon-systems/travis-scripts": "*"
     },
     "scripts": {
         "post-create-project-cmd": [
