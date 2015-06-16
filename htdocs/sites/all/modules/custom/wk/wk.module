@@ -1243,6 +1243,14 @@ function wk_menu() {
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
+  $items['reject-date-request/%'] = array(
+    'title' => 'Reject Calendar Date Request',
+    'description' => 'Reject a specific submitted calendar date request.',
+    'page callback' => 'wk_reject_date_request',
+    'page arguments' => array(1),
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
+  );
   $items['calendar-status'] = array(
     'title' => 'Calendar Status',
     'description' => 'Show whether the calendar is open for new date requests',
@@ -2021,6 +2029,8 @@ function _wk_date_request_approval_form_singular($form, &$form_state, $date_requ
       );
       $subform['approval-options']['#post_render'] = array('_wk_approve_button_post_render');
     }
+    $subform['approval-options']['reject_button_' . $request_id] = array('#markup' => "<div class='reject-$request_id'>" . l(t('Reject'), 'reject-date-request/' . $request_id) . "</div>",
+      );
   }
 
   // Render the requesting branch group
@@ -2321,6 +2331,13 @@ function wk_approve_date_request_on_date($id, $selected) {
     $node = _wk_approve_selected_date_request($id, $selected_date);
     drupal_goto("node/" . $node->nid);
   }
+}
+
+// TODO: Needs confirmation form. (Security)
+function wk_reject_date_request($id) {
+  $date_request = new EntityDrupalWrapper('entityform', $id);
+  $date_request->delete();
+  drupal_goto('approve-date-requests');
 }
 
 // Handle 'Approve (single date)' button (no longer needed)
