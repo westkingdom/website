@@ -1342,12 +1342,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/pantheon-systems/travis-scripts.git",
-                "reference": "05af150029100a881995a5c668b2b0f5e5cdbffd"
+                "reference": "a621a162b2dd1296845bb16d61e0a49fa21a107c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pantheon-systems/travis-scripts/zipball/05af150029100a881995a5c668b2b0f5e5cdbffd",
-                "reference": "05af150029100a881995a5c668b2b0f5e5cdbffd",
+                "url": "https://api.github.com/repos/pantheon-systems/travis-scripts/zipball/a621a162b2dd1296845bb16d61e0a49fa21a107c",
+                "reference": "a621a162b2dd1296845bb16d61e0a49fa21a107c",
                 "shasum": ""
             },
             "require": {
@@ -1360,14 +1360,13 @@
                 "phpunit/phpunit": ">=3.5"
             },
             "bin": [
-                "scripts/install-on-travis",
                 "scripts/push-to-pantheon",
                 "scripts/setup-before-tests"
             ],
             "type": "library",
             "notification-url": "https://packagist.org/downloads/",
             "description": "Use Travis to build a Drupal site with Composer, test with Behat, and then deploy to Pantheon.",
-            "time": "2015-06-15 23:28:33"
+            "time": "2015-06-16 00:15:01"
         },
         {
             "name": "pear/console_table",
