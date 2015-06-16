@@ -1094,6 +1094,32 @@ function wk_volunteer_for_office_submit(&$form_state) {
   drupal_goto($url);
 }
 
+function wk_reject_date_request($form, &$form_state, $id) {
+  $date_request = new EntityDrupalWrapper('entityform', $id);
+  $title = $date_request->field_event_name->value();
+  $text = t("Would you really like to delete the event request %title?  It will be permanently removed from the system.  The original requestor will not be notified.", array('%title' => $title));
+  $form['description'] = array(
+    '#type' => 'item',
+    '#markup' => $text,
+  );
+  $form['request-id'] = array(
+    '#type' => 'hidden',
+    '#value' => $id,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Delete',
+  );
+  return $form;
+}
+
+function wk_reject_date_request_submit(&$form_state) {
+  $id = $form_state['request-id']['#value'];
+  $date_request = new EntityDrupalWrapper('entityform', $id);
+  $date_request->delete();
+  drupal_goto('approve-date-requests');
+}
+
 /**
  * Don't allow users to change their personal email address
  * on contact forms.  This validate function will only be set
@@ -1246,8 +1272,8 @@ function wk_menu() {
   $items['reject-date-request/%'] = array(
     'title' => 'Reject Calendar Date Request',
     'description' => 'Reject a specific submitted calendar date request.',
-    'page callback' => 'wk_reject_date_request',
-    'page arguments' => array(1),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_reject_date_request', 1),
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
@@ -2331,13 +2357,6 @@ function wk_approve_date_request_on_date($id, $selected) {
     $node = _wk_approve_selected_date_request($id, $selected_date);
     drupal_goto("node/" . $node->nid);
   }
-}
-
-// TODO: Needs confirmation form. (Security)
-function wk_reject_date_request($id) {
-  $date_request = new EntityDrupalWrapper('entityform', $id);
-  $date_request->delete();
-  drupal_goto('approve-date-requests');
 }
 
 // Handle 'Approve (single date)' button (no longer needed)
