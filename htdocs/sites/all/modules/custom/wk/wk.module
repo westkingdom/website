@@ -1959,9 +1959,13 @@ function wk_approved_date_requests() {
       $approved_epoch = _wk_format_date($approved_date[0], 'U');
 
       $title .= t(' - APPROVED for <a href="!url">!date</a>', array('!date' => _wk_format_date($approved_date[0], 'Y F d'), '!url' => 'node/' . $approved_event_node->nid));
-      $form['message-' . $id] = array(
-        '#markup' => "$title",
-      );
+      $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, $other_approved_events, TRUE);
+      $form['date_request_' . $id] = array(
+        '#type' => 'fieldset',
+        '#title' => $title,
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+      ) + $subform;
     }
   }
   return $form;
