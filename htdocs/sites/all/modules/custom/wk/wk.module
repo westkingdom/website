@@ -1253,6 +1253,14 @@ function wk_menu() {
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
+  $items['approved-date-requests'] = array(
+    'title' => 'Approved Calendar Date Requests',
+    'description' => 'Show approved calendar date requests.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_approved_date_requests'),
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
+  );
   $items['approve-date-request/%'] = array(
     'title' => 'Approve Calendar Date Request',
     'description' => 'Approve or deny a specific submitted calendar date request.',
@@ -1929,7 +1937,7 @@ function _wk_expand_date_range_for_date_request($date_range, $date_request) {
   return $date_range;
 }
 
-function wk_date_request_multiple_approval_form($form, &$form_state) {
+function wk_approved_date_requests() {
   $all_ids = _wk_date_request_all_ids();
   $date_requests = array();
   $date_range = array();
@@ -1938,6 +1946,41 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
     $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
     $date_requests[$id] = $date_request_entity;
     $date_range = _wk_expand_date_range_for_date_request($date_range, $date_request);
+  }
+  foreach ($date_requests as $id => $date_request_entity) {
+    $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+    $title = $date_request->field_event_name->value();
+    $collapsed = FALSE;
+
+    $approved_event_node = $date_request->field_approved_event->value();
+    if (!empty($approved_event_node)) {
+      $approved_node = entity_metadata_wrapper('node',$approved_event_node);
+      $approved_date = $approved_node->field_date->value();
+      $approved_epoch = _wk_format_date($approved_date[0], 'U');
+
+      $title .= t(' - APPROVED for <a href="!url">!date</a>', array('!date' => _wk_format_date($approved_date[0], 'Y F d'), '!url' => 'node/' . $approved_event_node->nid));
+      $form['message-' . $id] = array(
+        '#markup' => "$title",
+      );
+    }
+  }
+  return $form;
+}
+
+
+
+function wk_date_request_multiple_approval_form($form, &$form_state) {
+  $all_ids = _wk_date_request_all_ids();
+  $date_requests = array();
+  $date_range = array();
+  foreach ($all_ids as $id => $info) {
+    $date_request_entity = entityform_load($id);
+    $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+    $approved_event_node = $date_request->field_approved_event->value();
+    if (empty($approved_event_node)) {
+      $date_requests[$id] = $date_request_entity;
+      $date_range = _wk_expand_date_range_for_date_request($date_range, $date_request);
+    }
   }
   $other_approved_event_nids = _wk_get_calendar_event_nids_in_range(_wk_format_date($date_range['begin'], W3C_NoTZ), _wk_format_date($date_range['end'], W3C_NoTZ));
   $other_approved_events = wk_load_nodes($other_approved_event_nids);
@@ -1948,7 +1991,7 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
     );
     $form += _wk_date_request_approval_form_singular($form, $form_state, array_shift($date_requests), $other_approved_events);
   }
-  else {
+  elseif (count($date_requests) > 1) {
     foreach ($date_requests as $id => $date_request_entity) {
       //dpm($date_request_entity);
       $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
@@ -1956,24 +1999,25 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
       $collapsed = FALSE;
 
       $approved_event_node = $date_request->field_approved_event->value();
-      if (!empty($approved_event_node)) {
-        $approved_node = entity_metadata_wrapper('node',$approved_event_node);
-        $approved_date = $approved_node->field_date->value();
-        $title .= t(' - APPROVED for !date', array('!date' => _wk_format_date($approved_date[0], 'Y F d')));
-        $collapsed = TRUE;
+      if (empty($approved_event_node)) {
+        $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, $other_approved_events, TRUE);
+        $form['date_request_' . $id] = array(
+          '#type' => 'fieldset',
+          '#title' => $title,
+          '#collapsible' => TRUE,
+          '#collapsed' => $collapsed,
+        ) + $subform;
       }
-      $subform = _wk_date_request_approval_form_singular($form, $form_state, $date_request_entity, $other_approved_events, TRUE);
-      $form['date_request_' . $id] = array(
-        '#type' => 'fieldset',
-        '#title' => $title,
-        '#collapsible' => TRUE,
-        '#collapsed' => $collapsed,
-      ) + $subform;
     }
     $form['approve-checked'] = array(
       '#type' => 'submit',
       '#value' => t('Approve Checked Dates'),
       '#submit' => array('_wk_process_approve_checked_date_request'),
+    );
+  }
+  else {
+    $form['message'] = array(
+      '#markup' => "<p>There are no active calendar date requests at this time.</p>",
     );
   }
   return $form;
