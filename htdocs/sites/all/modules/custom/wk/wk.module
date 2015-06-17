@@ -1572,24 +1572,28 @@ function wk_calendar_year_of_preparation() {
 // in addition to any required events already on the calendar (i.e. for
 // principalities).
 //
+// TWO EVENTS - like the ONE EVENT phase, but each group may request
+// a second event, if desired.
+//
 // After the ONE EVENT phase, the calendar opens for all events -- by
 // bumping wk_calendar_year_open_for_all_events() by one year, and
 // reseting to CLOSED for the next year.
 function wk_calendar_status_for_next_year() {
   $result = CALENDAR_STATUS_CLOSED;
+  $open_for_all_year = wk_calendar_year_open_for_all_events();
   $open_for_all_milestone = variable_get('calendar-open-for-all', 0);
   $preparing_milestone = variable_get('calendar-preparing', 0);
   $open_one_event_milestone = variable_get('calendar-open-for-one', 0);
   $open_two_events_milestone = variable_get('calendar-open-for-two', 0);
 
-  if (($preparing_milestone > $open_for_all_milestone) && (time() > $preparing_milestone)) {
+  if ((date("Y", $preparing_milestone) >= $open_for_all_year) && (time() > $preparing_milestone)) {
     $result = CALENDAR_STATUS_PREPARING;
   }
 
-  if (($open_one_event_milestone > $open_for_all_milestone) && (time() > $open_one_event_milestone)) {
+  if ((date("Y", $open_one_event_milestone) >= $open_for_all_year) && (time() > $open_one_event_milestone)) {
     $result = CALENDAR_STATUS_ONE_EVENT;
   }
-  if (($open_two_events_milestone > $open_for_all_milestone) && (time() > $open_two_events_milestone)) {
+  if ((date("Y", $open_two_events_milestone) >= $open_for_all_year) && (time() > $open_two_events_milestone)) {
     $result = CALENDAR_STATUS_TWO_EVENTS;
   }
 
