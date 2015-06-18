@@ -587,6 +587,14 @@ div.media img,
 
 /* ----- Date request approval form ----- */
 
+#wk-approved-date-requests fieldset.collapsed,
+#wk-approved-date-requests fieldset.collapsed legend,
+#wk-date-request-multiple-approval-form fieldset.collapsed,
+#wk-date-request-multiple-approval-form fieldset.collapsed legend {
+  border: none;
+  margin-bottom: 0px;
+}
+
 .date-request-contact {
   margin-right: 16px;
 }
