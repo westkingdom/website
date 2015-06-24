@@ -634,6 +634,7 @@ function wk_create_calendar_date_request($node, $additional_delta = 0) {
 
 function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$form_state) {
   array_unshift($form['#validate'], '_wk_form_validate_branch_groups_must_be_siblings');
+  array_unshift($form['#validate'], '_wk_form_validate_calendar_must_be_open_for_date');
   $form_state['#branch_group_msg'] = t("For example, if the event is a War between the Principality of the Mists, and the Principality of Cynagua, then both the Mists and Cynagua should be selected. In most other cases, only one branch group should be selected here.");
   global $user;
   $menu = menu_get_item();
@@ -757,6 +758,86 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
           '!nextyear' => $nextyear,
           '!cancelurl' => '/calendar-date-request')));
     }
+  }
+}
+
+function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
+  $current_date = date("Y-m-d") . ' 12:00:00';
+  $open_for_all_year = wk_calendar_year_open_for_all_events();
+
+  $date_field_name_map = array(
+    'field_first_choice_date' => 'first choice date',
+    'field_alternate_date' => 'second choice date',
+    'field_second_alternate_date' => 'third choice date',
+  );
+
+  $at_least_one_valid = FALSE;
+  $duration = FALSE;
+  foreach ($date_field_name_map as $date_field => $field_name) {
+    $dv = $form_state['values'][$date_field][LANGUAGE_NONE][0];
+    $requested_date = $dv['value'];
+    $requested_timezone = $dv['timezone'];
+    if (!empty($requested_date)) {
+
+      $start_date = new DateTime($requested_date, new DateTimeZone($requested_timezone));
+      $start_date->setTime(12,0,0);
+
+      $requested_year = substr($requested_date, 0, 4);
+
+      if ($current_date > $requested_date) {
+        return form_set_error($date_field, t("Your !choice, !when, has already passed.  Please only select dates that are in the future.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"))));
+      }
+
+      // For the first date request, also check the duration.  If the
+      // user entered an event that is too long, it could indicate a typo.
+      if (!$duration) {
+        $end_date = new DateTime($dv['value2'], new DateTimeZone($requested_timezone));
+        $end_date->setTime(12,0,0);
+        $duration = $start_date->diff($end_date);
+
+        // For now we allow up to 20-day events; that's longer than
+        // anyone should need.
+        if ($duration->days > 20) {
+          return form_set_error($date_field, t("Your !choice, !when, is !dur days long.  Perhaps you made a mistake with the end date?  Most events are one to three days.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!dur' => $duration->days)));
+        }
+      }
+
+      // Next, check to see if the calendar is open yet for the
+      // requested date.  If the requested year == the year that is
+      // open for all events, then no further checking is required.
+      if ($requested_year > $open_for_all_year) {
+        // Is it way too far in the future?  Then bail.
+        if ($requested_year - $open_for_all_year > 1) {
+          return form_set_error($date_field, t("Your !choice, !when, is too far in the future; request for this year will not be considered until sometime in mid-!yearbefore.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!yearbefore' => $requested_year - 1)));
+        }
+
+        $next_years_status = wk_calendar_status_for_next_year();
+        $number_of_events_allowed = 0;
+        switch ($next_years_status) {
+          case CALENDAR_STATUS_CLOSED:
+          case CALENDAR_STATUS_PREPARING:
+            break;
+
+          case CALENDAR_STATUS_ONE_EVENT:
+            $number_of_events_allowed = 1;
+            break;
+
+          case CALENDAR_STATUS_TWO_EVENTS:
+            $number_of_events_allowed = 0;
+            break;
+        }
+        // No events allowed?  Exit with an error.
+        if (!$number_of_events_allowed) {
+          return form_set_error($date_field, t("The calendar is not yet open for events in !nextyear.  You may only request dates for events in !thisyear.", array('!nextyear' => $requested_year, '!thisyear' => $open_for_all_year)));
+        }
+      }
+
+      $at_least_one_valid = TRUE;
+    }
+  }
+
+  if (!$at_least_one_valid) {
+    return form_set_error('field_first_choice_date', t("You must select a date for your event."));
   }
 }
 
@@ -3584,7 +3665,7 @@ function _wk_potential_email_names_parts($name) {
 
   // Strip off any titles from the beginning of the name.
   // TODO: We need a longer list of titles
-  $name = preg_replace('/(duke|duchess|count|countess|vicount|vicountess|mistress|master|lord|lady) /', '', $name);
+  $name = preg_replace('/(duke|duchess|count|countess|earl|vicount|vicountess|baron|baroness|mistress|master|lord|lady) /', '', $name);
 
   $full_email_name = _wk_transliterate_potential_name($name);
   $result[] = $full_email_name;
