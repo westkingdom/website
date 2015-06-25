@@ -585,6 +585,16 @@ div.media img,
   clear: both;
 }
 
+/* ----- Calendar status form ----- */
+
+.set-calendar-request-opening {
+  float: left;
+}
+
+#edit-open-for-one, #edit-open-for-two, #edit-open-for-all {
+  margin-top: 32px;
+}
+
 /* ----- Date request approval form ----- */
 
 #wk-approved-date-requests fieldset.collapsed,
