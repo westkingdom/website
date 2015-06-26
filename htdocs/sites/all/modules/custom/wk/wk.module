@@ -1737,7 +1737,8 @@ function wk_calendar_status($form, &$form_state) {
   $open_dates = wk_calendar_open_dates();
   foreach($open_dates as $key => $milestone) {
     if (array_key_exists($key, $notice_messages)) {
-      $formatted_milestone = _wk_format_date($milestone, 'd F Y');
+      $formatted_milestone = _wk_format_date($milestone, 'D, d F Y \a\t H:i');
+      $formatted_milestone = str_replace(array(' 00:00', ' 12:00'), array(' ' . t("Midnight"), ' ' . t("Noon")), $formatted_milestone);
       $form['notices']['notice-' . $key] = array(
         '#markup' => t('<p>The calendar will !message on !milestone</p>', array('!milestone' => $formatted_milestone, '!message' => $notice_messages[$key])),
         '#weight' => $notice_weights[$key],
