@@ -676,20 +676,6 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       }
     }
   }
-  if ($group_tid) {
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
-    $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
-    $term = taxonomy_term_load($group_tid);
-    $icon = '';
-    $view = field_view_field('taxonomy_term', $term, 'field_arms');
-    if (!empty($view)) {
-      $view['#label_display'] = 'hidden';
-      $icon = render($view);
-    }
-    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
-  }
   if ($nid) {
     $node = node_load($nid);
     $additional_delta = 0;
@@ -698,6 +684,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
     }
     // TODO: Error checking and error display
     if ($node) {
+      $group_tid = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
       //dpm($node);
       // Copy the title
       $form['field_event_name'][LANGUAGE_NONE][0]['value']['#default_value'] = $node->title;
@@ -707,7 +694,6 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
       foreach ($node->taxonomy_vocabulary_2[LANGUAGE_NONE] as $index => $info) {
         $tid = $info['tid'];
         $group_ids[$tid] = $tid;
-        // TODO: look up seneschal for this branch group
       }
       $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = $group_ids;
       // Find the start and end date of the original event
@@ -759,6 +745,22 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
           '!nextyear' => $nextyear,
           '!cancelurl' => '/calendar-date-request')));
     }
+  }
+  if ($group_tid) {
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
+    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
+    $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
+    $term = taxonomy_term_load($group_tid);
+    $icon = '';
+    $view = field_view_field('taxonomy_term', $term, 'field_arms');
+    if (!empty($view)) {
+      $view['#label_display'] = 'hidden';
+      $icon = render($view);
+    }
+    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
+
+    // TODO: look up seneschal for this branch group
   }
 }
 
