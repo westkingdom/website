@@ -1374,6 +1374,13 @@ function wk_menu() {
     'page arguments' => array('wk_calendar_status'),
     'access callback' => TRUE,
   );
+  $items['calendar-status/%'] = array(
+    'title' => 'Calendar Status',
+    'description' => 'Show whether the calendar is open for new date requests',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_calendar_status', 1),
+    'access callback' => TRUE,
+  );
   $items['admin/config/calendar-requests'] = array(
     'title' => 'Calendar Status Settings',
     'description' => 'Configure calendar date request settings',
@@ -1706,7 +1713,7 @@ function wk_calendar_open_dates() {
   return $result;
 }
 
-function wk_calendar_status($form, &$form_state) {
+function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
   $status_messages = array(
     CALENDAR_STATUS_CLOSED => t("Not open yet."),
     CALENDAR_STATUS_PREPARING => t("Preparing to open."),
@@ -1746,7 +1753,7 @@ function wk_calendar_status($form, &$form_state) {
     }
   }
   $fn = 'wk_calendar_status_' . strtolower($next_years_status);
-  $form = $fn($form, $form_state);
+  $form = $fn($form, $form_state, isset($branch_group) ? array($branch_group) : NULL);
 
   if(wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID))) {
     $include_date_set_button = ($next_years_status == CALENDAR_STATUS_PREPARING);
@@ -1842,7 +1849,7 @@ function wk_calendar_status($form, &$form_state) {
   return $form;
 }
 
-function wk_calendar_status_closed($form, &$form_state) {
+function wk_calendar_status_closed($form, &$form_state, $branch_groups = array()) {
   $open_year = wk_calendar_year_open_for_all_events();
   $this_year = date("Y");
   // TODO:  do not display this message until 'next_year' is nearly upon us
@@ -1857,13 +1864,13 @@ function wk_calendar_status_closed($form, &$form_state) {
   }
 
   // Give Seneschals the chance to pick an event from last year to hold again this year.
-  $form = wk_calendar_events_for_one_branch($form, $form_state, UNLIMITED);
+  $form = wk_calendar_events_for_one_branch($form, $form_state, UNLIMITED, $branch_groups);
 
   // Add control for web administrator to begin calendar preparation
   return wk_calendar_events_for_calendar_preparation($form, $form_state);
 }
 
-function wk_calendar_status_preparing($form, &$form_state) {
+function wk_calendar_status_preparing($form, &$form_state, $branch_groups = array()) {
   $open_year = wk_calendar_year_open_for_all_events();
   $form['notices']['preparing-message'] = array(
     '#markup' => t('<p>The calendar is CLOSED for requests in !next_year.  The Seneschal and Calendar Deputy are currently preparing the calendar for next year.  Once it is ready, it will be opened up for ONE event request for every branch group.</p>', array('!next_year' => $open_year + 1)),
@@ -1873,33 +1880,36 @@ function wk_calendar_status_preparing($form, &$form_state) {
 
     $form = wk_calendar_events_for_calendar_preparation($form, $form_state);
   }
-  return $form;
+  return wk_calendar_events_for_one_branch($form, $form_state, 1, $branch_groups);
 }
 
-function wk_calendar_status_one_event($form, &$form_state) {
+function wk_calendar_status_one_event($form, &$form_state, $branch_groups = array()) {
   $open_year = wk_calendar_year_open_for_all_events();
   $form['notices']['preparing-message'] = array(
     '#markup' => '<p>' . t('The calendar is open for ONE event request for each branch group in !next_year.', array('!next_year' => $open_year + 1)) . '</p>',
     '#weight' => 90,
   );
-  return wk_calendar_events_for_one_branch($form, $form_state, 1);
+  return wk_calendar_events_for_one_branch($form, $form_state, 1, $branch_groups);
 }
 
-function wk_calendar_status_two_events($form, &$form_state) {
+function wk_calendar_status_two_events($form, &$form_state, $branch_groups = array()) {
   $open_year = wk_calendar_year_open_for_all_events();
   $form['notices']['preparing-message'] = array(
     '#markup' => '<p>' . t('The calendar is open for UP TO TWO event requests for each branch group in !next_year.', array('!next_year' => $open_year + 1)) . '</p>',
     '#weight' => 90,
   );
-  return wk_calendar_events_for_one_branch($form, $form_state, 2);
+  return wk_calendar_events_for_one_branch($form, $form_state, 2, $branch_groups);
 }
 
-function wk_calendar_events_for_one_branch($form, &$form_state, $event_limit = UNLIMITED) {
+function wk_calendar_events_for_one_branch($form, &$form_state, $event_limit = UNLIMITED, $branch_groups = array()) {
   // Determine if current user is the Seneschal of a group.
-  $branch_groups = _wk_is_seneschal();
-  if (!empty($branch_groups)) {
+  if (empty($branch_groups)) {
+    $branch_groups = _wk_is_seneschal();
+  }
+  foreach ($branch_groups as $branch_group) {
+    $branch_info = taxonomy_term_load($branch_group);
     $year = wk_calendar_year_of_preparation();
-    $event_nids = _wk_get_calendar_event_nids($year - 1, $branch_groups);
+    $event_nids = _wk_get_calendar_event_nids($year - 1, $branch_group);
     $events = wk_load_nodes($event_nids);
     if (!empty($events)) {
       $selectable_items = array();
@@ -1937,10 +1947,10 @@ function wk_calendar_events_for_one_branch($form, &$form_state, $event_limit = U
 
 
           $unselectable_items[$nid] = '<b>' . l($node->title, $url) . '</b>';
-          $selectable_items[$nid] = $unselectable_items[$nid];
+          //$selectable_items[$nid] = $unselectable_items[$nid];
         }
         else {
-          $unselectable_items[$nid] = '<i>' . $node->title . '</i>';
+          //$unselectable_items[$nid] = '<i>' . $node->title . '</i>';
           $selectable_items[$nid] = l($node->title, 'calendar-date-request/' . $nid);
         }
       }
@@ -1948,35 +1958,30 @@ function wk_calendar_events_for_one_branch($form, &$form_state, $event_limit = U
       // then tell the Seneschal to wait until the calendar opens for all events.
       if ($existing_date_request_count >= $event_limit) {
         if ($event_limit == 1) {
-          $limit_msg = t('You have already requested a calendar date for an event in this calendar period.  You must wait until the calendar is opened for a second event for each group before you request another.');
+          $form['already-selected-label'] = array(
+            '#markup' => t('You have already requested a calendar date for an event in this calendar period.  You must wait until the calendar is opened for a second event for each group before you request another.'),
+          );
         }
         else {
-          $limit_msg = t('You have already requested your limit of !n events in this calendar period.  You must wait until the calendar is opened for all events before you request another.', array('!n' => $existing_date_request_count));
+          $form['already-selected-label'] = array(
+            '#markup' => t('You have already requested your limit of !n events in this calendar period.  You must wait until the calendar is opened for all events before you request another.', array('!n' => $event_limit)),
+          );
         }
+      }
+      if (count($unselectable_items) > 0) {
         $form['already-selected-message'] = array(
-          '#markup' => t('<p>!limit<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $unselectable_items), '!limit' => $limit_msg)),
+          '#markup' => t('<p><b>!branch events already approved for the coming year:</b></p><ul><li>!events</li></ul>', array('!branch' => $branch_info->name, '!events' => implode('</li><li>', $unselectable_items), '!label' => $label, '!limit' => $limit_msg)),
         );
       }
-      else {
-        $existing = '';
-        if ($existing_date_request_count > 0) {
-          $existing = t('Events in bold type have already been requested.');
-        }
-        if ($event_limit >= UNLIMITED) {
-          $form['pick-one-message'] = array(
-            '#markup' => t('<p>Click on the events below in turn to request new dates to hold them again next year. !existing<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $selectable_items), '!existing' => $existing)),
-          );
-        }
-        else {
-          $form['pick-one-message'] = array(
-            '#markup' => t('<p>Pick an event to hold again next year. !existing<ul><li>!events</li></ul></p>', array('!events' => implode('</li><li>', $selectable_items), '!existing' => $existing)),
-          );
-        }
-        // Also include a link to the calendar date request form
-        $form['calendar-date-request-form'] = array(
-          '#markup' => t('<p>Use the !request_form to request a date for an event not shown above.</p>', array('!request_form' => l("calendar date request form", 'calendar-date-request'))),
+      if (count($selectable_items) > 0) {
+        $form['pick-one-message'] = array(
+          '#markup' => t('<p><b>!branch events from the previous year</b> (click to request same event again next year):</b><ul><li>!events</li></ul></p>', array('!branch' => $branch_info->name, '!events' => implode('</li><li>', $selectable_items))),
         );
       }
+      // Also include a link to the calendar date request form
+      $form['calendar-date-request-form'] = array(
+        '#markup' => t('<p>Use the !request_form to request a date for an event not shown above.</p>', array('!request_form' => l("calendar date request form", 'calendar-date-request'))),
+      );
     }
   }
   return $form;
