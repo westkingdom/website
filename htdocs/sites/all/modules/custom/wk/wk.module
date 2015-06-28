@@ -1566,6 +1566,41 @@ function _wk_calendar_request_get_settings() {
     ));
 }
 
+function _wk_get_calendar_events_for_branch($year) {
+  $start_date = $year . '-01-01T00:00:00';
+  $end_date = $year + 1 . '-01-01T00:00:00';
+  return _wk_get_calendar_events_for_branch_in_range($start_date, $end_date);
+}
+
+function _wk_get_calendar_events_for_branch_in_range($start_date, $end_date) {
+  $nids = array();
+  $query = new EntityFieldQuery();
+  // TODO: group by taxonomy_vocabulary_2
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array('cal_event'))
+    ->propertyCondition('status', 1)
+    ->fieldCondition('field_event_type', 'value', 0, '=')
+    ->fieldCondition('field_date', 'value', $start_date, '>')
+    ->fieldCondition('field_date', 'value', $end_date, '<');
+
+  $branches = array();
+  $entities = $query->execute();
+  if (!empty($entities)) {
+    $nids = array_keys($entities['node']);
+    $nodes = wk_load_nodes($nids);
+    foreach ($nodes as $nid => $node) {
+      $tid = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+      if (array_key_exists($tid, $branches)) {
+        ++$branches[$tid];
+      }
+      else {
+        $branches[$tid] = 1;
+      }
+    }
+  }
+  return $branches;
+}
+
 function _wk_get_calendar_event_nids($year, $branch = FALSE) {
   $start_date = $year . '-01-01T00:00:00';
   $end_date = $year + 1 . '-01-01T00:00:00';
@@ -1842,6 +1877,18 @@ function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
         '#value' => t('Set Open For All Date'),
         '#submit' => array('_wk_open_calendar_for_all_requests'),
         '#weight' => 200,
+      );
+    }
+    if (empty($branch_group)) {
+      $branches = _wk_get_calendar_events_for_branch($this_year);
+      asort($branches);
+      $branches_with_events = array();
+      foreach ($branches as $tid => $count) {
+        $branch_info = taxonomy_term_load($tid);
+        $branches_with_events[] = l($branch_info->name, 'calendar-status/' . $tid) . " ($count)";
+      }
+      $form['branches-with-events'] = array(
+        '#markup' => t('<p>Branches with events in !year:</p><ul><li>!branches</li></ul>', array('!year' => $this_year, '!branches' => implode('</li><li>', array_reverse($branches_with_events)))),
       );
     }
   }
