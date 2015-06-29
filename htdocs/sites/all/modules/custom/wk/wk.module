@@ -1751,6 +1751,10 @@ function wk_calendar_open_dates() {
 }
 
 function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
+  global $user;
+  if (!$user->uid) {
+    drupal_set_message(t("It is recommended that you <a href='!login'>log in</a> to use this form.  If you are a Seneschal without an account yet, please record your office on the <a href='!regnum'>Regnum</a> form.", array('!login' => '/user/login', '!regnum' => '/regnum')), 'warning');
+  }
   $status_messages = array(
     CALENDAR_STATUS_CLOSED => t("Not open yet."),
     CALENDAR_STATUS_PREPARING => t("Preparing to open."),
