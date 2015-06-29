@@ -38,6 +38,9 @@ define("Drupal_BeginningOfDay", "Y-m-d 00:00:00");
 define("Drupal_Noon", "Y-m-d 12:00:00");
 define("Drupal_EndOfDay", "Y-m-d 23:59:59");
 
+define("ONE_MINUTE", 60);
+define("ONE_HOUR", (ONE_MINUTE*60));
+define("ONE_DAY", (ONE_HOUR * 24));
 
 /**
  * Alter a list of view modes allowed for a file embedded in the WYSIWYG.
@@ -1750,6 +1753,35 @@ function wk_calendar_open_dates() {
   return $result;
 }
 
+function wk_delta_time($milestone, $start_time = 0) {
+  $delta_message = '';
+  if (!$start_time) {
+    $start_time = time();
+  }
+
+  $delta_time = $milestone - $start_time;
+  // Base requirements: time remaining > 0 and less than ten days
+  if (($delta_time > 0) && ($delta_time < 10*ONE_DAY)) {
+    $days = floor($delta_time / ONE_DAY);
+    $remainder = $delta_time % ONE_DAY;
+    $hours = floor($remainder / ONE_HOUR);
+    $remainder = $remainder % ONE_HOUR;
+    $minutes = floor($remainder / ONE_MINUTE);
+    $seconds = $remainder % ONE_MINUTE;
+    $delta_message = t("!days days and !hours hours", array('!days' => $days, '!hours' => $hours));
+    if ($days < 2) {
+      $hours = $hours + (($days * ONE_DAY) / ONE_HOUR);
+      $delta_message = t("!hours hours and !minutes minutes", array('!hours' => $hours, '!minutes' => $minutes));
+      if ($hours < 2) {
+        $minutes = $minutes + (($hours * ONE_HOUR) / ONE_MINUTE);
+        $delta_message = t("!minutes minutes and !seconds seconds", array('!minutes' => $minutes, '!seconds' => $seconds));
+      }
+    }
+  }
+
+  return $delta_message;
+}
+
 function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
   global $user;
   if (!$user->uid) {
@@ -1785,10 +1817,14 @@ function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
   $open_dates = wk_calendar_open_dates();
   foreach($open_dates as $key => $milestone) {
     if (array_key_exists($key, $notice_messages)) {
+      $delta_message = wk_delta_time($milestone);
+      if (!empty($delta_message)) {
+        $delta_message = t(" - in !delta_message", array('!delta_message' => $delta_message));
+      }
       $formatted_milestone = _wk_format_date($milestone, 'D, d F Y \a\t H:i');
       $formatted_milestone = str_replace(array(' 00:00', ' 12:00'), array(' ' . t("Midnight"), ' ' . t("Noon")), $formatted_milestone);
       $form['notices']['notice-' . $key] = array(
-        '#markup' => t('<p>The calendar will !message on !milestone</p>', array('!milestone' => $formatted_milestone, '!message' => $notice_messages[$key])),
+        '#markup' => t('<p>The calendar will !message on !milestone !delta</p>', array('!milestone' => $formatted_milestone, '!message' => $notice_messages[$key], '!delta' => $delta_message)),
         '#weight' => $notice_weights[$key],
       );
     }
