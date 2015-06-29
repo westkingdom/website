@@ -1891,7 +1891,12 @@ function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
       $branches_with_events = array();
       foreach ($branches as $tid => $count) {
         $branch_info = taxonomy_term_load($tid);
-        $branches_with_events[] = l($branch_info->name, 'calendar-status/' . $tid) . " ($count)";
+        // Hack: Ignore branches with "Kingdom" in their name that are not the West.
+        // TODO: re-do this using taxonomy_get_tree(2) and use the hierarchy
+        // information to decide which events to display.
+        if (($tid == KINGDOM_OF_THE_WEST_TID) || (stristr($branch_info->name, "kingdom") == FALSE)) {
+          $branches_with_events[] = l($branch_info->name, 'calendar-status/' . $tid) . " ($count)";
+        }
       }
       $form['branches-with-events'] = array(
         '#markup' => t('<p>Branches with events in !year:</p><ul><li>!branches</li></ul>', array('!year' => $this_year, '!branches' => implode('</li><li>', array_reverse($branches_with_events)))),
