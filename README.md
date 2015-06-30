@@ -10,9 +10,9 @@ This project is based on the pattern shown in the [pantheon-systems/example-drup
 Directory of Files
 ------------------
 
-  drupal         - Drupal root
-  features       - Behat tests
-  travis         - Public/Private key pair for Travis testing
+-  **drupal:** Drupal root
+-  **features:** Behat tests
+-  **travis:** Public/Private key pair for Travis testing
 
 
 Configuration
