@@ -73,6 +73,9 @@
         }
     ],
     "require": {
+        "davidbarratt/custom-installer": "dev-master",
+        "derhasi/composer-preserve-paths": "0.1.*",
+        "drupal/composer_vendor": "7.1.*",
         "pantheon-systems/drops-7": "7.*",
         "drupal/admin_menu": "7.3.*",
         "drupal/devel": "7.1.*",
@@ -165,10 +168,7 @@
         "drupal/wysiwyg_filter": "7.1.*"
     },
     "require-dev": {
-        "pantheon-systems/travis-scripts": "1.*",
-        "davidbarratt/custom-installer": "dev-master",
-        "derhasi/composer-preserve-paths": "0.1.*",
-        "drupal/composer_vendor": "7.1.*"
+        "pantheon-systems/travis-scripts": "1.*"
     },
     "config": {
         "bin-dir": "bin/",
