@@ -6,7 +6,7 @@ machine:
 
 test:
   pre:
-    - bin/setup-before-tests
+    - bin/setup-before-tests:
       background: true
   override:
     - bin/behat
