@@ -32,7 +32,7 @@ DBURL=mysql://root@localhost/drupal
 INSTALLNAME="$SITE_NAME Travis Test Site"
 if [ -n $CIRCLECI ]
 then
-  DBURL=mysql://ubuntu@localhost/circle_test
+  DBURL=mysql://ubuntu@127.0.0.1/circle_test
   INSTALLNAME="$SITE_NAME Circle Test Site"
 fi
 
