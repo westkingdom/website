@@ -8,8 +8,10 @@ test:
   pre:
     - bin/setup-before-tests:
       background: true
+
   override:
     - bin/behat
+
   post:
     - bin/stop-webserver
 
