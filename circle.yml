@@ -1,11 +1,10 @@
 machine:
   php:
     version: 5.5.11
-  post:
-    - bin/disable-php-email
 
 test:
   pre:
+    - bin/disable-php-email
     - bin/setup-before-tests:
         background: true
 
