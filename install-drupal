@@ -28,9 +28,17 @@ fi
 # This prevents permissions issues with the sites/default directory
 cp $PROJECT_BASE_DIR/drupal/sites/default/default.settings.php $PROJECT_BASE_DIR/drupal/sites/default/settings.php
 
+DBURL=mysql://root@localhost/drupal
+INSTALLNAME="$SITE_NAME Travis Test Site"
+if [ -n $CIRCLECI ]
+then
+  DBURL=mysql://ubuntu@localhost/circle_test
+  INSTALLNAME="$SITE_NAME Circle Test Site"
+fi
+
 # Use Drush to install Drupal and spin up PHP's built-in webserver
 cd $PROJECT_BASE_DIR/drupal
-drush site-install -y standard --site-name="$SITE_NAME Travis Test Site" --db-url=mysql://root@localhost/drupal --account-name=admin --account-pass=admin
+drush site-install -y standard --site-name="$INSTALLNAME" --db-url="$DBURL" --account-name=admin --account-pass=admin
 if [ $? != 0 ]
 then
   echo "Could not install Drupal" >&2
