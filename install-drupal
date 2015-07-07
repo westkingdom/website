@@ -7,7 +7,7 @@
 #
 
 SELF_DIRNAME="`dirname -- "$0"`"
-PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
+PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME" && pwd -P`"
 
 # Set up our $PATH
 export PATH="$PROJECT_BASE_DIR/bin:$HOME/bin:$PATH"
