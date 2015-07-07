@@ -5,7 +5,8 @@ machine:
 test:
   pre:
     - bin/disable-php-email
-    - bin/setup-before-tests:
+    - install-drupal
+    - start-webserver:
         background: true
 
   override:

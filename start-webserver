@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# start-webserver
+#
+
+SELF_DIRNAME="`dirname -- "$0"`"
+PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
+
+drush runserver --server=builtin 8088 --strict=0 </dev/null &>$HOME/server.log &
+if [ $? != 0 ]
+then
+  echo "Could nt start php built-in webserver" >&2
+  exit 1
+fi
+cd $PROJECT_BASE_DIR
+
+# Wait for the webserver to spin up; stop when we find someone listening on the right port.
+echo "Waiting for the web server to finish spinning up."
+until netstat -an 2>/dev/null | grep '8088.*LISTEN'; do sleep 0.2; done
+echo "Webserver ready; continuing."
