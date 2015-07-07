@@ -1,0 +1,15 @@
+machine:
+  php:
+    version: 5.5.11
+  post:
+    - bin/disable-php-email
+
+test:
+  pre:
+    - bin/setup-before-tests
+      background: true
+  override:
+    - bin/behat
+  post:
+    - bin/stop-webserver
+
