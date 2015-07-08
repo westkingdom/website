@@ -177,14 +177,14 @@
     "extra": {
         "custom-installer": {
             "drupal-module": "drupal/sites/all/modules/contrib/{$name}/",
-            "drupal-theme": "drupal/sites/all/themes/contrib/{$name}/",
-            "drupal-library": "drupal/sites/all/libraries/{$name}/",
             "drupal-drush": "drupal/sites/all/drush/{$name}/",
             "drupal-profile": "drupal/profiles/{$name}/",
             "drupal-core": "drupal/"
         },
         "preserve-paths": [
-            "drupal/sites/all/modules",
+            "drupal/sites/all/modules/contrib",
+            "drupal/sites/all/modules/custom",
+            "drupal/sites/all/modules/modified",
             "drupal/sites/all/themes",
             "drupal/sites/all/libraries",
             "drupal/sites/all/drush",

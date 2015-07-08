@@ -7,10 +7,10 @@ machine:
 test:
   pre:
     - bin/disable-php-email
-    - ./install-drupal
-    - ./start-webserver:
+    - bin/install-drupal
+    - bin/start-webserver:
         background: true
-    - ./wait-for-webserver
+    - bin/wait-for-webserver
 
   override:
     - bin/behat
