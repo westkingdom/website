@@ -10,6 +10,7 @@ test:
     - ./install-drupal
     - ./start-webserver:
         background: true
+    - ./wait-for-webserver:
 
   override:
     - bin/behat
