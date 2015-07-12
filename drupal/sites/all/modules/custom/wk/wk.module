@@ -21,6 +21,7 @@ define("SOCIETY_TID", 75);
 define("KINGDOM_OF_THE_WEST_TID", 2);
 
 define("SENESCHAL_TID", 84);
+define("WEBMINISTER_TID", 93);
 
 define("KINGDOM_WEBMINISTER_GID", 851);
 define("KINGDOM_SENESCHAL_GID", 989);
@@ -436,6 +437,30 @@ function wk_preprocess_node__cal_event(&$variables) {
   }
 }
 
+function wk_taxonomy_tree_remove_unnecessary(&$element, $limit_branches = array()) {
+  $has_selectable_elements = FALSE;
+  foreach ($element as $tid => $data) {
+    if (($tid[0] != '#') && is_numeric($tid)) {
+      $is_selectable = array_key_exists($tid, $limit_branches);
+      if (array_key_exists($tid . '-children', $element[$tid])) {
+        $is_selectable |= wk_taxonomy_tree_remove_unnecessary($element[$tid][$tid . '-children'], $limit_branches);
+        if ($is_selectable) {
+          $element[$tid][$tid . '-children']['#start_minimized'] = FALSE;
+          $element[$tid][$tid . '-children']['#level_start_minimized'] = FALSE;
+        }
+      }
+      if (!$is_selectable) {
+        $element[$tid]['#access'] = FALSE;
+      }
+      else {
+        $element[$tid]['#level_start_minimized'] = TRUE;
+      }
+      $has_selectable_elements |= $is_selectable;
+    }
+  }
+  return $has_selectable_elements;
+}
+
 function wk_taxonomy_tree_initial_minimized_state(&$element) {
   $has_selected_elements = FALSE;
   foreach ($element as $tid => $data) {
@@ -507,11 +532,13 @@ function wk_taxonomy_tree_form_element_term_alter(&$element, $tid) {
 }
 
 function wk_term_with_icon_form_element_after_build($form_element, &$form_state) {
+  // This is set in wk_form_alter__cal_event_node_form
+  $limit_branches = isset($form_element['#entity']->limit_branches) ? $form_element['#entity']->limit_branches : array();
   wk_taxonomy_tree_form_element_alter($form_element[0]);
   // Reorganize the tree under the term "The Society for Creative Anachronism"
   if (array_key_exists(SOCIETY_TID, $form_element[0]) && array_key_exists(KINGDOM_OF_THE_WEST_TID, $form_element[0][SOCIETY_TID][SOCIETY_TID . '-children'][KINGDOM_OF_THE_WEST_TID])) {
     $corpora_element = $form_element[0][SOCIETY_TID];
-    $corpora_element['#term-name'] = t("Other Kingdoms");
+    $corpora_element['#term-name'] = t("Society for Creative Anachronism - Other Kingdoms");
     $label_key = $corpora_element[SOCIETY_TID]['#type'] == 'checkbox_tree_label' ? '#value' : '#title';
     $corpora_element[SOCIETY_TID][$label_key] = $corpora_element['#term-name'];
     unset($form_element[0][SOCIETY_TID]);
@@ -519,14 +546,19 @@ function wk_term_with_icon_form_element_after_build($form_element, &$form_state)
     unset($corpora_element[SOCIETY_TID . '-children'][KINGDOM_OF_THE_WEST_TID]);
     $form_element[0][SOCIETY_TID] = $corpora_element;
   }
-  $has_selected = wk_taxonomy_tree_initial_minimized_state($form_element[0]);
-  if (!$has_selected) {
-    foreach ($form_element[0] as $tid => $data) {
-      if (($tid[0] != '#') && is_numeric($tid)) {
-        $form_element[0][$tid]['#level_start_minimized'] = FALSE;
-        $form_element[0][$tid][$tid . '-children']['#start_minimized'] = FALSE;
-        $form_element[0][$tid][$tid . '-children']['#level_start_minimized'] = FALSE;
-        break;
+  if (!empty($limit_branches)) {
+    wk_taxonomy_tree_remove_unnecessary($form_element[0], $limit_branches);
+  }
+  else {
+    $has_selected = wk_taxonomy_tree_initial_minimized_state($form_element[0]);
+    if (!$has_selected) {
+      foreach ($form_element[0] as $tid => $data) {
+        if (($tid[0] != '#') && is_numeric($tid)) {
+          $form_element[0][$tid]['#level_start_minimized'] = FALSE;
+          $form_element[0][$tid][$tid . '-children']['#start_minimized'] = FALSE;
+          $form_element[0][$tid][$tid . '-children']['#level_start_minimized'] = FALSE;
+          break;
+        }
       }
     }
   }
@@ -750,19 +782,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
     }
   }
   if ($group_tid) {
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
-    $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
-    $term = taxonomy_term_load($group_tid);
-    $icon = '';
-    $view = field_view_field('taxonomy_term', $term, 'field_arms');
-    if (!empty($view)) {
-      $view['#label_display'] = 'hidden';
-      $icon = render($view);
-    }
-    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
-
+    _wk_pre_select_group_in_form($form, $form_state, $group_tid);
     // TODO: look up seneschal for this branch group
   }
 }
@@ -882,6 +902,82 @@ function _wk_form_validate_exactly_one_branch_group($form, &$form_state) {
   }
 }
 
+function _wk_form_validate_meetings_are_repeating($form, &$form_state) {
+  $event_type = $form['field_event_type'][LANGUAGE_NONE][0]['#value'];
+  $repeating = $form['field_date']['und'][0]['show_repeat_settings']['#value'];
+  $repeat_rule = $form['field_date'][LANGUAGE_NONE][0]['#value']['rrule'];
+
+  if ($repeating) {
+    if (!$event_type) {
+      form_set_error('field_event_type', t("The event is repeating.  Perhaps you intended to make it a meting or practice?"));
+    }
+  }
+  else {
+    if ($event_type == 1) {
+      form_set_error('field_event_type', t("The event type is 'meeting or practice', but it does not repeat.  Meetings and practices must repeat regularly; otherwise, they are considered events, and must be scheduled through the Calendar Deputy."));
+    }
+  }
+}
+
+function _wk_form_validate_repeating_event_limit($form, &$form_state) {
+  //dpm($form['field_date'][LANGUAGE_NONE][0]['#value']);
+  //dpm($form);
+  //dpm($form_state);
+  $repeat_rule = $form['field_date'][LANGUAGE_NONE][0]['#value']['rrule'];
+  if (isset($repeat_rule)) {
+    // Check the COUNT of the number of repeats
+    if ($repeat_rule['range_of_repeat'] == 'COUNT') {
+      // For MONTHLY events, you can have 26 repeats (about a year at twice
+      // a month, or two years at once a month).  For WEEKLY events, you can have
+      // 52 repeats.
+      $weekly = ($repeat_rule['FREQ'] == 'WEEKLY');
+      $repeat_limit = $weekly ? 52 : 26;
+      $repeat_type = $weekly ? t('weekly') : t('monthly');
+      if ($repeat_rule['count_child'] > $repeat_limit) {
+        return form_set_error('field_date][und][0][rrule][count_child', t("An event that repeats !repeat_type is limited to a maximum of !limit repeats.", array('!limit' => $repeat_limit, '!repeat_type' => $repeat_type)));
+      }
+    }
+    else {
+      // When the limit is provided as a date, the end date can be up to one
+      // year in the future, but no more.  We'll allow a year and a day,
+      // on a leap year (even on non-leap-years), and call that close enough.
+      $date_limit = $repeat_rule['until_child']['datetime'];
+      $year = $date_limit['year'];
+      $month = $date_limit['month'];
+      $day = $date_limit['day'];
+      $datestring = "$year-$month-$day 12:00:00";
+      $epoch = strtotime($datestring);
+      $now = time();
+      $duration = ($epoch - time()) / ONE_DAY;
+      if ($duration > 367) {
+        return form_set_error('field_date][und][0][rrule][until_child', t("An event that repeats until a certain date is limited to a maximum of one year of repeats."));
+      }
+    }
+  }
+}
+
+function _wk_form_validate_user_may_create_events_for_branch($form, &$form_state) {
+  $branch_officer = _wk_is_branch_web_admin();
+  // This should never happen, but put in this check just in case.
+  // n.b. this validator should only be added for new nodes.
+  if (empty($branch_officer)) {
+    return form_set_error('taxonomy_vocabulary_2', t("You have not been granted permission to create calendar events.  Only branch group Seneschals and Web Ministers may do this."));
+  }
+  foreach ($form_state['values']['taxonomy_vocabulary_2'][LANGUAGE_NONE] as $selected_branch) {
+    if (!array_key_exists($selected_branch['tid'], $branch_officer)) {
+      // n.b. validation should never fail here unless $branch_officer contains
+      // multiple branches.  In instances where the user is a Seneschal or Web Minister
+      // for only one branch group, then the branch group field (taxonomy_vocabulary_2)
+      // is pre-filled with a valid value, and cannot be edited.
+      foreach ($branch_officer as $tid) {
+        $term = taxonomy_term_load($tid);
+        $group_names[] = check_plain($term->name);
+      }
+      return form_set_error('taxonomy_vocabulary_2', t("You may only create calendar events for the following groups:<ul><li>!group_list</li></ul>", array('!group_list' => implode("</li><li>", $group_names))));
+    }
+  }
+}
+
 function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state) {
   $office_tid = FALSE;
   $group_tid = FALSE;
@@ -932,18 +1028,7 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   // If the group is pre-filled, then make the group selection
   // field uneditable.
   if ($group_tid) {
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = '<div class="prefilled-taxonomy-tree">';
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#suffix'] = '</div>';
-    $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
-    $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
-    $term = taxonomy_term_load($group_tid);
-    $icon = '';
-    $view = field_view_field('taxonomy_term', $term, 'field_arms');
-    if (!empty($view)) {
-      $view['#label_display'] = 'hidden';
-      $icon = render($view);
-    }
-    $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
+    _wk_pre_select_group_in_form($form, $form_state, $group_tid);
   }
 
   if ($volunteer) {
@@ -959,6 +1044,145 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   }
 
   array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
+}
+
+
+/**
+ * Restrict the kinds of changes that can be made to calendar event nodes
+ * by certain semi-priviledged users (branch group Seneschals and Webministers).
+ *
+ * @see wk_node_access(), which allows users the ability to create/edit these.
+ */
+function wk_form_alter__cal_event_node_form(&$form, &$form_state) {
+  global $user;
+  $make_meeting_practice_adjustments = FALSE;
+
+  // Events must not repeat.  Meetings / practices must repeat.
+  array_unshift($form['#validate'], '_wk_form_validate_meetings_are_repeating');
+
+  // Limit date repeats for all users.
+  array_unshift($form['#validate'], '_wk_form_validate_repeating_event_limit');
+
+  // The Kingdom Webminister and the Kingdom Seneschal / Calendar deputy
+  // have full ability to edit calendar event nodes.  Other users (branch
+  // group Seneschals and Web Ministers) have limited editing ability over
+  // groups in their branch group only.
+  $event_admin = wk_user_access_or_group_member('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID));
+
+  if (!$event_admin) {
+    $new_event_form = ($form['nid']['#value'] == NULL);
+    $group_tid = FALSE;
+
+    if ($new_event_form) {
+      //
+      // Semi-priviledged users can only create meetings and practices; they
+      // cannot create events.
+      //
+      hide($form['field_event_type']);
+      $form['field_event_type'][LANGUAGE_NONE]['#default_value'] = 1;
+      $make_meeting_practice_adjustments = TRUE;
+
+      // Get a list of branch groups the user is seneschal or webminister for.
+      $branch_officer = _wk_is_branch_web_admin($account);
+      // $branch_officer should never be empty; if $event_admin is FALSE,
+      // and $branch_officer is empty, then the user should not have permission
+      // to edit this form.
+      if (empty($branch_officer)) {
+        // TODO: maybe limit per the current domain access domain?
+        hide($form['taxonomy_vocabulary_2'][LANGUAGE_NONE]);
+        $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#prefix'] = t("<b>Access denied.</b>  This should not happen; please inform the Kingdom Webminister.");
+      }
+      elseif (count($branch_officer) == 1) {
+        $group_tid = reset($branch_officer);
+      }
+      else {
+        // Limit the displayed items to those listed in '$branch_officer'
+        // (and parents thereof)
+        $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#entity']->limit_branches = $branch_officer;
+      }
+      // Insure that the user does not select a disallowed branch group
+      array_unshift($form['#validate'], '_wk_form_validate_user_may_create_events_for_branch');
+    }
+    else {
+      //
+      // Semi-priviledged users can edit events and meetings / practices,
+      // but they cannot change their type.
+      //
+      hide($form['field_event_type']);
+      $event_type = $form['field_event_type'][LANGUAGE_NONE]['#default_value'];
+
+      // Also, the branch group for the event cannot be changed
+      // TODO: It would be nice if we could show multiple devices here
+      // (e.g. for Mists / Cynagua war, et. al.)
+      $group_tid = reset($form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value']);
+
+      // We'll do different modfications for editing events vs editing
+      // meeting / practices.
+      if ($event_type == 0) {
+        // The date that events are held on cannot be changed by semi-priviledged users.
+        $event_date = $form['field_date'][LANGUAGE_NONE][0]['#default_value'];
+        // $date_display = _wk_format_date($event_date, 'Y F d');
+        $date_display = wk_render_node_field_date($form['#node']);
+        $form['field_date']['#prefix'] = t("<b>Event Date:</b> !date", array('!date' => $date_display));
+        hide($form['field_date'][LANGUAGE_NONE]);
+      }
+      else {
+        // Allow limited control over meeting / practice date selection
+        $make_meeting_practice_adjustments = TRUE;
+      }
+    }
+
+    // Don't let folks mess with the timezone
+    hide($form['field_date'][LANGUAGE_NONE][0]['timezone']);
+
+    if ($make_meeting_practice_adjustments) {
+      // We do not use the event site fields for meetings / practices.
+      hide($form['field_event_site']);
+      // Meetings / practices must repeat; otherwise, they are events.
+      $form['field_date'][LANGUAGE_NONE][0]['show_repeat_settings']['#default_value'] = 1;
+      //hide($form['field_date'][LANGUAGE_NONE][0]['show_repeat_settings']);
+
+      // Can we un-check and hide field_date[und][0][show_todate]?
+      // n.b. the two lines below do not work, as this element is created by the
+      // field_date widget later.
+      $form['field_date'][LANGUAGE_NONE][0]['show_todate']['#default_value'] = 0;
+      hide($form['field_date'][LANGUAGE_NONE][0]['show_todate']);
+
+      // Don't bother with the metadata fields for meeting / practices
+      hide($form['field_event_hours']);
+      hide($form['field_event_schedule']);
+      hide($form['field_site_fee']);
+      hide($form['field_feast_fee']);
+      hide($form['field_directions']);
+    }
+
+    // If the branch group is not editable, then pre-select the one group
+    // that is required for this event or meeting / practice.
+    if ($group_tid) {
+      _wk_pre_select_group_in_form($form, $form_state, $group_tid);
+    }
+  }
+}
+
+/**
+ * Make the branch group field uneditable in a form.
+ */
+function _wk_pre_select_group_in_form(&$form, &$form_state, $group_tid) {
+  $form['taxonomy_vocabulary_2']['#prefix'] = '<div class="prefilled-taxonomy-tree">';
+  $form['taxonomy_vocabulary_2']['#suffix'] = '</div>';
+  $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
+  $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
+  //$form['taxonomy_vocabulary_2']['#access'] = TRUE;
+  $term = taxonomy_term_load($group_tid);
+  $icon = '';
+  $view = field_view_field('taxonomy_term', $term, 'field_arms');
+  if (!empty($view)) {
+    $view['#label_display'] = 'hidden';
+    $icon = render($view);
+  }
+  $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
+
+  hide($form['taxonomy_vocabulary_2'][LANGUAGE_NONE]);
 }
 
 /**
@@ -1138,26 +1362,24 @@ function wk_block_view($delta = '') {
     case 'wk_office_volunteer':
       $node = menu_get_object();
 
-      if ((isset($node->volunteer[LANGUAGE_NONE][0])) && (isset($node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid']))) {
-        $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
-        if (!empty($node->volunteer[LANGUAGE_NONE][0])) {
-          $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
-        }
-
-        if (!empty($text) && ($text != 'n/a') && ($text != 'na')) {
-          $branch_term = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
-          $branch_term = taxonomy_term_load($branch_term);
-
-          $office_term = $node->field_office[LANGUAGE_NONE][0]['tid'];
-          $office_term = taxonomy_term_load($office_term);
-
-          $branch_shortname = strtolower(_wk_term_short_name($branch_term));
-          $office_shortname = strtolower(_wk_term_short_name($office_term));
-
-          $block['content'] = drupal_get_form('wk_volunteer_for_office', $text, "regnum/$branch_shortname/$office_shortname/volunteer");
-        }
-        break;
+      $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
+      if (isset($node->volunteer[LANGUAGE_NONE][0])) {
+        $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
       }
+
+      if (!empty($text) && ($text != 'n/a') && ($text != 'na')) {
+        $branch_term = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+        $branch_term = taxonomy_term_load($branch_term);
+
+        $office_term = $node->field_office[LANGUAGE_NONE][0]['tid'];
+        $office_term = taxonomy_term_load($office_term);
+
+        $branch_shortname = strtolower(_wk_term_short_name($branch_term));
+        $office_shortname = strtolower(_wk_term_short_name($office_term));
+
+        $block['content'] = drupal_get_form('wk_volunteer_for_office', $text, "regnum/$branch_shortname/$office_shortname/volunteer");
+      }
+      break;
   }
   return $block;
 }
@@ -2880,8 +3102,27 @@ function _wk_kingdom_or_principality_event($node) {
   return $result;
 }
 
-function _wk_is_seneschal($the_user = NULL) {
-  return _wk_is_officer(SENESCHAL_TID, $the_user);
+/**
+ * Return all of the branches that the user is Seneschal of.
+ */
+function _wk_is_seneschal($account = NULL) {
+  return _wk_is_officer(SENESCHAL_TID, $account);
+}
+
+/**
+ * Return the branches that the user is a web admin for (Seneschal or Web Minister).
+ *
+ * n.b. This function does not account for priviledged admins that can
+ * administrate all branch groups.  Only use this in instances where user_access()
+ * does not give the desired editing capabilities.
+ */
+function _wk_is_branch_web_admin($account = NULL) {
+  // Return all of the branches that the user is Seneschal or Webminister of
+  $branch_officer = array_merge(_wk_is_seneschal($account), _wk_is_officer(WEBMINISTER_TID, $account));
+  // Repair the harm done by array_merge (array keys are preserved, unless they are numeric).
+  $branch_officer = array_combine($branch_officer, $branch_officer);
+
+  return $branch_officer;
 }
 
 // If the current user is a Seneschal, return
@@ -2956,7 +3197,39 @@ function _wk_find_date_request_for_event($nid) {
   return $date_requests;
 }
 
+/**
+ * Implements hook_node_access
+ *
+ * per https://api.drupal.org/api/drupal/modules%21node%21node.api.php/function/hook_node_access/7
+ *
+ * @see wk_form_alter__cal_event_node_form() for code that limits what can be edited.
+ */
+function wk_node_access($node, $op, $account) {
+  $type = is_string($node) ? $node : $node->type;
+
+  if ($type == 'cal_event') {
+    // Get a list of branches that the user is Seneschal or Webminister for.
+    $branch_officer = _wk_is_branch_web_admin($account);
+    // We will allow Seneschals and Web Ministers of any branch to create cal_event nodes.
+    // They will only be able to create meetings / practices in the branch groups
+    // they are officers in; this is controlled by hook_form_alter.
+    if ($op == 'create' && !empty($branch_officer)) {
+      return NODE_ACCESS_ALLOW;
+    }
+    if ($op == 'update') {
+      $event_branch = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+      if (array_key_exists($event_branch, $branch_officer)) {
+        return NODE_ACCESS_ALLOW;
+      }
+    }
+  }
+
+  // Returning nothing from this function would have the same effect.
+  return NODE_ACCESS_IGNORE;
+}
+
 function wk_menu_alter(&$items) {
+  // Domain access items
   $items['admin/structure/domain']['access callback'] = '_wk_domain_view_access_callback';
   $items['admin/structure/domain']['access arguments'] = array('administer site configuration for assigned domains');
   $items['admin/structure/domain/view']['access callback'] = '_wk_domain_view_access_callback';
