@@ -4,8 +4,52 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "f603e0945c5878c6ce7ba90302d79382",
+    "hash": "1dbdb50cb39a7d847ebdb1163a7b121a",
     "packages": [
+        {
+            "name": "cweagans/composer-patches",
+            "version": "1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/cweagans/composer-patches.git",
+                "reference": "1d50068f48f1a727c9baf96ae48959f3d3428a77"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/cweagans/composer-patches/zipball/1d50068f48f1a727c9baf96ae48959f3d3428a77",
+                "reference": "1d50068f48f1a727c9baf96ae48959f3d3428a77",
+                "shasum": ""
+            },
+            "require": {
+                "composer-plugin-api": "~1.0",
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "composer/composer": "~1.0",
+                "phpunit/phpunit": "~4.6"
+            },
+            "type": "composer-plugin",
+            "extra": {
+                "class": "cweagans\\Composer\\Patches"
+            },
+            "autoload": {
+                "psr-4": {
+                    "cweagans\\Composer\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD"
+            ],
+            "authors": [
+                {
+                    "name": "Cameron Eagans",
+                    "email": "me@cweagans.net"
+                }
+            ],
+            "description": "Provides a way to patch Composer packages.",
+            "time": "2015-07-09 18:27:46"
+        },
         {
             "name": "davidbarratt/custom-installer",
             "version": "dev-master",
@@ -295,33 +339,6 @@
             "description": "Manage breakpoints"
         },
         {
-            "name": "drupal/bundle_copy",
-            "version": "7.1.2",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/bundle_copy",
-                "reference": "299bdcac5da598a0e0122db883a51f6b3db2f999"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/bundle_copy-7.x-1.2.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/ctools": "7.*",
-                "drupal/drupal": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Import and exports bundles through the UI."
-        },
-        {
             "name": "drupal/calendar",
             "version": "7.3.5",
             "source": {
@@ -349,35 +366,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Views plugin to display views containing dates as Calendars."
-        },
-        {
-            "name": "drupal/captcha",
-            "version": "7.1.3",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/captcha",
-                "reference": "e099a7e0916233bb45d22547ff4dd2ba36ecf34c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/captcha-7.x-1.3.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "replace": {
-                "drupal/image_captcha": "self.version"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Base CAPTCHA module for adding challenges to arbitrary forms."
         },
         {
             "name": "drupal/cck",
@@ -491,32 +479,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Loads the composer generated autoload from the sites/all/vendor directory."
-        },
-        {
-            "name": "drupal/conflict",
-            "version": "7.1.0",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/conflict",
-                "reference": "b0f19c37cdcca789da78e30709500b323a05df2c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/conflict-7.x-1.0.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Fieldwise conflict prevention and resolution."
         },
         {
             "name": "drupal/context",
@@ -676,34 +638,6 @@
             "description": "The Delta module is an advanced manipulation of the Theme Settings API to allow for customization/configuration of theme settings based on node types, context, or groups of paths."
         },
         {
-            "name": "drupal/dereference_list",
-            "version": "dev-7.x-1.x",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/dereference_list.git",
-                "reference": "4acf25dd4a91e17a2dd2f383ea24224f04ede071"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/dereference_list-7.x-1.x-dev.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*",
-                "drupal/list": ">=7.14.0"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Provides list values from another list field in a referenced entity",
-            "time": "2012-07-14 17:08:45"
-        },
-        {
             "name": "drupal/devel",
             "version": "7.1.5",
             "source": {
@@ -855,44 +789,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Provides domain specific visibility settings for blocks"
-        },
-        {
-            "name": "drupal/domain_variable",
-            "version": "7.1.1",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/domain_variable",
-                "reference": "e480a059295bcc3980c309733903c18760c21e8e"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/domain_variable-7.x-1.1.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/domain": "7.*",
-                "drupal/drupal": "7.*",
-                "drupal/variable_realm": "7.2.x-dev",
-                "drupal/variable_store": "7.2.x-dev"
-            },
-            "replace": {
-                "drupal/domain_variable_i18n": "self.version",
-                "drupal/domain_variable_locale": "self.version",
-                "drupal/domain_variable_theme": "self.version"
-            },
-            "suggest": {
-                "drupal/i18n_variable": "Required by drupal/domain_variable_i18n",
-                "drupal/locale": "Required by drupal/domain_variable_locale"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Advanced site configuration options for Domain Access using Variable"
         },
         {
             "name": "drupal/domain_views",
@@ -1245,32 +1141,6 @@
             "description": "Build blocks and block settings as features."
         },
         {
-            "name": "drupal/field_extrawidgets",
-            "version": "7.1.1",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/field_extrawidgets",
-                "reference": "e9f4ecf54426ba9335ffc5a4cd020b5d1db982a4"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/field_extrawidgets-7.x-1.1.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Provides utility widgets for the Field API."
-        },
-        {
             "name": "drupal/field_group",
             "version": "7.1.4",
             "source": {
@@ -1353,41 +1223,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Extends Drupal file entities to be fieldable and viewable."
-        },
-        {
-            "name": "drupal/fse",
-            "version": "7.1.0-beta1",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/fse",
-                "reference": "b85d6531ba43cf5887febae388fdd95a302bb4e6"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/fse-7.x-1.0-beta1.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*",
-                "drupal/field": "7.*"
-            },
-            "replace": {
-                "drupal/forms": "self.version",
-                "drupal/forms_attach_field": "self.version"
-            },
-            "suggest": {
-                "drupal/field_sql_storage": "Required by drupal/forms_attach_field",
-                "drupal/forms": "Required by drupal/forms_attach_field"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Enable frontend Forms as Entity"
         },
         {
             "name": "drupal/google_analytics",
@@ -1798,32 +1633,6 @@
             "description": "Adds image cropping to media embed"
         },
         {
-            "name": "drupal/mollom",
-            "version": "7.1.1",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/mollom",
-                "reference": "e9083606a5ad3d678ba70df3c5c7491e5b3927f5"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/mollom-7.x-1.1.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Automatically moderates user-submitted content and protects your site from spam and profanity."
-        },
-        {
             "name": "drupal/multiform",
             "version": "7.1.1",
             "source": {
@@ -1874,35 +1683,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Allows users to have more than one registered e-mail address"
-        },
-        {
-            "name": "drupal/nodechanges",
-            "version": "7.1.0-beta5",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/nodechanges",
-                "reference": "7f3c4e0c75b29f4af88bb349606479073a3a34fb"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/nodechanges-7.x-1.0-beta5.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/comment": "7.*",
-                "drupal/drupal": "7.*",
-                "drupal/field_extrawidgets": "7.*",
-                "drupal/token": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Records node changes into a comment diff field."
         },
         {
             "name": "drupal/og",
@@ -2008,33 +1788,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "OM Maximenu, add any block inside your menus"
-        },
-        {
-            "name": "drupal/omega_tools",
-            "version": "7.3.0-rc4",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/omega_tools",
-                "reference": "3d54f27392878207465ef7a650b5c23c9fc8f192"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/omega_tools-7.x-3.0-rc4.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/ctools": "7.*",
-                "drupal/drupal": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-3.x": "7.3.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Provides additional functionality for the <a href=\"http://drupal.org/project/omega\">Omega Theme</a>."
         },
         {
             "name": "drupal/passwordless",
@@ -2156,15 +1909,15 @@
         },
         {
             "name": "drupal/redirect",
-            "version": "7.1.0-rc2",
+            "version": "7.1.0-rc3",
             "source": {
                 "type": "git",
                 "url": "http://git.drupal.org/project/redirect",
-                "reference": "2cf3598bc143193d8400d2ca59be825c561ec329"
+                "reference": "70dad3fe0674823398679fca691eb532fb657b1a"
             },
             "dist": {
                 "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/redirect-7.x-1.0-rc2.zip",
+                "url": "http://ftp.drupal.org/files/projects/redirect-7.x-1.0-rc3.zip",
                 "reference": null,
                 "shasum": null
             },
@@ -2359,35 +2112,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Enforces variable values defined by modules that need settings set to operate properly."
-        },
-        {
-            "name": "drupal/styleguide",
-            "version": "7.1.1",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/styleguide",
-                "reference": "5701b4968066255b67ebf2e15038542df7438df5"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/styleguide-7.x-1.1.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "replace": {
-                "drupal/styleguide_palette": "self.version"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-1.x": "7.1.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Generates a theme style guide for proofing common elements."
         },
         {
             "name": "drupal/subpathauto",
@@ -2591,44 +2315,6 @@
             "description": "Provides features integration for content (nodes, taxonomy, etc) based on the UUID module."
         },
         {
-            "name": "drupal/variable",
-            "version": "dev-7.x-2.x",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/variable",
-                "reference": "83c00d0daed27175cd8de9134dd047e617bcedf0"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/variable-7.x-2.5.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "replace": {
-                "drupal/variable_admin": "self.version",
-                "drupal/variable_example": "self.version",
-                "drupal/variable_realm": "self.version",
-                "drupal/variable_store": "self.version",
-                "drupal/variable_views": "self.version"
-            },
-            "suggest": {
-                "drupal/variable_store": "Required by drupal/variable_example",
-                "drupal/views": "Required by drupal/variable_views"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-2.x": "7.2.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Variable Information and basic variable API",
-            "time": "2014-04-11 17:56:33"
-        },
-        {
             "name": "drupal/views",
             "version": "7.3.11",
             "source": {
@@ -2716,32 +2402,6 @@
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
             "description": "Plugin to export views data into various file formats"
-        },
-        {
-            "name": "drupal/webform",
-            "version": "7.3.24",
-            "source": {
-                "type": "git",
-                "url": "http://git.drupal.org/project/webform",
-                "reference": "8f4a212e73460e338b37c5af1bb81ccd57bd8da7"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/webform-7.x-3.24.zip",
-                "reference": null,
-                "shasum": null
-            },
-            "require": {
-                "drupal/drupal": "7.*"
-            },
-            "type": "drupal-module",
-            "extra": {
-                "branch-alias": {
-                    "dev-7.x-3.x": "7.3.x-dev"
-                }
-            },
-            "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Enables the creation of forms and questionnaires."
         },
         {
             "name": "drupal/wysiwyg",
@@ -4069,16 +3729,16 @@
         },
         {
             "name": "phpunit/php-code-coverage",
-            "version": "2.1.7",
+            "version": "2.1.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-code-coverage.git",
-                "reference": "07e27765596d72c378a6103e80da5d84e802f1e4"
+                "reference": "6044546998c7627ab997501a3d0db972b3db9790"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/07e27765596d72c378a6103e80da5d84e802f1e4",
-                "reference": "07e27765596d72c378a6103e80da5d84e802f1e4",
+                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/6044546998c7627ab997501a3d0db972b3db9790",
+                "reference": "6044546998c7627ab997501a3d0db972b3db9790",
                 "shasum": ""
             },
             "require": {
@@ -4127,7 +3787,7 @@
                 "testing",
                 "xunit"
             ],
-            "time": "2015-06-30 06:52:35"
+            "time": "2015-07-13 11:25:58"
         },
         {
             "name": "phpunit/php-file-iterator",
@@ -4309,16 +3969,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "4.7.6",
+            "version": "4.7.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "0ebabb4cda7d066be8391dfdbaf57fe70ac9a99b"
+                "reference": "9b97f9d807b862c2de2a36e86690000801c85724"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/0ebabb4cda7d066be8391dfdbaf57fe70ac9a99b",
-                "reference": "0ebabb4cda7d066be8391dfdbaf57fe70ac9a99b",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/9b97f9d807b862c2de2a36e86690000801c85724",
+                "reference": "9b97f9d807b862c2de2a36e86690000801c85724",
                 "shasum": ""
             },
             "require": {
@@ -4377,7 +4037,7 @@
                 "testing",
                 "xunit"
             ],
-            "time": "2015-06-30 06:53:57"
+            "time": "2015-07-13 11:28:34"
         },
         {
             "name": "phpunit/phpunit-mock-objects",

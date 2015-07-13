@@ -1,0 +1,7 @@
+{
+  "patches": {
+    "drupal/domain": {
+      "Domain_conf permissions": "https://www.drupal.org/files/issues/domain-conf-450688-%2310.patch"
+    }
+  }
+}
