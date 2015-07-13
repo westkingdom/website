@@ -158,7 +158,7 @@
         "drupal/wysiwyg_filter": "7.1.*"
     },
     "require-dev": {
-        "pantheon-systems/travis-scripts": "1.*"
+        "pantheon-systems/ci-scripts": "1.*"
     },
     "config": {
         "bin-dir": "bin/",
