@@ -790,6 +790,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
 function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
   $current_date = date("Y-m-d") . ' 12:00:00';
   $open_for_all_year = wk_calendar_year_open_for_all_events();
+  $earliest_date = _wk_earliest_event_request_data();
 
   $date_field_name_map = array(
     'field_first_choice_date' => 'first choice date',
@@ -812,6 +813,10 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
 
       if ($current_date > $requested_date) {
         return form_set_error($date_field, t("Your !choice, !when, has already passed.  Please only select dates that are in the future.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"))));
+      }
+
+      if ($requested_date < $earliest_date) {
+        return form_set_error($date_field, t("It is too late to request calendar event dates on !when.  The earliest available date for events is !earliest, as it is necessary to allow time for events to be published in The Page.  Please select a later date.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!earliest' => _wk_format_date($earliest_date, "F j, Y"))));
       }
 
       // For the first date request, also check the duration.  If the
@@ -2006,6 +2011,29 @@ function wk_delta_time($milestone, $start_time = 0) {
   return $delta_message;
 }
 
+function _wk_earliest_event_request_data() {
+  $year = date("Y");
+  $month = date("m");
+  $day = date("d");
+
+  // The policy is that you must request a date prior to the
+  // 15th of the month that is TWO months before your event
+  // date.  This is because the event must be published in
+  // the Page in order to be a recognized event, and the Page
+  // submission deadline is prior to the 1st of the month
+  // prior to the issue's publication date.
+
+  $delta_month = 2 + ($day > 15);
+
+  $month += $delta_month;
+  if ($month > 12) {
+    $month -= 12;
+    $year++;
+  }
+
+  return strtotime("$year-$month-1 12:00:00");
+}
+
 function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
   global $user;
   if (!$user->uid) {
@@ -2030,8 +2058,10 @@ function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
   $open_year = wk_calendar_year_open_for_all_events();
   $next_years_status = wk_calendar_status_for_next_year();
   $this_year = date("Y");
+  $earliest_epoch = _wk_earliest_event_request_data();
+  $earliest_date = _wk_format_date($earliest_epoch, 'D, d F Y');
   $form['status-summary'] = array(
-    '#markup' => t('<p><b>Calendar status for !open_year:</b> Open for all events.</p>', array('!open_year' => $open_year, '!next_year' => $open_year + 1, '!msg' => $status_messages[$next_years_status])),
+    '#markup' => t('<p><b>Calendar status for !open_year:</b> Open for all events; however, it is <i>too late</i> to request any date prior to !earliest.</p>', array('!open_year' => $open_year, '!next_year' => $open_year + 1, '!msg' => $status_messages[$next_years_status], '!earliest' => $earliest_date)),
   );
   if ($open_year == $this_year) {
     $form['next-year-summary'] = array(
