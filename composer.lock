@@ -1199,15 +1199,15 @@
         },
         {
             "name": "drupal/file_entity",
-            "version": "7.2.0-beta1",
+            "version": "7.2.0-beta2",
             "source": {
                 "type": "git",
                 "url": "http://git.drupal.org/project/file_entity",
-                "reference": "72ab07c1b8d630b70baf537eef900fd259ccecad"
+                "reference": "812dc896a258837017166fdd8d2fb381c0433001"
             },
             "dist": {
                 "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/file_entity-7.x-2.0-beta1.zip",
+                "url": "http://ftp.drupal.org/files/projects/file_entity-7.x-2.0-beta2.zip",
                 "reference": null,
                 "shasum": null
             },
@@ -1225,7 +1225,8 @@
                 }
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Extends Drupal file entities to be fieldable and viewable."
+            "description": "Extends Drupal file entities to be fieldable and viewable.",
+            "homepage": "https://www.drupal.org/project/file_entity"
         },
         {
             "name": "drupal/google_analytics",
@@ -1566,15 +1567,15 @@
         },
         {
             "name": "drupal/media",
-            "version": "7.2.0-alpha4",
+            "version": "7.2.0-beta1",
             "source": {
                 "type": "git",
                 "url": "http://git.drupal.org/project/media",
-                "reference": "e4c529a28990c1da66e45ffa7ad45872be3044ce"
+                "reference": "19a155b1a78f18355dc9a2a614524178816be2cc"
             },
             "dist": {
                 "type": "zip",
-                "url": "http://ftp.drupal.org/files/projects/media-7.x-2.0-alpha4.zip",
+                "url": "http://ftp.drupal.org/files/projects/media-7.x-2.0-beta1.zip",
                 "reference": null,
                 "shasum": null
             },
@@ -1604,7 +1605,8 @@
                 }
             },
             "notification-url": "http://packagist.drupal-composer.org/downloads/",
-            "description": "Provides the core Media API"
+            "description": "Provides the core Media API",
+            "homepage": "https://www.drupal.org/project/media"
         },
         {
             "name": "drupal/media_crop",
@@ -3529,16 +3531,16 @@
         },
         {
             "name": "pantheon-systems/ci-scripts",
-            "version": "1.0.0",
+            "version": "1.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pantheon-systems/ci-scripts.git",
-                "reference": "c51ae62f5514321434d169258af12f61059826d0"
+                "reference": "bad8e8c8c27d80fedd9d7f4fe287ed51e1221cd4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pantheon-systems/ci-scripts/zipball/c51ae62f5514321434d169258af12f61059826d0",
-                "reference": "c51ae62f5514321434d169258af12f61059826d0",
+                "url": "https://api.github.com/repos/pantheon-systems/ci-scripts/zipball/bad8e8c8c27d80fedd9d7f4fe287ed51e1221cd4",
+                "reference": "bad8e8c8c27d80fedd9d7f4fe287ed51e1221cd4",
                 "shasum": ""
             },
             "require": {
@@ -3563,7 +3565,7 @@
             "type": "library",
             "notification-url": "https://packagist.org/downloads/",
             "description": "Scripts helpful for testing a Drupal site on a Continuous-Integration server, or locally.",
-            "time": "2015-07-13 20:44:34"
+            "time": "2015-07-15 18:00:33"
         },
         {
             "name": "pear/console_table",
