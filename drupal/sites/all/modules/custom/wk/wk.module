@@ -790,7 +790,9 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
 function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
   $current_date = date("Y-m-d") . ' 12:00:00';
   $open_for_all_year = wk_calendar_year_open_for_all_events();
-  $earliest_date = _wk_earliest_event_request_data();
+  $earliest_date_epoch = _wk_earliest_event_request_data();
+  $earliest_date = _wk_format_date($earliest_date_epoch, "Y-m-d") . ' 12:00:00';
+  $year_of_calendar_request = FALSE;
 
   $date_field_name_map = array(
     'field_first_choice_date' => 'first choice date',
@@ -809,14 +811,12 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
       $start_date = new DateTime($requested_date, new DateTimeZone($requested_timezone));
       $start_date->setTime(12,0,0);
 
-      $requested_year = substr($requested_date, 0, 4);
-
       if ($current_date > $requested_date) {
         return form_set_error($date_field, t("Your !choice, !when, has already passed.  Please only select dates that are in the future.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"))));
       }
 
       if ($requested_date < $earliest_date) {
-        return form_set_error($date_field, t("It is too late to request calendar event dates on !when.  The earliest available date for events is !earliest, as it is necessary to allow time for events to be published in The Page.  Please select a later date.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!earliest' => _wk_format_date($earliest_date, "F j, Y"))));
+        return form_set_error($date_field, t("It is too late to request calendar event dates on !when.  The earliest available date for events is !earliest, as it is necessary to allow time for events to be published in The Page.  Please select a later date.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!earliest' => _wk_format_date($earliest_date_epoch, "F j, Y"))));
       }
 
       // For the first date request, also check the duration.  If the
@@ -836,31 +836,80 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
       // Next, check to see if the calendar is open yet for the
       // requested date.  If the requested year == the year that is
       // open for all events, then no further checking is required.
-      if ($requested_year > $open_for_all_year) {
-        // Is it way too far in the future?  Then bail.
-        if ($requested_year - $open_for_all_year > 1) {
-          return form_set_error($date_field, t("Your !choice, !when, is too far in the future; request for this year will not be considered until sometime in mid-!yearbefore.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!yearbefore' => $requested_year - 1)));
-        }
+      // We'll remember that we did this, and only do it once per
+      // validation, provided that all dates that are requested are
+      // made in the same calendar year.  If not, that will also be
+      // a validation error.
+      $requested_year = substr($requested_date, 0, 4);
+      if (!$year_of_calendar_request) {
+        $year_of_calendar_request = $requested_year;
 
-        $next_years_status = wk_calendar_status_for_next_year();
-        $number_of_events_allowed = 0;
-        switch ($next_years_status) {
-          case CALENDAR_STATUS_CLOSED:
-          case CALENDAR_STATUS_PREPARING:
-            break;
+        if ($requested_year > $open_for_all_year) {
+          // Is it way too far in the future?  Then bail.
+          if ($requested_year - $open_for_all_year > 1) {
+            return form_set_error($date_field, t("Your !choice, !when, is too far in the future; request for this year will not be considered until sometime in mid-!yearbefore.", array('!choice' => $field_name, '!when' => $start_date->format("F j, Y"), '!yearbefore' => $requested_year - 1)));
+          }
 
-          case CALENDAR_STATUS_ONE_EVENT:
-            $number_of_events_allowed = 1;
-            break;
+          $next_years_status = wk_calendar_status_for_next_year();
+          $number_of_events_allowed = 0;
+          switch ($next_years_status) {
+            case CALENDAR_STATUS_CLOSED:
+            case CALENDAR_STATUS_PREPARING:
+              break;
 
-          case CALENDAR_STATUS_TWO_EVENTS:
-            $number_of_events_allowed = 0;
-            break;
+            case CALENDAR_STATUS_ONE_EVENT:
+              $number_of_events_allowed = 1;
+              break;
+
+            case CALENDAR_STATUS_TWO_EVENTS:
+              $number_of_events_allowed = 2;
+              break;
+          }
+          // No events allowed?  Exit with an error.
+          if (!$number_of_events_allowed) {
+            return form_set_error($date_field, t("The calendar is not yet open for events in !nextyear.  You may only request dates for events in !thisyear.", array('!nextyear' => $requested_year, '!thisyear' => $open_for_all_year)));
+          }
+
+          // Check to see how many events have already been requested for this branch group.
+          // If they are already at their limit, then bail. (c.f. wk_calendar_events_for_one_branch)
+
+          // TODO: Multiple groups selected?
+          $branch_group = $form_state['values']['taxonomy_vocabulary_2'][LANGUAGE_NONE][0]['tid'];
+
+          // Find all of the events that have been approved in the requested year already
+          $approved_event_nids = _wk_get_calendar_event_nids($requested_year, $branch_group);
+
+          // TODO: Also find event requests that have not been approved yet
+          $requested_event_eids = array();
+          $total = (count($approved_event_nids) + count($requested_event_eids));
+          if ($total >= $number_of_events_allowed) {
+            $items = array();
+            $events = wk_load_nodes($approved_event_nids);
+            foreach ($events as $node) {
+              $url = 'node/' . $node->nid;
+              $items[] = t('<b>Approved:</b>') . ' ' . l($node->title, $url);
+            }
+
+            $additional_information = $form_state['values']['field_additional_information'][LANGUAGE_NONE][0]['value'];
+
+            if (stristr($additional_information, "understand") === FALSE) {
+              return form_set_error('field_additional_information', t("Currently, the calendar is only open for !max event!plural per group for !year; however, you have already made !count requests:<ul><li>!events</li></ul>If you need to make a calendar date request anyway, write <b>I understand</b> in the <i>additional information</i> field, and <i>explain</i> the reason you are submitting again.  Exceptions to the event limit will not be made.<br><br><b>Example valid reason:</b> <i>I understand that the calendar is only open for one event next year, but my last submission was in error. Please use this one instead.</i>.", array('!max' => $number_of_events_allowed, '!plural' => (($number_of_events_allowed == 1) ? '' : 's'), '!year' => $requested_year, '!count' => $total, '!events' => implode('</li><li>', $items))));
+            }
+            /*
+                TODO: we should probably warn the user even if the advisory phrase was used;
+                however, drupal_set_message cannot be used in a form validate function, so we'll
+                need to do something else.
+
+            else {
+              drupal_set_message(t("Currently, the calendar is only open for !max event!plural per group for !year; however, you have already made !count requests:<ul><li>!events</li><ul>.", array('!max' => $number_of_events_allowed, '!plural' => (($number_of_events_allowed == 1) ? '' : 's'), '!year' => $requested_year, '!count' => $total, '!events' => implode('</li><li>', $items))), 'warning');
+            }
+            */
+          }
         }
-        // No events allowed?  Exit with an error.
-        if (!$number_of_events_allowed) {
-          return form_set_error($date_field, t("The calendar is not yet open for events in !nextyear.  You may only request dates for events in !thisyear.", array('!nextyear' => $requested_year, '!thisyear' => $open_for_all_year)));
-        }
+      }
+      // Fail if one of the events is in a different year
+      elseif ($year_of_calendar_request != $requested_year) {
+        return form_set_error($date_field, t("Your !choice, !request_year, is in a different year than your other requested date.  The calendar date request process is organized by year; please ensure that all dates in the same request are for the same year.", array('!choice' => $field_name, '!request_year' => $requested_year)));
       }
 
       $at_least_one_valid = TRUE;
@@ -871,6 +920,31 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
     return form_set_error('field_first_choice_date', t("You must select a date for your event."));
   }
 }
+
+
+
+/*
+
+function wk_calendar_events_for_one_branch($form, &$form_state, $event_limit = UNLIMITED, $branch_groups = array()) {
+  // Determine if current user is the Seneschal of a group.
+  if (empty($branch_groups)) {
+    $branch_groups = _wk_is_seneschal();
+  }
+  foreach ($branch_groups as $branch_group) {
+    $branch_info = taxonomy_term_load($branch_group);
+    $year = wk_calendar_year_of_preparation();
+    $event_nids = _wk_get_calendar_event_nids($year - 1, $branch_group);
+    $events = wk_load_nodes($event_nids);
+    if (!empty($events)) {
+      $selectable_items = array();
+      $unselectable_items = array();
+      $existing_date_request_count = 0;
+      foreach ($events as $nid => $node) {
+        // TODO: what if the group requested an event not held last year?  We still need
+        // to record that as their selection.
+        $date_request_info = _wk_find_date_request_for_event($nid);
+
+*/
 
 function _wk_form_validate_branch_groups_must_be_siblings($form, &$form_state) {
   $groups = array();
