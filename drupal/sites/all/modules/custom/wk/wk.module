@@ -791,7 +791,7 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
   $current_date = date("Y-m-d") . ' 12:00:00';
   $open_for_all_year = wk_calendar_year_open_for_all_events();
   $earliest_date_epoch = _wk_earliest_event_request_data();
-  $earliest_date = _wk_format_date($earliest_date_epoch, "Y-m-d") . ' 12:00:00';
+  $earliest_date = _wk_format_date($earliest_date_epoch, "Y-m-d") . ' 00:00:00';
   $year_of_calendar_request = FALSE;
 
   $date_field_name_map = array(
@@ -880,20 +880,39 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
           $approved_event_nids = _wk_get_calendar_event_nids($requested_year, $branch_group);
 
           // TODO: Also find event requests that have not been approved yet
-          $requested_event_eids = array();
-          $total = (count($approved_event_nids) + count($requested_event_eids));
-          if ($total >= $number_of_events_allowed) {
-            $items = array();
-            $events = wk_load_nodes($approved_event_nids);
-            foreach ($events as $node) {
-              $url = 'node/' . $node->nid;
-              $items[] = t('<b>Approved:</b>') . ' ' . l($node->title, $url);
-            }
+          $requested_event_eids = _wk_date_requests_for_year($requested_year, $branch_group);
 
+          $items = array();
+
+          // Make a list of all of the event nodes that have already been
+          // approved for this branch.
+          $events = wk_load_nodes($approved_event_nids);
+          foreach ($events as $node) {
+            $url = 'node/' . $node->nid;
+            $items[] = t('<b>Approved:</b>') . ' ' . l($node->title, $url);
+          }
+
+          // Make a list of all of the request entities that are pending
+          // approval for this branch.
+          foreach ($requested_event_eids as $id => $info) {
+            $date_request_entity = entityform_load($id);
+            $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+            $approved_event_node = $date_request->field_approved_event->value();
+            if (empty($approved_event_node)) {
+              $title = $date_request->field_event_name->value();
+              $url = 'entityform/' . $id;
+              $items[] = t('<i>Pending:</i>') . ' ' . l($title, $url);
+            }
+          }
+
+          $total = count($items);
+          if ($total >= $number_of_events_allowed) {
+
+            // Test to see if the 'additional information' field contains "I understand".
             $additional_information = $form_state['values']['field_additional_information'][LANGUAGE_NONE][0]['value'];
 
             if (stristr($additional_information, "understand") === FALSE) {
-              return form_set_error('field_additional_information', t("Currently, the calendar is only open for !max event!plural per group for !year; however, you have already made !count requests:<ul><li>!events</li></ul>If you need to make a calendar date request anyway, write <b>I understand</b> in the <i>additional information</i> field, and <i>explain</i> the reason you are submitting again.  Exceptions to the event limit will not be made.<br><br><b>Example valid reason:</b> <i>I understand that the calendar is only open for one event next year, but my last submission was in error. Please use this one instead.</i>.", array('!max' => $number_of_events_allowed, '!plural' => (($number_of_events_allowed == 1) ? '' : 's'), '!year' => $requested_year, '!count' => $total, '!events' => implode('</li><li>', $items))));
+              return form_set_error('field_additional_information', t("Currently, the calendar is only open for !max event!plural per group for !year; however, you have already made !count requests:<br><ul><li>!events</li></ul><br>If you need to make a calendar date request anyway, write <b>I understand</b> in the <i>additional information</i> field, and <i>explain</i> the reason you are submitting again.  Exceptions to the event limit will not be made.<br><br><b>Example valid reason:</b> <i>I understand that the calendar is only open for one event next year, but my last submission was in error. Please use this one instead.</i>.", array('!max' => $number_of_events_allowed, '!plural' => (($number_of_events_allowed == 1) ? '' : 's'), '!year' => $requested_year, '!count' => $total, '!events' => implode('</li><li>', $items))));
             }
             /*
                 TODO: we should probably warn the user even if the advisory phrase was used;
@@ -3271,6 +3290,27 @@ function _wk_get_officer_node($branch, $office) {
   //  )
   $field_map = _regnum_group_field_map("regnum_change", "officers");
   return _regnum_get_officer_node('officers', $field_map, array('branch' => $branch, 'office' => $office));
+}
+
+// Return all calendar date requests made in a given year
+function _wk_date_requests_for_year($year, $branch = NULL) {
+  $start_date = $year . '-01-01T00:00:00';
+  $end_date = $year + 1 . '-01-01T00:00:00';
+
+  $date_requests = array();
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', "entityform")
+        ->propertyCondition('type', 'calendar_date_request')
+        ->fieldCondition('field_first_choice_date', 'value', $start_date, '>=')
+        ->fieldCondition('field_first_choice_date', 'value', $end_date, '<');
+  if (isset($branch)) {
+    $query->fieldCondition('taxonomy_vocabulary_2', 'tid', $branch, '=');
+  }
+  $result = $query->execute();
+  if (isset($result['entityform'])) {
+    $date_requests = $result['entityform'];
+  }
+  return $date_requests;
 }
 
 // Return all calendar date requests
