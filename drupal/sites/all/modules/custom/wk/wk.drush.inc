@@ -87,7 +87,9 @@ function wk_drush_help($section) {
  * Main command implementation goes here.
  */
 function drush_wk_export_mailinglists() {
-  return array("smartlist::subdomain_lists" => wk_export_mailinglists());
+  $mailinglists = wk_export_mailinglists();
+  // return array("smartlist::subdomain_lists" => $mailinglists);
+  return $mailinglists;
 }
 
 function wk_drush_sql_sync_sanitize($site) {

@@ -4009,8 +4009,10 @@ function wk_export_mailinglists() {
             // Favor the user's Organization mail if it is set.
             // This address should forward to $user_info['user']->mail anyway.
             // TODO: maybe we should have a preference indicating
-            if (isset($user_info['user']->field_organization_mail) && !empty($user_info['user']->field_organization_mail[LANGUAGE_NONE][0]['value'])) {
-              $member_email_address = $user_info['user']->field_organization_mail[LANGUAGE_NONE][0]['value'];
+            // which one the user prefers.
+            $org_email_record = wk_get_organization_mail($user_info['user']);
+            if ($org_email_record) {
+              $member_email_address = $org_email_record->email;
             }
             $members[] = strtolower($member_email_address);
           }
