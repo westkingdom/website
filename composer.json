@@ -181,7 +181,8 @@
             "drupal/sites/all/drush",
             "drupal/sites/all/vendor",
             "drupal/sites/default/settings.php",
-            "drupal/sites/default/files"
+            "drupal/sites/default/files",
+            "drupal/files"
         ]
     },
     "minimum-stability": "dev",
