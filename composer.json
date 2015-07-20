@@ -182,7 +182,8 @@
             "drupal/sites/all/vendor",
             "drupal/sites/default/settings.php",
             "drupal/sites/default/files",
-            "drupal/files"
+            "drupal/files",
+            "drupal/temp"
         ]
     },
     "minimum-stability": "dev",
