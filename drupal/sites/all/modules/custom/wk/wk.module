@@ -1459,23 +1459,24 @@ function wk_block_view($delta = '') {
 
     case 'wk_office_volunteer':
       $node = menu_get_object();
+      if ($node->type == 'officers') {
+        $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
+        if (isset($node->volunteer[LANGUAGE_NONE][0])) {
+          $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
+        }
 
-      $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
-      if (isset($node->volunteer[LANGUAGE_NONE][0])) {
-        $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
-      }
+        if (!empty($text) && ($text != 'n/a') && ($text != 'na')) {
+          $branch_term = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+          $branch_term = taxonomy_term_load($branch_term);
 
-      if (!empty($text) && ($text != 'n/a') && ($text != 'na')) {
-        $branch_term = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
-        $branch_term = taxonomy_term_load($branch_term);
+          $office_term = $node->field_office[LANGUAGE_NONE][0]['tid'];
+          $office_term = taxonomy_term_load($office_term);
 
-        $office_term = $node->field_office[LANGUAGE_NONE][0]['tid'];
-        $office_term = taxonomy_term_load($office_term);
+          $branch_shortname = strtolower(_wk_term_short_name($branch_term));
+          $office_shortname = strtolower(_wk_term_short_name($office_term));
 
-        $branch_shortname = strtolower(_wk_term_short_name($branch_term));
-        $office_shortname = strtolower(_wk_term_short_name($office_term));
-
-        $block['content'] = drupal_get_form('wk_volunteer_for_office', $text, "regnum/$branch_shortname/$office_shortname/volunteer");
+          $block['content'] = drupal_get_form('wk_volunteer_for_office', $text, "regnum/$branch_shortname/$office_shortname/volunteer");
+        }
       }
       break;
   }
@@ -4011,7 +4012,7 @@ function wk_export_mailinglists() {
             // TODO: maybe we should have a preference indicating
             // which one the user prefers.
             $org_email_record = wk_get_organization_mail($user_info['user']);
-            if ($org_email_record) {
+            if ($org_email_record && $org_email_record->confirmed) {
               $member_email_address = $org_email_record->email;
             }
             $members[] = strtolower($member_email_address);
