@@ -1459,7 +1459,7 @@ function wk_block_view($delta = '') {
 
     case 'wk_office_volunteer':
       $node = menu_get_object();
-      if ($node->type == 'officers') {
+      if (is_object($node) && isset($node->type) && ($node->type == 'officers')) {
         $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
         if (isset($node->volunteer[LANGUAGE_NONE][0])) {
           $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
