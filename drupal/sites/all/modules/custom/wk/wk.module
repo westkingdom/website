@@ -1266,11 +1266,8 @@ function wk_form_alter__cal_event_node_form(&$form, &$form_state) {
  * Make the branch group field uneditable in a form.
  */
 function _wk_pre_select_group_in_form(&$form, &$form_state, $group_tid) {
-  $form['taxonomy_vocabulary_2']['#prefix'] = '<div class="prefilled-taxonomy-tree">';
-  $form['taxonomy_vocabulary_2']['#suffix'] = '</div>';
   $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#default_value'] = array($group_tid => $group_tid);
   $form['taxonomy_vocabulary_2']['#default_value'] = $group_tid;
-  //$form['taxonomy_vocabulary_2']['#access'] = TRUE;
   $term = taxonomy_term_load($group_tid);
   $icon = '';
   $view = field_view_field('taxonomy_term', $term, 'field_arms');
@@ -1280,7 +1277,29 @@ function _wk_pre_select_group_in_form(&$form, &$form_state, $group_tid) {
   }
   $form['taxonomy_vocabulary_2']['#prefix'] = '<div id="edit-taxonomy-vocabulary-2" class="prefilled-taxonomy-icon"><b>' . $term->name . '</b>' . $icon . '</div>';
 
-  hide($form['taxonomy_vocabulary_2'][LANGUAGE_NONE]);
+  //
+  // Hide the field.
+  //
+  // Here's the trick.
+  //
+  // (1) If we use hide($form['taxonomy_vocabulary_2'][LANGUAGE_NONE]),
+  // then the field disappears from the form, and its value is not submitted.
+  // This is no good, because we need to set the $group_tid per the code above.
+  //
+  // (2) If we use $form['taxonomy_vocabulary_2']['#access'] = FALSE;,
+  // then the submit handler works great, but Drupal will hide the
+  // HTML we put into ['taxonomy_vocabulary_2']['#prefix'].  This could
+  // work out for us, but we'd then need to put this info into a different
+  // form element, and make sure that it is positioned correctly.  Putting
+  // it in ['taxonomy_vocabulary_2'] means that our replacement will go
+  // wherever the taxonomy_vocabulary_2 was placed.
+  //
+  // The answer, then, is to remove the access to the sub-control of
+  // taxonomy_vocabulary_2 in LANGUAGE_NONE.  This correctly hides the
+  // main control, allows the submit handler to work correctly, and
+  // still shows our custom HTML badge.
+  //
+  $form['taxonomy_vocabulary_2'][LANGUAGE_NONE]['#access'] = FALSE;
 }
 
 /**
