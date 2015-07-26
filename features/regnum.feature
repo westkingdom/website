@@ -1,6 +1,6 @@
 Feature: Regnum
   In order to know that configuration import worked
-  As an officer in the organization
+  As a website user
   I need to be able to visit the Regnum form
 
   Scenario: Regnum form loads
