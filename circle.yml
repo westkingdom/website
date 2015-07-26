@@ -4,6 +4,10 @@ machine:
   hosts:
     localhost: 127.0.0.1
 
+dependencies:
+  override:
+    - composer install --prefer-dist --no-interaction
+
 test:
   pre:
     - bin/disable-php-email
