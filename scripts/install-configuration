@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# If a --uri= or @alias is needed for Drush calls,
+# pass it in as the first (only) parameter to this script.
+SITE_IDENTIFIER="$1"
+
 SELF_DIRNAME="`dirname -- "$0"`"
 PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
 DRUPAL_ROOT="$PROJECT_BASE_DIR/drupal"
@@ -24,16 +28,5 @@ catch(Exception \$e) {}
 __EOF__
 fi
 
-# Create an alias '@localtest' pointing at the local
-# site to test.
-cat << __EOF__ > "$HOME/.drush/localtest.alias.drushrc.php"
-<?php
-
-\$aliases['localtest'] = array(
-  'root' => '$DRUPAL_ROOT',
-  'uri' => '${URI:-default}',
-);
-__EOF__
-
 # Install the configuration settings form wk_config
-drush --uri=westkingdom.org cbum wk_config -y
+drush "$SITE_IDENTIFIER" cb-umaster wk_config -y
