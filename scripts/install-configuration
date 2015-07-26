@@ -28,5 +28,18 @@ catch(Exception \$e) {}
 __EOF__
 fi
 
+# Install drush_ctex_bonus so that we can use it.
+# First check and see if it is already available.
+drush help cb-umaster &>/dev/null
+if [ $? != 0 ]
+then
+  (
+    mkdir -p "$HOME/.drush"
+    cd "$HOME/.drush"
+    drush dl drush_ctex_bonus
+    drush cc drush
+  )
+fi
+
 # Install the configuration settings form wk_config
 drush "$SITE_IDENTIFIER" cb-umaster wk_config -y

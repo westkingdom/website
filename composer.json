@@ -81,7 +81,6 @@
         "pantheon-systems/drops-7": "7.*",
 
         "drupal/devel": "7.1.*",
-        "drupal/drush_ctex_bonus": "*",
         "drupal/stage_file_proxy": "7.1.*",
 
         "drupal/admin_menu": "7.3.*",
