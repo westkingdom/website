@@ -80,8 +80,11 @@
 
         "pantheon-systems/drops-7": "7.*",
 
-        "drupal/admin_menu": "7.3.*",
         "drupal/devel": "7.1.*",
+        "drupal/drush_ctex_bonus": "*",
+        "drupal/stage_file_proxy": "7.1.*",
+
+        "drupal/admin_menu": "7.3.*",
         "drupal/views_bulk_operations": "7.3.*",
         "drupal/adaptive_image": "7.1.*",
         "drupal/admin_views": "7.1.*",
@@ -143,7 +146,6 @@
         "drupal/references_dialog": "7.1.*",
         "drupal/rules": "7.2.3",
         "drupal/smtp": "7.1.*",
-        "drupal/stage_file_proxy": "7.1.*",
         "drupal/strongarm": "7.2.*",
         "drupal/subpathauto": "7.1.*",
         "drupal/term_reference_tree": "7.1.*",
@@ -158,7 +160,6 @@
         "drupal/wysiwyg_filter": "7.1.*"
     },
     "require-dev": {
-        "drupal/drush_ctex_bonus": "*",
         "pantheon-systems/ci-scripts": "1.*"
     },
     "config": {
