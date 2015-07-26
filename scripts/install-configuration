@@ -1,0 +1,39 @@
+#!/bin/bash
+
+SELF_DIRNAME="`dirname -- "$0"`"
+PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
+DRUPAL_ROOT="$PROJECT_BASE_DIR/drupal"
+
+cd "$DRUPAL_ROOT"
+
+# If there isn't a settings.local.php, create it and
+# ensure that it bootstraps domain access.
+if [ ! -f sites/default/settings.local.php ]
+then
+  echo "<?php" > sites/default/settings.local.php
+fi
+grep -q 'domain/settings.inc' sites/default/settings.local.php
+if [ $? != 0 ]
+then
+  cat << __EOF__ >> sites/default/settings.local.php
+// Include Domain access settings
+try {
+  include DRUPAL_ROOT . '/sites/all/modules/contrib/domain/settings.inc';
+}
+catch(Exception \$e) {}
+__EOF__
+fi
+
+# Create an alias '@localtest' pointing at the local
+# site to test.
+cat << __EOF__ > "$HOME/.drush/localtest.alias.drushrc.php"
+<?php
+
+\$aliases['localtest'] = array(
+  'root' => '$DRUPAL_ROOT',
+  'uri' => '${URI:-default}',
+);
+__EOF__
+
+# Install the configuration settings form wk_config
+drush --uri=westkingdom.org cbum wk_config -y
