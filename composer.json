@@ -158,6 +158,7 @@
         "drupal/wysiwyg_filter": "7.1.*"
     },
     "require-dev": {
+        "drupal/drush_ctex_bonus": "*",
         "pantheon-systems/ci-scripts": "1.*"
     },
     "config": {

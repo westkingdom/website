@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "ea56e6802c45f96904fa466368ff936c",
+    "hash": "fbb77c1a75090c22f25c523135f3028d",
     "packages": [
         {
             "name": "cweagans/composer-patches",
@@ -3178,6 +3178,32 @@
                 "web"
             ],
             "time": "2015-06-01 17:42:31"
+        },
+        {
+            "name": "drupal/drush_ctex_bonus",
+            "version": "dev-7.x-1.x",
+            "source": {
+                "type": "git",
+                "url": "http://git.drupal.org/project/drush_ctex_bonus.git",
+                "reference": "20f4a8d7b3ce9dbc6aef3c565235fd7da3eae53d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "http://ftp.drupal.org/files/projects/drush_ctex_bonus-7.x-1.x-dev.zip",
+                "reference": null,
+                "shasum": null
+            },
+            "require": {
+                "drupal/drupal": "7.*"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "branch-alias": {
+                    "dev-7.x-1.x": "7.1.x-dev"
+                }
+            },
+            "notification-url": "http://packagist.drupal-composer.org/downloads/",
+            "time": "2014-06-23 11:23:27"
         },
         {
             "name": "drush/drush",
