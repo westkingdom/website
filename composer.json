@@ -80,6 +80,8 @@
 
         "pantheon-systems/drops-7": "7.*",
 
+        "westkingdom/hierarchical-group-email": "~1",
+
         "drupal/devel": "7.1.*",
         "drupal/stage_file_proxy": "7.1.*",
 
