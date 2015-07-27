@@ -13,12 +13,14 @@ Directory of Files
 -  **drupal:** Drupal root
 -  **features:** Behat tests
 -  **travis:** Public/Private key pair for Travis testing
+-  **scripts:** Define configuration and environment for tests
+-  **bin:** Scripts provided from Composer dependencies.
 
 
 Configuration
 -------------
 
-Not done yet.
+Uses drush_ctex_bonus to export configuration, which is imported again via the [install-configuration](https://github.com/westkingdom/website/blob/master/scripts/install-configuration) script.
 
 
 Deploying
