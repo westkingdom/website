@@ -1002,7 +1002,7 @@ function _wk_form_validate_exactly_one_branch_group($form, &$form_state) {
 
 function _wk_form_validate_meetings_are_repeating($form, &$form_state) {
   $event_type = $form['field_event_type'][LANGUAGE_NONE][0]['#value'];
-  $repeating = $form['field_date']['und'][0]['show_repeat_settings']['#value'];
+  $repeating = $form['field_date'][LANGUAGE_NONE][0]['show_repeat_settings']['#value'];
   $repeat_rule = $form['field_date'][LANGUAGE_NONE][0]['#value']['rrule'];
 
   if ($repeating) {
@@ -3445,6 +3445,11 @@ function wk_token_info() {
     'name' => t("Event Month"),
     'description' => t('The month that the event is held in (reconed by starting date).'),
   );
+  $node['event_path'] = array(
+    'name' => t("Event Path"),
+    'description' => t('Part of the path for a calendar event node -- [node:as_year]/[node:event_month] for events, and [node:taxonomy-vocabulary-2] for meetings.'),
+  );
+
   // Because of http://drupal.org/node/691078, we just hack in our own
   // field-based tokens here for now (cough).
   // These tokens are only available for nodes of type 'location' and
@@ -3549,27 +3554,44 @@ function wk_tokens($type, $tokens, array $data = array(), array $options = array
       foreach ($tokens as $name => $original) {
         switch ($name) {
           case 'as_year':
-            $start_date = $node->field_date['und'][0]['value'];
+            $start_date = $node->field_date[LANGUAGE_NONE][0]['value'];
             $as = wk_time_string_to_as($start_date);
             $replacements[$original] = 'AS' . $as;
             break;
           case 'event_month':
-            $start_date = $node->field_date['und'][0]['value'];
+            $start_date = $node->field_date[LANGUAGE_NONE][0]['value'];
             $timestamp=strtotime($start_date);
             $replacements[$original] = date('M', $timestamp);
+            break;
+          case 'event_path':
+            // We will return a different paths for events and meetings.
+            if ($node->field_event_type[LANGUAGE_NONE][0]['value'] == 0) {
+              // Events will be classified by the AS year and month in which they start.
+              $start_date = $node->field_date[LANGUAGE_NONE][0]['value'];
+              $timestamp=strtotime($start_date);
+              $as = wk_time_string_to_as($start_date);
+              $replacements[$original] = strtolower('AS' . $as . '/' . date('M', $timestamp));
+            }
+            else {
+              // Meetings will be classified by the branch group they are for.
+              $branch_tid = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+              $branch_info = taxonomy_term_load($branch_tid);
+              $branch_shortname = _wk_term_email_name($branch_info);
+              $replacements[$original] = strtolower('meeting/' . $branch_shortname);
+            }
             break;
         }
       }
     }
     $location_field = array();
-    if (($node->type == 'location') && (isset($node->field_location['und'][0]))) {
-      $location_field = $node->field_location['und'][0];
+    if (($node->type == 'location') && (isset($node->field_location[LANGUAGE_NONE][0]))) {
+      $location_field = $node->field_location[LANGUAGE_NONE][0];
     }
-    if (($node->type == 'cal_event') && (isset($node->field_event_site['und'][0]))) {
-      $location_nid = $node->field_event_site['und'][0]['nid'];
+    if (($node->type == 'cal_event') && (isset($node->field_event_site[LANGUAGE_NONE][0]))) {
+      $location_nid = $node->field_event_site[LANGUAGE_NONE][0]['nid'];
       $location_node = node_load($location_nid);
-      if (isset($location_node->field_location['und'][0])) {
-        $location_field = $location_node->field_location['und'][0];
+      if (isset($location_node->field_location[LANGUAGE_NONE][0])) {
+        $location_field = $location_node->field_location[LANGUAGE_NONE][0];
       }
     }
     if (isset($location_field['city']) && isset($location_field['province'])) {
@@ -3731,6 +3753,34 @@ function wk_pathauto_alias_alter(&$alias, array &$context) {
           path_save($path_args);
         }
       }
+    }
+  }
+}
+
+// Find all of the nodes of one particular content type,
+// and regenerate the path aliases for all of these.
+//
+// Run when the path alias pattern is changed, and you
+// want to update to the new pattern.  Note that the
+// redirect module will automatically create path redirects
+// from the old alias for us, so no links will be broken.
+//
+// We do not have any affordance to call this from the UI
+// at the moment. Instead, call via Drush:
+//
+// drush @wk.stage ev 'return wk_correct_altered_path_aliases("cal_event");'
+//
+function wk_correct_altered_path_aliases($bundle_type) {
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array($bundle_type))
+    ->propertyCondition('status', 1);
+  $entities = $query->execute();
+
+  if (!empty($entities)) {
+    foreach ($entities['node'] as $nid => $info) {
+      $node = node_load($nid);
+      pathauto_node_update_alias($node, 'update');
     }
   }
 }
