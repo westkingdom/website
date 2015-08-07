@@ -35,21 +35,6 @@ function wk_drush_command() {
 }
 
 /**
- * When using the PHP built-in webserver, the wysiwyg editor
- * will hang forever, because it makes a request to the web server,
- * and the built-in webserver can only handle one request at a time.
- *
- * We therefore remove all wysiwyg editors when running with 'drush rs'.
- */
-function wk_remove_wysiwyg_profiles() {
-  $filter_formats = filter_formats();
-  foreach ($filter_formats as $key => $info) {
-    wysiwyg_profile_delete($info->format);
-  }
-  wysiwyg_profile_cache_clear();
-}
-
-/**
  * Implements hook_drush_help().
  *
  * @param
