@@ -2666,9 +2666,10 @@ function wk_date_request_multiple_approval_form($form, &$form_state) {
   $date_range = array();
   foreach ($all_ids as $id => $info) {
     $date_request_entity = entityform_load($id);
-    $date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
-    $approved_event_node = $date_request->field_approved_event->value();
+    $check_date_request = new EntityDrupalWrapper('entityform', $date_request_entity);
+    $approved_event_node = $check_date_request->field_approved_event->value();
     if (empty($approved_event_node)) {
+      $date_request = $check_date_request;
       $date_requests[$id] = $date_request_entity;
       $date_range = _wk_expand_date_range_for_date_request($date_range, $date_request);
     }
