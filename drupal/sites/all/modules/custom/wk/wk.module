@@ -2684,6 +2684,7 @@ function wk_date_request_email_approval_form($form, &$form_state) {
   $form['requested-addresses']['approve_checkboxes'] = array(
     '#type' => 'checkboxes',
     '#options' => $checkbox_options,
+    '#default_value' => array_keys($unconfirmed),
   );
   $form['approve'] = array(
     '#type' => 'submit',
