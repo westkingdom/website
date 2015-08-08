@@ -1682,6 +1682,15 @@ function wk_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
+  // TODO: make separate permissions
+  $items['approve-email-requests'] = array(
+    'title' => 'Approve Email Address Requests',
+    'description' => 'Approve or deny all submitted email address requests.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_date_request_email_approval_form'),
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
+  );
   $items['approve-date-requests'] = array(
     'title' => 'Approve Calendar Date Requests',
     'description' => 'Approve or deny all submitted calendar date requests.',
@@ -2666,7 +2675,24 @@ function wk_approved_date_requests() {
   return $form;
 }
 
+function wk_date_request_email_approval_form($form, &$form_state) {
+  $unconfirmed = wk_multiple_email_find_unconfirmed();
+  $checkbox_options = array();
+  foreach ($unconfirmed as $eid => $info) {
+    $checkbox_options[$eid] = l($info->name, 'user/' . $info->uid) . ' - ' . $info->email;
+  }
+  $form['requested-addresses']['approve_checkboxes'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $checkbox_options,
+  );
+  $form['approve'] = array(
+    '#type' => 'submit',
+    '#value' => t('Approve Selected Email Addresses'),
+    '#submit' => array('_wk_process_approve_checked_date_request'),
+  );
 
+  return $form;
+}
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
   $all_ids = _wk_date_request_all_ids();
@@ -4437,6 +4463,21 @@ function _wk_transliterate_potential_name($name) {
   // Combine multiple dots into single dots
   $name = preg_replace('/\.\.*/', '.', $name);
   return $name;
+}
+
+function wk_multiple_email_find_unconfirmed() {
+  $query = db_select('multiple_email', 'me');
+  $query->fields('me');
+  $query->join('users', 'u', 'u.uid = me.uid');
+  $query->fields('u', array('name'));
+  $query->condition('me.confirmed', 0);
+  $query->condition('me.email', 'u.mail', 'NOT LIKE');
+  $result = $query->execute();
+  $unconfirmed = array();
+  while ($row = $result->fetchObject()) {
+    $unconfirmed[$row->eid] = $row;
+  }
+  return $unconfirmed;
 }
 
 function wk_get_organization_mail($account) {
