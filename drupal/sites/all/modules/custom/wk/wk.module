@@ -5,6 +5,16 @@
  * West Kingdom customizations
  */
 
+
+use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\Yaml\Dumper;
+use HierarchicalGroupEmail\Groups;
+use Westkingdom\HierarchicalGroupEmail\ServiceAccountAuthenticator;
+use Westkingdom\HierarchicalGroupEmail\StandardGroupPolicy;
+use Westkingdom\HierarchicalGroupEmail\GoogleAppsGroupsController;
+use Westkingdom\HierarchicalGroupEmail\BatchWrapper;
+use Westkingdom\HierarchicalGroupEmail\LegacyGroups;
+
 // Calendar status values (used internally only; not stored in database)
 
 define("CALENDAR_STATUS_CLOSED", "CLOSED");
@@ -1687,7 +1697,7 @@ function wk_menu() {
     'title' => 'Approve Email Address Requests',
     'description' => 'Approve or deny all submitted email address requests.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('wk_date_request_email_approval_form'),
+    'page arguments' => array('wk_email_request_approval_form'),
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
   );
@@ -2675,24 +2685,83 @@ function wk_approved_date_requests() {
   return $form;
 }
 
-function wk_date_request_email_approval_form($form, &$form_state) {
-  $unconfirmed = wk_multiple_email_find_unconfirmed();
+function wk_email_request_approval_form($form, &$form_state) {
+  $unconfirmed = wk_unconfirmed_addresses_in_domain('@westkingdom.org');
   $checkbox_options = array();
+
   foreach ($unconfirmed as $eid => $info) {
-    $checkbox_options[$eid] = l($info->name, 'user/' . $info->uid) . ' - ' . $info->email;
+    $status_label = wk_email_request_get_activity_status_label($eid);
+    $checkbox_options[$eid] = l($info->name, 'user/' . $info->uid) . ' - ' . $info->email . ' ' . $status_label;
   }
   $form['requested-addresses']['approve_checkboxes'] = array(
     '#type' => 'checkboxes',
     '#options' => $checkbox_options,
-    '#default_value' => array_keys($unconfirmed),
+    // '#default_value' => array_keys($unconfirmed),
   );
   $form['approve'] = array(
     '#type' => 'submit',
     '#value' => t('Approve Selected Email Addresses'),
-    '#submit' => array('_wk_process_approve_checked_date_request'),
+    '#submit' => array('_wk_process_approve_selected_email_requests'),
   );
 
   return $form;
+}
+
+function _wk_process_approve_selected_email_requests($form, &$form_state) {
+  $unconfirmed = wk_unconfirmed_addresses_in_domain('@westkingdom.org');
+  $client = wk_get_google_apps_client();
+  $service = new Google_Service_Directory($client);
+
+  foreach ($form_state['values']['approve_checkboxes'] as $eid => $selected) {
+    if ($selected) {
+      $info = multiple_email_load($eid);
+      wk_create_one_requested_email_address($eid, $info);
+    }
+  }
+}
+
+function wk_get_google_apps_client() {
+  static $client = NULL;
+
+  if (!$client) {
+    $scopes = array(
+        // Books is only for testing.  The rest I think we actually need.
+        Google_Service_Books::BOOKS,
+
+        Google_Service_Groupssettings::APPS_GROUPS_SETTINGS,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_GROUP,
+        Google_Service_Directory::ADMIN_DIRECTORY_GROUP_READONLY,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_GROUP_MEMBER,
+        Google_Service_Directory::ADMIN_DIRECTORY_GROUP_MEMBER_READONLY,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_NOTIFICATIONS,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_ORGUNIT,
+        Google_Service_Directory::ADMIN_DIRECTORY_ORGUNIT_READONLY,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_USER,
+        Google_Service_Directory::ADMIN_DIRECTORY_USER_READONLY,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_USER_ALIAS,
+        Google_Service_Directory::ADMIN_DIRECTORY_USER_ALIAS_READONLY,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_USER_SECURITY,
+
+        Google_Service_Directory::ADMIN_DIRECTORY_USERSCHEMA,
+        Google_Service_Directory::ADMIN_DIRECTORY_USERSCHEMA_READONLY,
+
+        Google_Service_Calendar::CALENDAR,
+        Google_Service_Calendar::CALENDAR_READONLY,
+      );
+
+    //$authenticator = new ServiceAccountAuthenticator("West Kingdom Website");
+    $authenticator = new ServiceAccountAuthenticator("Google Group API Test");
+    $client = $authenticator->authenticate('service-account.yaml', $scopes);
+  }
+
+  return $client;
 }
 
 function wk_date_request_multiple_approval_form($form, &$form_state) {
@@ -4466,21 +4535,6 @@ function _wk_transliterate_potential_name($name) {
   return $name;
 }
 
-function wk_multiple_email_find_unconfirmed() {
-  $query = db_select('multiple_email', 'me');
-  $query->fields('me');
-  $query->join('users', 'u', 'u.uid = me.uid');
-  $query->fields('u', array('name'));
-  $query->condition('me.confirmed', 0);
-  $query->condition('me.email', 'u.mail', 'NOT LIKE');
-  $result = $query->execute();
-  $unconfirmed = array();
-  while ($row = $result->fetchObject()) {
-    $unconfirmed[$row->eid] = $row;
-  }
-  return $unconfirmed;
-}
-
 function wk_get_organization_mail($account) {
   // Load the multiple email addresses for this account.
   // The return result here is a little odd; $addresses[0] is
@@ -4595,48 +4649,65 @@ function wk_request_organization_email($form, &$form_state, $account) {
 
 }
 
+function wk_get_organization_email_info($mail) {
+  $client = wk_get_google_apps_client();
+  $service = new Google_Service_Directory($client);
+
+  return $service->users->get($mail);
+}
+
+function wk_request_organization_email_validate($form, &$form_state) {
+  $mail = $form_state['choices']['#value'];
+  if (wk_get_organization_email_info($mail)) {
+    return form_set_error('choices', t("The address !mail is already in use by another user.  Please make another selection, or contact the Kingdom Webminister.", array('!mail' => $mail)));
+  }
+
+  $uid = $form_state['uid']['#value'];
+  $account = user_load($uid);
+  if (!isset($account->field_real_name[LANGUAGE_NONE][0]['value']) || empty($account->field_real_name[LANGUAGE_NONE][0]['value'])) {
+    return form_set_error('choices', t("Your request to create %mail cannot be processed, because the 'Real Name' field has not been provided for your account.", array("%mail" => $mail)));
+  }
+}
+
 function wk_request_organization_email_submit(&$form_state) {
   $uid = $form_state['uid']['#value'];
   $account = user_load($uid);
 
   $mail = $form_state['choices']['#value'];
 
-  if (!isset($account->field_real_name[LANGUAGE_NONE][0]['value']) || empty($account->field_real_name[LANGUAGE_NONE][0]['value'])) {
-    drupal_set_message(t("Your request to create %mail cannot be processed, because the 'Real Name' field has not been provided for your account.", array("%mail" => $mail)), 'error');
-    return;
-  }
-
   // Create a record in the multiple-email module's tables.
   // This will be marked as "unconfirmed".
   $eid = multiple_email_register_email($account->uid, $mail);
 
   // Let the user know something happened.
+  // We will create the address in hook_cron.
   drupal_set_message(t("Your request to create %mail was recieved; please be patient while your request is processed.", array("%mail" => $mail)));
 }
 
+define('WK_EMAIL_REQUEST_FATAL', 100);
+define('WK_EMAIL_REQUEST_FAILED_DUPLICATE', 101);
+define('WK_EMAIL_REQUEST_CREATED_USER', 200);
+
 function wk_unconfirmed_addresses() {
-  $addresses = array();
-
-  $query = db_select('multiple_email', 'a')
-    ->fields('a')
-    ->condition('a.confirmed', 0);
-  $query->addJoin('INNER', 'users', 'u', 'u.uid = a.uid');
-  $query->addExpression('IF(LOWER(a.email) = LOWER(u.mail), 1, 0)', 'primary_address');
-
+  $query = db_select('multiple_email', 'me');
+  $query->fields('me');
+  $query->join('users', 'u', 'u.uid = me.uid');
+  $query->fields('u', array('name'));
+  $query->condition('me.confirmed', 0);
+  $query->condition('me.email', 'u.mail', 'NOT LIKE');
   $result = $query->execute();
-
+  $unconfirmed = array();
   while ($row = $result->fetchObject()) {
-    $addresses[$row->eid] = $row;
+    $unconfirmed[$row->eid] = $row;
   }
-
-  return $addresses;
+  return $unconfirmed;
 }
 
 function wk_unconfirmed_addresses_in_domain($domain) {
   $unconfirmed = wk_unconfirmed_addresses();
   $result = array();
   foreach ($unconfirmed as $eid => $mmail) {
-    $address = $mmail_record->email;
+    $address = $mmail->email;
     if (substr($address, -strlen($domain)) == $domain) {
       $result[$eid] = $mmail;
     }
@@ -4653,7 +4724,83 @@ function _wk_random_password($length=16) {
   return $password;
 }
 
+// This function must be called repeatedly until it succeeds.
 function wk_add_organization_account($service, $account, $org_email, $eid, $password = FALSE) {
+  $result = FALSE;
+
+  // If the current action has a non-zero retry counter, then
+  // skip further actions until its retry time is reached.
+  if (time() > wk_email_request_get_activity_retry_time($eid)) {
+    switch (wk_email_request_get_activity_status($eid)) {
+      case WK_EMAIL_REQUEST_FATAL:
+      case WK_EMAIL_REQUEST_FAILED_DUPLICATE:
+        $result = FALSE;
+        break;
+
+      case WK_EMAIL_REQUEST_CREATED_USER:
+        $result = wk_check_organization_account_status($service, $account, $org_email, $eid, $password);
+        break;
+
+      default:
+        $result = wk_initiate_add_organization_account($service, $account, $org_email, $eid, $password);
+    }
+  }
+
+  return $result;
+}
+
+function wk_check_organization_account_status($service, $account, $org_email, $eid, $password) {
+  $status = wk_check_organization_account_exists($service, $account, $org_email, $eid, $password);
+  if ($status === FALSE) {
+    // We definitely need to set our retry status here and eventually give up
+    // if no progress is made
+    wk_email_request_bump_retry_counter($eid);
+  }
+  return $status;
+}
+
+function wk_check_organization_account_exists($service, $account, $org_email, $eid, $password) {
+  $real_name = $account->field_real_name[LANGUAGE_NONE][0]['value'];
+
+  // Check to see if the requested email address already exists
+  try {
+    $data = $service->users->get($org_email);
+
+    // Account exists now; it either belongs to this user, or it
+    // belongs to some other user.  Check to see which is the case.
+    /*Google_Service_Directory_UserName*/ $name = $data->getName();
+    $full_name = $name->getFullName();
+
+    // If the 'real name' stored on westkingdom.org matches the full
+    // name stored with the Google user, then we have successfully
+    // created the user.
+    if ($real_name == $full_name) {
+      return wk_organization_account_created($service, $account, $org_email, $eid);
+    }
+    else {
+      // Someone else already has the email address the user requested.
+      // Log the conflict and cancel the request.
+      watchdog('WK',
+        'Organization email creation error: %user requested email address %mail, but it is already in use by %existing.',
+        array(
+          '%user' => $real_name,
+          '%mail' => $org_email,
+          '%existing' => $full_name,
+        ),
+        WATCHDOG_ERROR);
+
+      // Mark the request as being unavailable due to a duplicate address existing.
+      wk_email_request_set_activity_status($eid, WK_EMAIL_REQUEST_FAILED_DUPLICATE, array('duplicate' => $full_name));
+      return WK_EMAIL_REQUEST_FAILED_DUPLICATE;
+    }
+  }
+  catch (\Exception $e) {
+    // User does not exist yet -- go ahead and try to create user
+  }
+  return FALSE;
+}
+
+function wk_initiate_add_organization_account($service, $account, $org_email, $eid, $password) {
   $real_name = $account->field_real_name[LANGUAGE_NONE][0]['value'];
 
   $name_parts = explode(' ', $real_name);
@@ -4664,7 +4811,13 @@ function wk_add_organization_account($service, $account, $org_email, $eid, $pass
     $password = _wk_random_password();
   }
 
-  $result = FALSE;
+  // Check to see if the requested email address already exists
+  $status = wk_check_organization_account_exists($service, $account, $org_email, $eid, $password);
+  if ($status) {
+    return $status;
+  }
+
+  // User does not already exist, so go ahead and add it.
   try {
     // Add a user
     $org_user = new Google_Service_Directory_User(array(
@@ -4676,40 +4829,175 @@ function wk_add_organization_account($service, $account, $org_email, $eid, $pass
         'password' => sha1(($password)),
         'hashfunction' => 'SHA-1',
       ));
-
-    $result = $service->users->insert($org_user);
+    $status = $service->users->insert($org_user);
   }
   catch (\Exception $e) {
-    return FALSE;
+    // Hopefully this is rare
+    watchdog('WK',
+      'Organization email creation error: could not create %user with email address %mail.  Message: %message.',
+      array(
+        '%user' => $real_name,
+        '%mail' => $org_email,
+        '%message' => $e->getMessage(),
+      ),
+      WATCHDOG_ERROR);
+
+    // TODO: What should our strategy be here?  We could retry a couple of
+    // times, maybe.  For now we just mark it 'fatal' and leave it alone.
+    wk_email_request_set_activity_status($eid, WK_EMAIL_REQUEST_FATAL, array('error' => $e->getMessage()));
   }
 
+  // Make note that we requested that Google create this user.
+  wk_email_request_set_activity_status($eid, WK_EMAIL_REQUEST_CREATED_USER);
+
+  // We will wait until the next run of 'cron' for the
+  // user to appear in the Google directory; if a call to
+  // 'get' returns the user record, we will mark it as
+  // having been created.
+  return TRUE;
+}
+
+function wk_organization_account_created($service, $account, $org_email, $eid) {
   // TODO: we need to set up the email address to forward
   // to $account->mail.  We need to make sure that this address
   // is DIFFERENT than the org email address.  We should not
   // mark the address as confirmed unless the forward is set
-  // up correctly.
+  // up correctly.  Unfortunately, Google does not currently provide
+  // an API to do this, so we must defer this feature until that
+  // is available.
 
-  // Get info about a user
-  //$data = $service->users->get($org_email);
 
   // If the user account was created successfully, then
   // mark the email address as 'confirmed'.
   multiple_email_register_email($account->uid, $org_email, TRUE, $eid);
+  wk_email_request_delete_activity_status($eid);
+  return TRUE;
 }
 
 function wk_cron() {
-  $service == FALSE;
+  // wk_process_some_email_address_requests(10);
+}
 
+function wk_process_some_email_address_requests($max_addresses_to_create) {
   $unconfirmed = wk_unconfirmed_addresses_in_domain('@westkingdom.org');
   foreach ($unconfirmed as $eid => $mmail) {
-    $address = $mmail_record->email;
-    $account = user_load($mmail->uid);
+    $result = wk_create_one_requested_email_address($eid, $mmail);
 
-/*
-    if ($service == FALSE) {
-      $service = new Google_Service_Directory($client);
+    // The result will be FALSE if no progress was made on the
+    // current address; in this instance, we will not count it as
+    // an item that needs to be processed.  For all other return values,
+    // we will count down and exit cron once we have processed more than
+    // ten addresses.
+    if ($result !== FALSE) {
+      $max_addresses_to_create--;
+      if ($max_addresses_to_create <= 0) {
+        return;
+      }
     }
-    wk_add_organization_account($service, $account, $address, $eid);
-*/
   }
+}
+
+// This function does not create the requested address in one step;
+// you must call it repeatedly until it is done.  It is sometimes necessary
+// to wait a bit between calls, to give Google time to process requests.
+function wk_create_one_requested_email_address($eid, $mmail) {
+  $org_email = $mmail->email;
+  $account = user_load($mmail->uid);
+
+  $client = wk_get_google_apps_client();
+  $service = new Google_Service_Directory($client);
+
+  return wk_add_organization_account($service, $account, $org_email, $eid);
+}
+
+function wk_email_request_set_activity_cache($cache) {
+  variable_set('wk_email_request_activity_status', $cache);
+}
+
+function wk_email_request_get_activity_cache() {
+  return variable_get('wk_email_request_activity_status');
+}
+
+function wk_email_request_set_activity_status($eid, $status, $params = array()) {
+  if ($status === FALSE) {
+    return wk_email_request_delete_activity_status($eid);
+  }
+
+  $data = wk_email_request_get_activity_data($eid);
+  if (!$data || ($data['s'] != $status)) {
+    $data = array(
+      't' => time(),
+      's' => $status,
+      'p' => $params,
+      'r' => 0,
+    );
+  }
+  else {
+    $data['r']++;
+  }
+  wk_email_request_set_activity_data($eid, $data);
+}
+
+function wk_email_request_set_activity_data($eid, $data) {
+  $cache = wk_email_request_get_activity_cache();
+  $cache[$eid] = $data;
+  wk_email_request_set_activity_cache($cache);
+}
+
+function wk_email_request_get_activity_status($eid) {
+  $data = wk_email_request_get_activity_data($eid);
+
+  return $data['s'];
+}
+
+function wk_email_request_get_activity_start_time($eid) {
+  $data = wk_email_request_get_activity_data($eid);
+
+  return $data['t'];
+}
+
+function wk_email_request_get_activity_retries($eid) {
+  $data = wk_email_request_get_activity_data($eid);
+
+  return $data['r'];
+}
+
+function wk_email_request_get_activity_retry_delta($eid) {
+  return min(wk_email_request_get_activity_retries($eid) * ONE_MINUTE * 15, ONE_DAY);
+}
+
+function wk_email_request_get_activity_retry_time($eid) {
+  return wk_email_request_get_activity_start_time($eid) + wk_email_request_get_activity_retry_delta($eid);
+}
+
+function wk_email_request_get_activity_data($eid) {
+  $cache = wk_email_request_get_activity_cache();
+
+  return array_key_exists($eid, $cache) ? $cache[$eid] : array('t' => 0, 's' => FALSE, 'p' => array(), 'r' => 0);
+}
+
+function wk_email_request_delete_activity_status($eid) {
+  $cache = wk_email_request_get_activity_cache();
+  unset($cache[$eid]);
+  wk_email_request_set_activity_cache($cache);
+}
+
+function wk_email_request_get_activity_status_label($eid) {
+  $label = '';
+
+  $data = wk_email_request_get_activity_data($eid);
+
+  switch ($data['s']) {
+    case WK_EMAIL_REQUEST_FATAL:
+      $label = t("Failed: %error", array('%error' => $data['p']['error']));
+      break;
+    case WK_EMAIL_REQUEST_FAILED_DUPLICATE:
+      $label = t("Address already claimed by %duplicate", array('%duplicate' => $data['p']['dupicate']));
+      break;
+    case WK_EMAIL_REQUEST_CREATED_USER:
+      $label = t("Waiting for Google account creation to complete.");
+      break;
+  }
+
+  return $label;
 }
