@@ -160,15 +160,6 @@ function regnum_assign_officer($user_officer_info, $group_info) {
   // Get a reference to the user and the office being assigned to.
   $user = _regnum_get_or_create_user($user_officer_info);
 
-  // If we create the node, we make it owned by the specified user;
-  // by convention, group nodes are owned by the primary officer.
-  // In the odd event that a deputy is assigned to an office that
-  // does not exist (and therefore has no primary officer), then we
-  // will create the node owned by anonymous (vacant).
-  $owner_uid = $user_officer_info['deputy'] ? 0 : $user->uid;
-
-  $officer_node = _regnum_get_or_create_officer_node($group_info, $owner_uid);
-
   // If the user's email address has been changed, then
   // update it in the user record.
   if (!empty($user_officer_info['mail'])) {
@@ -189,21 +180,75 @@ function regnum_assign_officer($user_officer_info, $group_info) {
   }
   $user_wrapper->save();
 
+  return regnum_assign_user_to_office($user, $group_info, $user_officer_info['title'], $user_officer_info['deputy'], TRUE);
+}
+
+function regnum_assign_user_to_office($user, $group_info, $desiredTitle, $asDeputy = FALSE, $retain_former_officer = FALSE) {
+
+  // If we create the node, we make it owned by the specified user;
+  // by convention, group nodes are owned by the primary officer.
+  // In the odd event that a deputy is assigned to an office that
+  // does not exist (and therefore has no primary officer), then we
+  // will create the node owned by anonymous (vacant).
+  $owner_uid = $asDeputy ? 0 : $user->uid;
+  $officer_node = _regnum_get_or_create_officer_node($group_info, $owner_uid);
+
+  return _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $group_info['default-roles-for-owner'], $group_info['default-roles-for-all-members']);
+}
+
+function regnum_promot_heirs($heirs_node) {
+  $regent_uid = $heirs_node['uid'];
+  $regent = user_load($regent_uid);
+
+  // $all_heirs = find all members of $heirs_node
+
+  // $regent_node = find node for the same branch as '$heirs_node',
+  // but office should be 'regent' instead of 'heirs'
+
+  // $former_regents = find group members of $regent_node
+
+  // $regent_title = need to convert from "Crown Prince" to "King",
+  // "Crown Princess" to "Queen", or convert to "Prince"/"Princess"
+  // for principalities
+  regnum_assign_user_to_officer_node($regent, $regent_node, $regent_title);
+
+  // Iterate over $all_heirs and call regnum_assign_user_to_officer_node
+  // for each.  Pass TRUE for $asDeputy.  Use the existing
+  // title for the heads of court.  Need to convert the
+  // consort title to "Queen"/"King" or "Princess"/"Prince"
+  // as appropriate for Kingdom or Principality
+
+  // remove $former_regents from group $regent_node
+
+  // remove $all_heirs from group $heirs_node
+}
+
+function regnum_assign_user_to_officer_node($user, $officer_node, $desiredTitle, $asDeputy = FALSE, $retain_former_officer = FALSE) {
+
+  $info = _regnum_configured_entityform_for_group($officer_node['type']);
+
+  $defaultRolesForOwner = $info['group-configuration']['default-roles-for-owner'];
+  $defaultRolesForAllMembers = $info['group-configuration']['default-roles-for-all-members'];
+
+  return _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $defaultRolesForOwner, $defaultRolesForAllMembers);
+}
+
+function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $defaultRolesForOwner, $defaultRolesForAllMembers) {
+
   // If the user is the primary officer (not a deputy), then
   // change the owner of the officer node to be the specified user.
   $former_officer = FALSE;
-  $retain_former_officer = TRUE;
   $former_officers_new_title = '';
-  if ((!$user_officer_info['deputy']) && ($officer_node->uid != $user->uid)) {
+  if ((!$asDeputy) && ($officer_node->uid != $user->uid)) {
     $former_officer = $officer_node->uid;
     $officer_node->uid = $user->uid;
   }
   // Odd situation: if the current officer is approved as a deputy,
   // then set the owner to the anonymous user (vacant office).
-  if (($user_officer_info['deputy']) && ($officer_node->uid == $user->uid)) {
+  if (($asDeputy) && ($officer_node->uid == $user->uid)) {
     $officer_node->uid = 0;
     // Also revoke owner-default roles when the current owner is replaced with 'anonymous'
-    foreach ($group_info['default-roles-for-owner'] as $rid) {
+    foreach ($defaultRolesForOwner as $rid) {
       og_role_revoke('node', $officer_node->nid, $user->uid, $rid);
     }
   }
@@ -219,9 +264,9 @@ function regnum_assign_officer($user_officer_info, $group_info) {
     $ogm = og_membership_create('node', $officer_node->nid, 'user', $user->uid, 'og_user_node');
   }
   // Add default roles to the user
-  $default_roles = $group_info['default-roles-for-all-members'];
-  if (!$user_officer_info['deputy']) {
-    $default_roles += $group_info['default-roles-for-owner'];
+  $default_roles = $defaultRolesForAllMembers;
+  if (!$asDeputy) {
+    $default_roles += $defaultRolesForOwner;
   }
   foreach ($default_roles as $rid) {
     og_role_grant('node', $officer_node->nid, $user->uid, $rid);
@@ -229,8 +274,8 @@ function regnum_assign_officer($user_officer_info, $group_info) {
 
   // Set the member's deputy / officer title
   $ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm);
-  $ogm_wrapper->field_type_of_deputy->set($user_officer_info['title']);
-  $ogm_wrapper->field_weight->set($user_officer_info['deputy'] ? 0 : -10);
+  $ogm_wrapper->field_type_of_deputy->set($desiredTitle);
+  $ogm_wrapper->field_weight->set($asDeputy ? 0 : -10);
   $ogm_wrapper->save();
 
   // Should we keep the former officer listed as a deputy,
@@ -249,7 +294,7 @@ function regnum_assign_officer($user_officer_info, $group_info) {
         $former_ogm_wrapper->field_weight->set(10);
         $former_ogm_wrapper->save();
         // Remove owner-only default roles whenever the owner becomes a deputy.
-        foreach ($group_info['default-roles-for-owner'] as $rid) {
+        foreach ($defaultRolesForOwner as $rid) {
           og_role_revoke('node', $officer_node->nid, $former_officer, $rid);
         }
       }
@@ -741,6 +786,17 @@ function _regnum_get_or_create_user($user_info) {
 function _regnum_configured_entityform($regnum_form_bundle) {
   $configured_forms = _regnum_configured_entityforms();
   $result = isset($configured_forms[$regnum_form_bundle]) ? $configured_forms[$regnum_form_bundle] : array();
+  return $result;
+}
+
+function _regnum_configured_entityform_for_group($group_bundle) {
+  $configured_forms = _regnum_configured_entityforms();
+  $result = array();
+  foreach ($configured_forms as $entityform_bundle => $info) {
+    if ($info['group-bundle'] == $group_bundle) {
+      $result = $info;
+    }
+  }
   return $result;
 }
 

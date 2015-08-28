@@ -1865,6 +1865,55 @@ function wk_og_mail_page() {
   }
 }
 
+// TODO:  wk_get_coronations_and_investitures will
+// return all coronations and investitures that
+// have happened in the recent past.  We could periodically
+// (e.g. every Sunday, maybe) call this from cron,
+// and automatically promote all members of the
+// corresponding 'heirs' nodes to be members of the associated
+// 'royalty' node instead.
+function wk_get_coronations_and_investitures() {
+  define("ACTIVITY_CORONATION_INVESTITURE", 127);
+
+  // Look for events this year that are in the past
+  // (or are happening right now)
+  $year = date("Y");
+  $month = date("m");
+  $day = date("d");
+  $after_date = $year . '-01-01T00:00:00';
+  $before_date = $year . '-' . $month . '-' . $day . 'T00:00:00';
+
+  return wk_get_events_with_activities(ACTIVITY_CORONATION_INVESTITURE, $after_date, $before_date);
+}
+
+function _wk_debug_coronations_and_investitures() {
+  $nids = wk_get_coronations_and_investitures();
+  $result = array();
+  foreach ($nids as $nid) {
+    $node = node_load($nid);
+    $result[$nid] = $node->title;
+  }
+  return $result;
+}
+
+function wk_get_events_with_activities($activity, $after_date, $before_date) {
+  $query = new EntityFieldQuery();
+  $query = $query->entityCondition('entity_type','node')
+    ->entityCondition('bundle', array('cal_event'))
+    ->fieldCondition('field_activities', 'tid', $activity, '=')
+    ->fieldCondition('field_event_type', 'value', 0, '=')
+    ->fieldCondition('field_date', 'value', $after_date, '>')
+    ->fieldCondition('field_date', 'value', $before_date, '<')
+    ->propertyCondition('status', 1);
+  $entities = $query->execute();
+
+  $nids = array();
+  if (!empty($entities)) {
+    $nids = array_keys($entities['node']);
+  }
+  return $nids;
+}
+
 function wk_calendar_request_settings($form, &$form_state) {
   $activity_tree = taxonomy_get_tree(4);
   $form += _wk_calendar_request_settings_subtree($activity_tree, 0);
