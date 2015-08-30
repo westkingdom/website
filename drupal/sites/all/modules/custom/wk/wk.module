@@ -1632,10 +1632,15 @@ function wk_heirs_promote_confirmation_form($form, &$form_state, $nid) {
     '#type' => 'hidden',
     '#value' => $nid,
   );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Promote'),
-  );
+  if (count($result['og_membership']) > 0) {
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Promote'),
+    );
+  }
+  else {
+    drupal_set_message(t("No heirs to promote!  Maybe someone should hold a tournament!"), 'warning');
+  }
   return $form;
 }
 
@@ -1671,26 +1676,26 @@ function wk_heirs_promote_confirmation_form_submit(&$form_state) {
     return $a['weight'] - $b['weight'];
   });
 
-  foreach ($user_list as $uinfo) {
-    $uid = $unifo['uid'];
+  // The first user will be the Regent
+  $asDeputy = FALSE;
+  foreach ($user_list as $key => $uinfo) {
+    $uid = $uinfo['uid'];
     $user = user_load($uid);
-    $asDeputy = ($uinfo['weight'] > -10);
 
-    dpm($user);
-    dpm($uinfo['title']);
-    regnum_assign_user_to_officer_node($user, $regent_node, $uinfo['title'], $asDeputy);
+    $retain = FALSE;
+    regnum_assign_user_to_officer_node($user, $regent_node, $uinfo['title'], $asDeputy, $retain, $uinfo['weight']);
 
     // Once the user has been moved to the
     // regent office, remove them from the
     // heirs office.
-    //regnum_remove_user_from_office($heirs_node, $uid);
+    regnum_remove_user_from_office($heirs_node, $uid);
+    // All the rest will be "deputies" (consort or head of court).
+    $asDeputy = TRUE;
   }
 
   // Remove all of the former regents from the group.
   foreach ($regent_uids as $uid) {
-    dpm($regent_node);
-    dpm($uid);
-    //regnum_remove_user_from_office($regent_node, $uid);
+    regnum_remove_user_from_office($regent_node, $uid);
   }
 }
 

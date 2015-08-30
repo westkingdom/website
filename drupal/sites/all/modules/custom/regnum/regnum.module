@@ -196,17 +196,17 @@ function regnum_assign_user_to_office($user, $group_info, $desiredTitle, $asDepu
   return _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $group_info['default-roles-for-owner'], $group_info['default-roles-for-all-members']);
 }
 
-function regnum_assign_user_to_officer_node($user, $officer_node, $desiredTitle, $asDeputy = FALSE, $retain_former_officer = FALSE) {
+function regnum_assign_user_to_officer_node($user, $officer_node, $desiredTitle, $asDeputy = FALSE, $retain_former_officer = FALSE, $weight = 0) {
 
   $info = _regnum_configured_entityform_for_group($officer_node->type);
 
   $defaultRolesForOwner = $info['group-configuration']['default-roles-for-owner'];
   $defaultRolesForAllMembers = $info['group-configuration']['default-roles-for-all-members'];
 
-  return _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $defaultRolesForOwner, $defaultRolesForAllMembers);
+  return _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $defaultRolesForOwner, $defaultRolesForAllMembers, $weight);
 }
 
-function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $defaultRolesForOwner, $defaultRolesForAllMembers) {
+function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $defaultRolesForOwner, $defaultRolesForAllMembers, $weight = 0) {
 
   // If the user is the primary officer (not a deputy), then
   // change the owner of the officer node to be the specified user.
@@ -245,10 +245,20 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
     og_role_grant('node', $officer_node->nid, $user->uid, $rid);
   }
 
+  // Force the weight to -10 for the first user
+  if (!$asDeputy) {
+    $weight = -10;
+  }
+  // If any other user has a weight of -10, bump
+  // it down to -9.
+  elseif ($uinfo['weight'] == -10) {
+    $weight = -9;
+  }
+
   // Set the member's deputy / officer title
   $ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm);
   $ogm_wrapper->field_type_of_deputy->set($desiredTitle);
-  $ogm_wrapper->field_weight->set($asDeputy ? 0 : -10);
+  $ogm_wrapper->field_weight->set($weight);
   $ogm_wrapper->save();
 
   // Should we keep the former officer listed as a deputy,
@@ -279,14 +289,12 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
 }
 
 function regnum_remove_user_from_office($office_node, $uid) {
-/*
   // If the user being removed is the author of $office_nid,
   // then we need to make $office_nid owned by the anonymous user.
   if ($uid == $office_node->uid) {
     $office_node->uid = 0;
     node_save($office_node);
   }
-*/
 
   // Get the og membership object and delete it,
   // effectively removing the user from the group.
