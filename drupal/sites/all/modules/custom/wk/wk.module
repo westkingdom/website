@@ -32,6 +32,8 @@ define("KINGDOM_OF_THE_WEST_TID", 2);
 
 define("SENESCHAL_TID", 84);
 define("WEBMINISTER_TID", 93);
+define("HEIRS_TID", 132);
+define("REGENT_TID", 130);
 
 define("KINGDOM_WEBMINISTER_GID", 851);
 define("KINGDOM_SENESCHAL_GID", 989);
@@ -1458,7 +1460,6 @@ function wk_block_info() {
     'info' => t('Volunteer'),
     'cache' => DRUPAL_NO_CACHE,
   );
-
   return $blocks;
 }
 
@@ -1472,6 +1473,7 @@ function wk_block_info() {
  * Implementation of hook_block_view().
  */
 function wk_block_view($delta = '') {
+  global $user;
   $block = array();
 
   switch ($delta) {
@@ -1498,47 +1500,198 @@ function wk_block_view($delta = '') {
       $node = menu_get_object();
       if (is_object($node) && isset($node->type) && ($node->type == 'officers')) {
         $text = t("We are always looking for new, enthusiastic volunteers who want to learn more and help out.  If you are interested in the activies of this office, please drop us a line--we'd love to hear from you!");
-        if (isset($node->volunteer[LANGUAGE_NONE][0])) {
-          $text = trim($node->volunteer[LANGUAGE_NONE][0]['value']);
+        if (isset($node->field_volunteer[LANGUAGE_NONE][0])) {
+          $text = trim($node->field_volunteer[LANGUAGE_NONE][0]['value']);
         }
 
-        if (!empty($text) && ($text != 'n/a') && ($text != 'na')) {
-          $branch_term = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
-          $branch_term = taxonomy_term_load($branch_term);
+        $branch_tid = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+        $office_tid = $node->field_office[LANGUAGE_NONE][0]['tid'];
 
-          $office_term = $node->field_office[LANGUAGE_NONE][0]['tid'];
-          $office_term = taxonomy_term_load($office_term);
+        if (  !empty($text) &&
+              ($text != 'n/a') &&
+              ($text != 'na') &&
+              ($office_tid != HEIRS_TID) &&
+              ($office_tid != REGENT_TID) ) {
+          $branch_term = taxonomy_term_load($branch_tid);
+
+          $office_term = taxonomy_term_load($office_tid);
 
           $branch_shortname = strtolower(_wk_term_short_name($branch_term));
           $office_shortname = strtolower(_wk_term_short_name($office_term));
 
-          $block['content'] = drupal_get_form('wk_volunteer_for_office', $text, "regnum/$branch_shortname/$office_shortname/volunteer");
+          $block['content'] = drupal_get_form('wk_simple_redirect_button_form', t("Volunteer"), "regnum/$branch_shortname/$office_shortname/volunteer", $text);
         }
       }
       break;
+
   }
   return $block;
 }
 
-function wk_volunteer_for_office($form, &$form_state, $text, $url) {
-  $form['description'] = array(
-    '#type' => 'item',
-    '#markup' => $text,
-  );
+function wk_simple_redirect_button_form($form, &$form_state, $label, $url, $text = FALSE) {
+  if ($text) {
+    $form['description'] = array(
+      '#type' => 'item',
+      '#markup' => $text,
+    );
+  }
   $form['url'] = array(
     '#type' => 'hidden',
     '#value' => $url,
   );
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Volunteer',
+    '#value' => $label,
   );
   return $form;
 }
 
-function wk_volunteer_for_office_submit(&$form_state) {
+function wk_simple_redirect_button_form_submit(&$form_state) {
   $url = $form_state['url']['#value'];
   drupal_goto($url);
+}
+
+function wk_get_heirs_node($nid) {
+  return _wk_get_heirs_or_regent_node($nid, HEIRS_TID, REGENT_TID);
+}
+
+function wk_get_royals_node($nid) {
+  return _wk_get_heirs_or_regent_node($nid, REGENT_TID, HEIRS_TID);
+}
+
+function _wk_get_heirs_or_regent_node($nid, $desired, $other) {
+  $node = node_load($nid);
+
+  $branch_tid = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+  $office_tid = $node->field_office[LANGUAGE_NONE][0]['tid'];
+
+  if ($office_tid == $desired) {
+    return $node;
+  }
+
+  if ($office_tid == $other) {
+    return _wk_get_officer_node($branch_tid, $desired);
+  }
+
+  return FALSE;
+}
+
+function wk_heirs_promote_confirmation_form($form, &$form_state, $nid) {
+  $node = wk_get_heirs_node($nid);
+  $nid = $node->nid;
+
+  // Get a list of all of the members of the group.
+  // We use an EntityFieldQuery to find all of the membership
+  // objects, because we want access to the membership
+  // title and weight.  If we only wanted the user ids,
+  // we could use og_get_group_members_properties().
+  // @see wk_heirs_promote_confirmation_form_submit()
+  $query = new EntityFieldQuery();
+  $query
+    ->entityCondition("entity_type", "og_membership", "=")
+    ->propertyCondition("gid", $node->nid, "=");
+  $result = $query->execute();
+
+  foreach ($result['og_membership'] as $mid => $info) {
+    $minfo = og_membership_load($mid);
+    $membership_title = $minfo->field_type_of_deputy[LANGUAGE_NONE][0]['value'];
+    // TODO: If no one has a weight of -10,
+    // then make the one w/ the lowest weight -10.
+    $membership_weight = $minfo->field_weight[LANGUAGE_NONE][0]['value'];
+    $uid = $minfo->etid;
+
+    $new_title = $membership_title;
+
+    $replacements = array(
+      'Crown Princess' => 'Queen of the West',
+      'Crown Prince' => 'King of the West',
+      'Lord of the Swan' => 'Prince of Cynagua',
+      'Lady of the Swan' => 'Princess of Cynagua',
+      'Lord of the Mists' => 'Prince of the Mists',
+      'Lady of the Mists' => 'Princess of the Mists',
+    );
+
+    $new_title = str_replace(array_keys($replacements), array_values($replacements), $new_title);
+
+    $member = user_load($uid);
+    $form['title-' . $uid] = array(
+      '#type' => 'textfield',
+      '#title' => $member->name . ', ' . $membership_title,
+      '#default_value' => $new_title,
+      '#size' => 60,
+      '#maxlength' => 128,
+      '#required' => TRUE,
+      '#weight' => $membership_weight,
+    );
+    $form['weight-' . $uid] = array(
+      '#type' => 'hidden',
+      '#value' => $membership_weight,
+    );
+  }
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $nid,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Promote'),
+  );
+  return $form;
+}
+
+function wk_heirs_promote_confirmation_form_submit(&$form_state) {
+  $nid = $form_state['nid']['#value'];
+  $heirs_node = wk_get_heirs_node($nid);
+  $regent_node = wk_get_royals_node($nid);
+
+  // Get a list of all of the UIDs of the group
+  // members.  If we also wanted the membership
+  // title and weight, we could use a EntityFieldQuery
+  // instead.  @see wk_heirs_promote_confirmation_form()
+  $regent_uids = og_get_group_members_properties($regent_node, array(), 'members', 'node');
+
+  // Build a list and sort it, so that
+  // we handle the regent (weight -10) first
+  $user_list = array();
+  foreach ($form_state as $key => $info) {
+    if (substr($key, 0, 6) == 'title-') {
+      $uid = substr($key, 6);
+      $title = $info['#value'];
+      $weight = $form_state['weight-' . $uid]['#value'];
+
+      $user_list[] = array(
+        'uid' => $uid,
+        'weight' => $weight,
+        'title' => $title);
+    }
+  }
+
+  // Sort the user list by weight.
+  usort($user_list, function ($a, $b) {
+    return $a['weight'] - $b['weight'];
+  });
+
+  foreach ($user_list as $uinfo) {
+    $uid = $unifo['uid'];
+    $user = user_load($uid);
+    $asDeputy = ($uinfo['weight'] > -10);
+
+    dpm($user);
+    dpm($uinfo['title']);
+    regnum_assign_user_to_officer_node($user, $regent_node, $uinfo['title'], $asDeputy);
+
+    // Once the user has been moved to the
+    // regent office, remove them from the
+    // heirs office.
+    //regnum_remove_user_from_office($heirs_node, $uid);
+  }
+
+  // Remove all of the former regents from the group.
+  foreach ($regent_uids as $uid) {
+    dpm($regent_node);
+    dpm($uid);
+    //regnum_remove_user_from_office($regent_node, $uid);
+  }
 }
 
 function wk_reject_date_request($form, &$form_state, $id) {
@@ -1691,6 +1844,19 @@ function wk_menu() {
     'page arguments' => array(1),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
+  );
+  // TODO: better permissions (
+  //   - allow Principality Seneschals to promote Prince and Princess
+  //   - don't re-use 'approve calendar requests'
+  $items['node/%/promote'] = array(
+    'title' => 'Promote',
+    'description' => 'After Coronation / Investiture, make the Heirs the new Royals.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_heirs_promote_confirmation_form', 1),
+    'access callback' => 'wk_user_access_or_group_member',
+    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 18,
   );
   // TODO: make separate permissions
   $items['approve-email-requests'] = array(

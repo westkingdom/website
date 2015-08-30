@@ -196,36 +196,9 @@ function regnum_assign_user_to_office($user, $group_info, $desiredTitle, $asDepu
   return _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, $desiredTitle, $asDeputy, $retain_former_officer, $group_info['default-roles-for-owner'], $group_info['default-roles-for-all-members']);
 }
 
-function regnum_promot_heirs($heirs_node) {
-  $regent_uid = $heirs_node['uid'];
-  $regent = user_load($regent_uid);
-
-  // $all_heirs = find all members of $heirs_node
-
-  // $regent_node = find node for the same branch as '$heirs_node',
-  // but office should be 'regent' instead of 'heirs'
-
-  // $former_regents = find group members of $regent_node
-
-  // $regent_title = need to convert from "Crown Prince" to "King",
-  // "Crown Princess" to "Queen", or convert to "Prince"/"Princess"
-  // for principalities
-  regnum_assign_user_to_officer_node($regent, $regent_node, $regent_title);
-
-  // Iterate over $all_heirs and call regnum_assign_user_to_officer_node
-  // for each.  Pass TRUE for $asDeputy.  Use the existing
-  // title for the heads of court.  Need to convert the
-  // consort title to "Queen"/"King" or "Princess"/"Prince"
-  // as appropriate for Kingdom or Principality
-
-  // remove $former_regents from group $regent_node
-
-  // remove $all_heirs from group $heirs_node
-}
-
 function regnum_assign_user_to_officer_node($user, $officer_node, $desiredTitle, $asDeputy = FALSE, $retain_former_officer = FALSE) {
 
-  $info = _regnum_configured_entityform_for_group($officer_node['type']);
+  $info = _regnum_configured_entityform_for_group($officer_node->type);
 
   $defaultRolesForOwner = $info['group-configuration']['default-roles-for-owner'];
   $defaultRolesForAllMembers = $info['group-configuration']['default-roles-for-all-members'];
@@ -237,10 +210,10 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
 
   // If the user is the primary officer (not a deputy), then
   // change the owner of the officer node to be the specified user.
-  $former_officer = FALSE;
+  $former_officer_uid = FALSE;
   $former_officers_new_title = '';
   if ((!$asDeputy) && ($officer_node->uid != $user->uid)) {
-    $former_officer = $officer_node->uid;
+    $former_officer_uid = $officer_node->uid;
     $officer_node->uid = $user->uid;
   }
   // Odd situation: if the current officer is approved as a deputy,
@@ -281,8 +254,8 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
   // Should we keep the former officer listed as a deputy,
   // or remove the record?  For now, we retain the officer
   // as a 'Transitional Deputy ...' until manually deleted.
-  if ($former_officer) {
-    $ogm_former = og_get_membership('node', $officer_node->nid, 'user', $former_officer);
+  if ($former_officer_uid) {
+    $ogm_former = og_get_membership('node', $officer_node->nid, 'user', $former_officer_uid);
     if ($ogm_former) {
       if ($retain_former_officer) {
         $former_ogm_wrapper = entity_metadata_wrapper('og_membership', $ogm_former);
@@ -295,7 +268,7 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
         $former_ogm_wrapper->save();
         // Remove owner-only default roles whenever the owner becomes a deputy.
         foreach ($defaultRolesForOwner as $rid) {
-          og_role_revoke('node', $officer_node->nid, $former_officer, $rid);
+          og_role_revoke('node', $officer_node->nid, $former_officer_uid, $rid);
         }
       }
       else {
@@ -303,6 +276,22 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
       }
     }
   }
+}
+
+function regnum_remove_user_from_office($office_node, $uid) {
+/*
+  // If the user being removed is the author of $office_nid,
+  // then we need to make $office_nid owned by the anonymous user.
+  if ($uid == $office_node->uid) {
+    $office_node->uid = 0;
+    node_save($office_node);
+  }
+*/
+
+  // Get the og membership object and delete it,
+  // effectively removing the user from the group.
+  $ogm_to_remove = og_get_membership('node', $office_node->nid, 'user', $uid);
+  og_membership_delete($ogm_to_remove->id);
 }
 
 /**
