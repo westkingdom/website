@@ -10,16 +10,19 @@ DRUPAL_ROOT="$PROJECT_BASE_DIR/drupal"
 
 cd "$DRUPAL_ROOT"
 
+
+TESTSITEDIR="${SITEDIR:-${DEFAULT_SITEDIR:-behat}}"
+
 # If there isn't a settings.local.php, create it and
 # ensure that it bootstraps domain access.
-if [ ! -f sites/default/settings.local.php ]
+if [ ! -f sites/$TESTSITEDIR/settings.local.php ]
 then
-  echo "<?php" > sites/default/settings.local.php
+  echo "<?php" > sites/$TESTSITEDIR/settings.local.php
 fi
-grep -q 'domain/settings.inc' sites/default/settings.local.php
+grep -q 'domain/settings.inc' sites/$TESTSITEDIR/settings.local.php
 if [ $? != 0 ]
 then
-  cat << __EOF__ >> sites/default/settings.local.php
+  cat << __EOF__ >> sites/$TESTSITEDIR/settings.local.php
 // Include Domain access settings
 try {
   include DRUPAL_ROOT . '/sites/all/modules/contrib/domain/settings.inc';
@@ -27,6 +30,7 @@ try {
 catch(Exception \$e) {}
 __EOF__
 fi
+
 
 # Install drush_ctex_bonus so that we can use it.
 # First check and see if it is already available.
