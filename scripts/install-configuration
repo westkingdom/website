@@ -15,6 +15,7 @@ TESTSITEDIR="${SITEDIR:-${DEFAULT_SITEDIR:-behat}}"
 
 # If there isn't a settings.local.php, create it and
 # ensure that it bootstraps domain access.
+chmod +w sites/$TESTSITEDIR
 if [ ! -f sites/$TESTSITEDIR/settings.local.php ]
 then
   echo "<?php" > sites/$TESTSITEDIR/settings.local.php
@@ -30,7 +31,6 @@ try {
 catch(Exception \$e) {}
 __EOF__
 fi
-
 
 # Install drush_ctex_bonus so that we can use it.
 # First check and see if it is already available.
