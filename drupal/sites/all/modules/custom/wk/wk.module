@@ -1576,16 +1576,99 @@ function _wk_get_heirs_or_regent_node($nid, $desired, $other) {
   return FALSE;
 }
 
-function wk_heirs_promote_confirmation_form($form, &$form_state, $nid) {
+function wk_officer_promote_form($form, &$form_state, $nid) {
   $node = wk_get_heirs_node($nid);
-  $nid = $node->nid;
 
+  if ($node) {
+    return wk_officer_promote_heirs($form, $form_state, $node);
+  }
+  else {
+    return wk_officer_promote($form, $form_state, $nid);
+  }
+}
+
+function wk_officer_promote($form, &$form_state, $nid) {
+  $node = node_load($nid);
+  $officer = node_load($node->uid);
+
+  // @see wk_officer_promote_heirs()
+  $query = new EntityFieldQuery();
+  $query
+    ->entityCondition("entity_type", "og_membership", "=")
+    ->propertyCondition("gid", $node->nid, "=");
+  $result = $query->execute();
+
+  $deputies = array();
+  foreach ($result['og_membership'] as $mid => $info) {
+    $minfo = og_membership_load($mid);
+    $membership_title = $minfo->field_type_of_deputy[LANGUAGE_NONE][0]['value'];
+    $membership_weight = $minfo->field_weight[LANGUAGE_NONE][0]['value'];
+    $uid = $minfo->etid;
+    if ($uid != $node->uid) {
+      $member = user_load($uid);
+      if ($member) {
+        $deputies[$uid] = array(
+          'uid' => $uid,
+          'weight' => $membership_weight,
+          'name' => $member->name,
+          'title' => $membership_title,
+        );
+      }
+    }
+  }
+  /*
+  dpm($deputies);
+  // Sort the user list by weight.
+  usort($deputies, function ($a, $b) {
+    return $a['weight'] - $b['weight'];
+  });
+  dpm($deputies);
+  */
+
+  // Drupal radio buttons are sorted by key, so we
+  // will concatinate the deputy's weight with their
+  // uid to create a unique value that will be appropriately
+  // sorted.
+  $names = array();
+  foreach ($deputies as $key => $uinfo) {
+    $names[$uinfo['weight'] . '.' . $uinfo['uid']] = $uinfo['name'] . ', ' . $uinfo['title'];
+  }
+
+  if (!empty($names)) {
+    ksort($names);
+    $form['deputies'] = array(
+      '#title' => t('Current Deputies'),
+      '#description' => t('Select the new person who has assumed this office.'),
+      '#type' => 'radios',
+      '#options' => $names,
+      '#default_value' => reset(array_keys($names)),
+    );
+
+    if ($officer) {
+      $items['retain'] = array(
+        '#type' => 'checkbox',
+        '#checked' => FALSE,
+        '#default_value' => $officer->uid,
+        '#title' => t("Retain %officer as a Deputy", array('%officer' => $officer->name)),
+      );
+    }
+
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Promote'),
+    );
+  }
+
+  return $form;
+}
+
+function wk_officer_promote_heirs($form, &$form_state, $node) {
   // Get a list of all of the members of the group.
   // We use an EntityFieldQuery to find all of the membership
   // objects, because we want access to the membership
   // title and weight.  If we only wanted the user ids,
   // we could use og_get_group_members_properties().
-  // @see wk_heirs_promote_confirmation_form_submit()
+  // @see wk_officer_promote_form_submit()
   $query = new EntityFieldQuery();
   $query
     ->entityCondition("entity_type", "og_membership", "=")
@@ -1595,8 +1678,6 @@ function wk_heirs_promote_confirmation_form($form, &$form_state, $nid) {
   foreach ($result['og_membership'] as $mid => $info) {
     $minfo = og_membership_load($mid);
     $membership_title = $minfo->field_type_of_deputy[LANGUAGE_NONE][0]['value'];
-    // TODO: If no one has a weight of -10,
-    // then make the one w/ the lowest weight -10.
     $membership_weight = $minfo->field_weight[LANGUAGE_NONE][0]['value'];
     $uid = $minfo->etid;
 
@@ -1630,7 +1711,7 @@ function wk_heirs_promote_confirmation_form($form, &$form_state, $nid) {
   }
   $form['nid'] = array(
     '#type' => 'hidden',
-    '#value' => $nid,
+    '#value' => $node->nid,
   );
   if (count($result['og_membership']) > 0) {
     $form['submit'] = array(
@@ -1644,15 +1725,31 @@ function wk_heirs_promote_confirmation_form($form, &$form_state, $nid) {
   return $form;
 }
 
-function wk_heirs_promote_confirmation_form_submit(&$form_state) {
+function wk_officer_promote_form_submit(&$form_state) {
   $nid = $form_state['nid']['#value'];
   $heirs_node = wk_get_heirs_node($nid);
+
+  $node = wk_get_heirs_node($nid);
+  if ($heirs_node) {
+    return wk_officer_promote_heirs_submit($form_state, $heirs_node);
+  }
+  else {
+    return wk_officer_promote_submit($form_state);
+  }
+}
+
+function wk_officer_promote_submit(&$form_state) {
+  $nid = $form_state['nid']['#value'];
+}
+
+function wk_officer_promote_heirs_submit(&$form_state, $heirs_node) {
+  $nid = $form_state['nid']['#value'];
   $regent_node = wk_get_royals_node($nid);
 
   // Get a list of all of the UIDs of the group
   // members.  If we also wanted the membership
   // title and weight, we could use a EntityFieldQuery
-  // instead.  @see wk_heirs_promote_confirmation_form()
+  // instead.  @see wk_officer_promote_form()
   $regent_uids = og_get_group_members_properties($regent_node, array(), 'members', 'node');
 
   // Build a list and sort it, so that
@@ -1857,7 +1954,7 @@ function wk_menu() {
     'title' => 'Promote',
     'description' => 'After Coronation / Investiture, make the Heirs the new Royals.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('wk_heirs_promote_confirmation_form', 1),
+    'page arguments' => array('wk_officer_promote_form', 1),
     'access callback' => 'wk_user_access_or_group_member',
     'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
     'type' => MENU_LOCAL_TASK,
