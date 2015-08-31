@@ -92,7 +92,7 @@ DEFAULT_ALIAS=
 # If neither URI nor DEFAULT_URI are defined, then
 # the fallback value "default" will be used.
 #
-DEFAULT_URI=westkingdom.org
+DEFAULT_URI=
 
 #
 # PORT
