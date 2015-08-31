@@ -3953,16 +3953,16 @@
         },
         {
             "name": "pantheon-systems/ci-scripts",
-            "version": "1.0.17",
+            "version": "1.0.18",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pantheon-systems/ci-scripts.git",
-                "reference": "af6c93f25481f259e248a904b65f719f6000d5f2"
+                "reference": "e9a477808e08afba40da7e45fb3e5a88a8944dec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pantheon-systems/ci-scripts/zipball/af6c93f25481f259e248a904b65f719f6000d5f2",
-                "reference": "af6c93f25481f259e248a904b65f719f6000d5f2",
+                "url": "https://api.github.com/repos/pantheon-systems/ci-scripts/zipball/e9a477808e08afba40da7e45fb3e5a88a8944dec",
+                "reference": "e9a477808e08afba40da7e45fb3e5a88a8944dec",
                 "shasum": ""
             },
             "require": {
@@ -3987,7 +3987,7 @@
             "type": "library",
             "notification-url": "https://packagist.org/downloads/",
             "description": "Scripts helpful for testing a Drupal site on a Continuous-Integration server, or locally.",
-            "time": "2015-08-31 23:05:47"
+            "time": "2015-08-31 23:17:33"
         },
         {
             "name": "pear/console_table",
