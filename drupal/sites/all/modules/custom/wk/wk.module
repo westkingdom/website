@@ -1589,7 +1589,9 @@ function wk_officer_promote_form($form, &$form_state, $nid) {
 
 function wk_officer_promote($form, &$form_state, $nid) {
   $node = node_load($nid);
-  $officer = node_load($node->uid);
+  $primary_officer = user_load($node->uid);
+  $primary_officer_title = FALSE;
+  dpm($primary_officer);
 
   // @see wk_officer_promote_heirs()
   $query = new EntityFieldQuery();
@@ -1604,7 +1606,10 @@ function wk_officer_promote($form, &$form_state, $nid) {
     $membership_title = $minfo->field_type_of_deputy[LANGUAGE_NONE][0]['value'];
     $membership_weight = $minfo->field_weight[LANGUAGE_NONE][0]['value'];
     $uid = $minfo->etid;
-    if ($uid != $node->uid) {
+    if ($uid == $node->uid) {
+      $primary_officer_title = $membership_title;
+    }
+    else {
       $member = user_load($uid);
       if ($member) {
         $deputies[$uid] = array(
@@ -1644,15 +1649,24 @@ function wk_officer_promote($form, &$form_state, $nid) {
       '#default_value' => reset(array_keys($names)),
     );
 
-    if ($officer) {
-      $items['retain'] = array(
+    if ($primary_officer) {
+      $form['retain'] = array(
         '#type' => 'checkbox',
         '#checked' => FALSE,
-        '#default_value' => $officer->uid,
-        '#title' => t("Retain %officer as a Deputy", array('%officer' => $officer->name)),
+        '#default_value' => $primary_officer->uid,
+        '#title' => t("Retain %officer as a Deputy", array('%officer' => $primary_officer->name)),
       );
     }
-
+    if ($primary_officer_title) {
+      $form['primary_officer_title'] = array(
+        '#type' => 'hidden',
+        '#value' => $primary_officer_title,
+      );
+    }
+    $form['nid'] = array(
+      '#type' => 'hidden',
+      '#value' => $nid,
+    );
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => t('Promote'),
@@ -1740,6 +1754,21 @@ function wk_officer_promote_form_submit(&$form_state) {
 
 function wk_officer_promote_submit(&$form_state) {
   $nid = $form_state['nid']['#value'];
+  $primary_officer_title = $form_state['primary_officer_title']['#value'];
+  $retain = $form_state['retain']['#value'];
+  $new_officer_parts = explode('.', $form_state['deputies']['#value']);
+
+  $officer_uid = array_pop($new_officer_parts);
+
+  dpm($retain);
+  dpm($officer_uid);
+
+  $new_officer = user_load($officer_uid);
+  $officer_node = node_load($nid);
+
+
+  regnum_assign_user_to_officer_node($new_officer, $officer_node, $primary_officer_title, FALSE, $retain);
+
 }
 
 function wk_officer_promote_heirs_submit(&$form_state, $heirs_node) {
