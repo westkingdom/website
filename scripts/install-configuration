@@ -26,10 +26,10 @@ then
   cat << __EOF__ >> sites/$TESTSITEDIR/settings.local.php
 // Include Domain access settings
 try {
-  // When called by the Drupal driver, the db_query()
-  // function does not exist yet.  For other bootstraps
-  // (e.g. Drush or Webserver), this works fine.
-  if (function_exists("db_query")) {
+  // When called by the Drupal driver, domain access
+  // initialization does not work.  For other bootstraps
+  // (e.g. Drush or Webserver), it works fine.
+  if (function_exists("drush_main") || !class_exists("Drupal\Driver\DrupalDriver")) {
     include DRUPAL_ROOT . '/sites/all/modules/contrib/domain/settings.inc';
   }
 }
