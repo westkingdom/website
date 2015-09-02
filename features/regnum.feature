@@ -1,7 +1,7 @@
 Feature: Regnum
-  In order to know that configuration import worked
+  In order to test the Regnum workflow
   As a website user
-  I need to be able to visit the Regnum form
+  I need to be able to submit and approve Regnum change requests
 
   Background:
     Given "vocabulary_2" terms:
