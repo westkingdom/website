@@ -1,6 +1,9 @@
 default:
   suites:
     default:
+      paths:
+        - %paths.base%/features
+        # - %paths.base%/morefeatures
       contexts:
         - FeatureContext
         - Drupal\DrupalExtension\Context\DrupalContext
