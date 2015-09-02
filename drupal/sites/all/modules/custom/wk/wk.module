@@ -1591,7 +1591,6 @@ function wk_officer_promote($form, &$form_state, $nid) {
   $node = node_load($nid);
   $primary_officer = user_load($node->uid);
   $primary_officer_title = FALSE;
-  dpm($primary_officer);
 
   // @see wk_officer_promote_heirs()
   $query = new EntityFieldQuery();
@@ -1929,6 +1928,9 @@ function wk_domain_conf() {
  */
 function wk_permission() {
   $permissions = array(
+    'promote officers' => array(
+      'title' => t('Promote officers in any branch group'),
+    ),
     'approve calendar requests' => array(
       'title' => t('Approve calendar date requests'),
     ),
@@ -1984,8 +1986,8 @@ function wk_menu() {
     'description' => 'After Coronation / Investiture, make the Heirs the new Royals.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('wk_officer_promote_form', 1),
-    'access callback' => 'wk_user_access_or_group_member',
-    'access arguments' => array('approve calendar requests', array(KINGDOM_WEBMINISTER_GID, KINGDOM_SENESCHAL_GID)),
+    'access callback' => 'wk_user_access_or_officer_in_nodes_branch',
+    'access arguments' => array('promote officers', 1, array(WEBMINISTER_TID, SENESCHAL_TID), 'officers'),
     'type' => MENU_LOCAL_TASK,
     'weight' => 18,
   );
@@ -2352,6 +2354,37 @@ function _wk_get_calendar_event_nids_in_range($start_date, $end_date, $branch = 
     $nids = array_keys($entities['node']);
   }
   return $nids;
+}
+
+function wk_user_access_or_officer_in_nodes_branch($permission, $nid, $office_list, $content_type = FASLE) {
+  $node = node_load($nid);
+  if (!$node) {
+    return FALSE;
+  }
+  // If the content type isn't correct, this menu should never appear for this node type
+  if ($content_type && ($node->type != $content_type)) {
+    return FALSE;
+  }
+  // Similarly, if there is no branch group for this node, never show 'promote'
+  if (!isset($node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'])) {
+    return FALSE;
+  }
+  // If this menu might appear, always show it for users with the '... for all branch groups' permission
+  if (user_access($permission)) {
+    return TRUE;
+  }
+  // Otherwise, we'll look at the current user's office list, and if
+  // any of these match one of the designated officers for the
+  // branch that this node is for, then access is allowed.
+  $branch_tid = $node->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+  foreach ($office_list as $office_tid) {
+    $branch_tid_list = _wk_is_officer($office_tid);
+    if (in_array($branch_tid, $branch_tid_list)) {
+      return TRUE;
+    }
+  }
+  // Otherwise, access is not allowed.
+  return FALSE;
 }
 
 function wk_user_access_or_group_member($permission, $group_list) {
@@ -3719,7 +3752,7 @@ function _wk_is_branch_web_admin($account = NULL) {
   return $branch_officer;
 }
 
-// If the current user is a Seneschal, return
+// If the current user is an officer, return
 // the branch group tid
 function _wk_is_officer($officer_tid, $the_user = NULL) {
   global $user;
