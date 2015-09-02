@@ -57,8 +57,8 @@ Feature: Content
   @api
   Scenario: Login as a user created during this scenario
     Given users:
-    | name      | status |
-    | Test user |      1 |
+    | name      | status | mail             |
+    | Test user |      1 | test@example.com |
     When I am logged in as "Test user"
     Then I should see the link "Log out"
 
