@@ -1,0 +1,14 @@
+create_term:
+  vocabulary_2:
+    -
+      name: Kingdom of Imaginarium
+    -
+      name: Principality of Contrivance
+      parent: Kingdom of Imaginarium
+  offices:
+   -
+      name: Seneschal
+   -
+      name: Web Minister
+   -
+      name: Chatalaine

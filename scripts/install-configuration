@@ -52,3 +52,37 @@ fi
 
 # Install the configuration settings form wk_config
 drush "$SITE_IDENTIFIER" cb-umaster wk_config -y
+
+# For transient data that might change, it is best to use
+# a Behat "background":
+#
+#  Background:
+#    Given "vocabulary_2" terms:
+#    | name                        |
+#    | Kingdom of Imaginarium      |
+#    | Principality of Contrivance |
+#    And "offices" terms:
+#    | name         |
+#    | Seneschal    |
+#    | Web Minister |
+#    | Chatalaine   |
+#
+# However, the issue with "backgrounds" is that they are
+# deleted and recreated frequently, often more than once
+# per scenario.  This is great if you want to be able
+# to test modifications to the background data without
+# polluting future tests; however, one unfortunate side
+# effect of this design decision is that the id of each
+# item changes every time the data is recreated.  This
+# causes large problems when trying to select items based on
+# their id; this is particularly acute for taxonomy
+# checkbox lists, as the taxonomy term ids change between
+# checkbox selection and form validation, causing a
+# validation failure.
+#
+# The solution is to pre-create any static content
+# that will not be modified by any test prior to
+# running behat.  We will do that here.
+STATIC_TEST_CONTENT="$SELF_DIRNAME/data/static-test-content.yml"
+drush "$SITE_IDENTIFIER" behat import --file="$STATIC_TEST_CONTENT"
+drush cc all
