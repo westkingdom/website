@@ -9,7 +9,7 @@ PROJECT_BASE_DIR="`cd -P -- "$SELF_DIRNAME/.." && pwd -P`"
 DRUPAL_ROOT="$PROJECT_BASE_DIR/drupal"
 
 cd "$DRUPAL_ROOT"
-
+drush cc drush
 
 TESTSITEDIR="${SITEDIR:-${DEFAULT_SITEDIR:-behat}}"
 
@@ -85,4 +85,4 @@ drush "$SITE_IDENTIFIER" cb-umaster wk_config -y
 # running behat.  We will do that here.
 STATIC_TEST_CONTENT="$SELF_DIRNAME/data/static-test-content.yml"
 drush "$SITE_IDENTIFIER" behat import --file="$STATIC_TEST_CONTENT"
-drush cc all
+drush "$SITE_IDENTIFIER" cc all
