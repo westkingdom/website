@@ -5154,7 +5154,14 @@ function wk_check_organization_account_exists($service, $account, $org_email, $e
     // name stored with the Google user, then we have successfully
     // created the user.
     if ($real_name == $full_name) {
-      return wk_organization_account_created($service, $account, $org_email, $eid);
+      $result = wk_organization_account_created($service, $account, $org_email, $eid);
+      watchdog('WK',
+        'Organization email created for %user: %mail.',
+        array(
+          '%user' => $real_name,
+          '%mail' => $org_email,
+        ),
+        WATCHDOG_ERROR);
     }
     else {
       // Someone else already has the email address the user requested.
@@ -5254,7 +5261,7 @@ function wk_organization_account_created($service, $account, $org_email, $eid) {
 }
 
 function wk_cron() {
-  // wk_process_some_email_address_requests(10);
+  wk_process_some_email_address_requests(10);
 }
 
 function wk_process_some_email_address_requests($max_addresses_to_create) {
