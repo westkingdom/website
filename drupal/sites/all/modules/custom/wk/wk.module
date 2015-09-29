@@ -4962,7 +4962,7 @@ function wk_user_view($account, $view_mode) {
     <div class="field-item">@org</div>
   </div>
 </div>
-<span class="note">E-mail sent to %org will be forwarded to %email.  Also, use %org to log on to your <a href="!url">West Kingdom Google Apps</a> account.</span>', array('@org' => $org_mail, '%org' => $org_mail, '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org')),
+<span class="note">E-mail sent to %org may be configured to forward to one of your other accounts; log on to your <a href="!url">West Kingdom Google Apps</a> account to set this up.</span>', array('@org' => $org_mail, '%org' => $org_mail, '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org')),
           ),
         );
 
