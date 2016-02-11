@@ -3006,6 +3006,12 @@ function _wk_expand_date_range_single_date($date_range, $date_to_add) {
 
   $date_epoch = _wk_format_date($date_to_add, "U");
 
+  // Ignore bad values.
+  $now = date("U");
+  if ($date_epoch < $now) {
+    $date_epoch = $now;
+  }
+
   if (!isset($result['begin']) || ($result['begin'] > $date_epoch)) {
     $result['begin'] = $date_epoch;
   }
