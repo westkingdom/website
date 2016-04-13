@@ -4560,6 +4560,7 @@ function wk_export_mailinglists() {
         $office_shortname = implode("-", $office_shortname_components);
         $list_name = _wk_compose_group_email_list_name($branch_shortname, $office_shortname);
         $list_email_address = $list_name . '@' . $primary_domain;
+        $email_threshhold = isset($officeNode->field_deputy_email_threshhold['und'][0]['value']) ? $officeNode->field_deputy_email_threshhold['und'][0]['value'] : 10;
 
         $members = array();
         $group_info = _wk_group_members($gid);
@@ -4574,7 +4575,9 @@ function wk_export_mailinglists() {
             if ($org_email_record && $org_email_record->confirmed) {
               $member_email_address = $org_email_record->email;
             }
-            $members[] = strtolower($member_email_address);
+            if ($user_info['weight'] <= $email_threshhold) {
+              $members[] = strtolower($member_email_address);
+            }
           }
         }
         $offices[$office_shortname]['members'] = $members;
