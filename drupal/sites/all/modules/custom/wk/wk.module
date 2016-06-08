@@ -5075,6 +5075,7 @@ function wk_request_organization_email_submit(&$form_state) {
 define('WK_EMAIL_REQUEST_FATAL', 100);
 define('WK_EMAIL_REQUEST_FAILED_DUPLICATE', 101);
 define('WK_EMAIL_REQUEST_CREATED_USER', 200);
+define('WK_EMAIL_REQUEST_USER_EXISTS_IN_DIRECTORY', 201);
 
 function wk_unconfirmed_addresses() {
   $query = db_select('multiple_email', 'me');
@@ -5170,7 +5171,10 @@ function wk_check_organization_account_exists($service, $account, $org_email, $e
           '%user' => $real_name,
           '%mail' => $org_email,
         ),
-        WATCHDOG_ERROR);
+        WATCHDOG_NOTICE);
+
+      wk_email_request_set_activity_status($eid, false);
+      return WK_EMAIL_REQUEST_USER_EXISTS_IN_DIRECTORY;
     }
     else {
       // Someone else already has the email address the user requested.
