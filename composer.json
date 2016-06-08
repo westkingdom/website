@@ -104,6 +104,7 @@
         "vendor-dir": "drupal/sites/all/vendor"
     },
     "extra": {
+        "enable-patching": true,
         "patches-file": "composer-patches.json",
         "installer-paths": {
             "drupal/sites/all/modules/contrib/{$name}/": ["type:drupal-module"],
