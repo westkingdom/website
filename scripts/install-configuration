@@ -45,7 +45,7 @@ then
   (
     mkdir -p "$HOME/.drush"
     cd "$HOME/.drush"
-    drush dl drush_ctex_bonus
+    drush dl drush_ctex_bonus-7.x
     drush cc drush
   )
 fi
