@@ -2,6 +2,9 @@
   "patches": {
     "drupal/domain": {
       "Domain_conf permissions": "https://www.drupal.org/files/issues/domain-conf-450688-%2310.patch"
+    },
+    "drupal/calendar": {
+      "Calendar next month calculation": "https://www.drupal.org/files/issues/calendar.20160531.patch"
     }
   }
 }
