@@ -17,6 +17,7 @@
 
         "drupal/drupal": "7.*",
 
+        "drush/drush": "8.x-dev",
         "drupal/devel": "7.1.*",
         "drupal/stage_file_proxy": "7.1.*",
 
