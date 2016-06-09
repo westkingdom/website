@@ -10,7 +10,6 @@ core = 7.x
 dependencies[] = admin_menu
 dependencies[] = admin_views
 dependencies[] = auto_nodetitle
-dependencies[] = ayah
 dependencies[] = better_formats
 dependencies[] = block
 dependencies[] = bulk_export

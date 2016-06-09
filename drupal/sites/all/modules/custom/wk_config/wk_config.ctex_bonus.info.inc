@@ -16,7 +16,6 @@ function wk_config_drush_ctex_bonus_info_dependencies() {
     'admin_menu',
     'admin_views',
     'auto_nodetitle',
-    'ayah',
     'better_formats',
     'block',
     'bulk_export',

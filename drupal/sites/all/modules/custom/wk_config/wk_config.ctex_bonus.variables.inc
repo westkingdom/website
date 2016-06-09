@@ -24,61 +24,6 @@ function wk_config_drush_ctex_bonus_variables() {
 
   $variables['anonymous'] = 'Anonymous';
 
-  $variables['ayah_allow_on_admin_pages'] = 0;
-
-  $variables['ayah_forms'] = array(
-    'contact_personal_form' => TRUE,
-    'contact_site_form' => TRUE,
-    'user_pass' => TRUE,
-    'user_register_form' => TRUE,
-    'og_contact_mail_page' => TRUE,
-    'webform_client_form_548' => TRUE,
-    'who_s_who_update_entityform_edit_form' => TRUE,
-  );
-
-  $variables['ayah_form_finder'] = 0;
-
-  $variables['ayah_form_id_overview'] = array(
-    'ayah_new_ayah_form' => array(
-      'form_id' => 'who_s_who_update_entityform_edit_form',
-      'new_add_game' => 0,
-    ),
-  );
-
-  $variables['ayah_placement_map_cache'] = array(
-    'comment_form' => array(
-      'path' => array(),
-      'key' => NULL,
-      'weight' => 18.899999999999999,
-    ),
-    'contact_personal_form' => array(
-      'path' => array(
-        0 => 'actions',
-      ),
-      'key' => 'submit',
-      'weight' => NULL,
-    ),
-    'og_contact_mail_page' => array(
-      'path' => array(),
-      'key' => 'submit',
-      'weight' => NULL,
-    ),
-    'webform_client_form_548' => array(
-      'path' => array(
-        0 => 'actions',
-      ),
-      'key' => 'submit',
-      'weight' => 10,
-    ),
-    'who_s_who_update_entityform_edit_form' => array(
-      'path' => array(
-        0 => 'actions',
-      ),
-      'key' => 'submit',
-      'weight' => NULL,
-    ),
-  );
-
   $variables['block_cache'] = '1';
 
   $variables['cache'] = 1;
@@ -2636,7 +2581,7 @@ Yours in Service,
 Thank you for registering at [site:name]. You may now log in to [site:login-url] using the following username and password:
 
 username: [user:name]
-password: 
+password:
 
 You may also log in by clicking on this link or copying and pasting it in your browser:
 
