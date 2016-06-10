@@ -124,7 +124,7 @@ function wk_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings)
   }
   if (isset($element['content']['file']['#file']->field_image_width[LANGUAGE_NONE])) {
     $width = $element['content']['file']['#file']->field_image_width[LANGUAGE_NONE];
-    if ($width != '_none') {
+    if (!empty($width) && ($width != '_none')) {
       $element['content']['#attributes']['class'][] = 'media-width-' . $width;
     }
   }
@@ -4566,17 +4566,22 @@ function wk_export_mailinglists() {
         $group_info = _wk_group_members($gid);
         foreach ($group_info as $uid => $user_info) {
           if (isset($user_info['user']->mail)) {
-            $member_email_address = $user_info['user']->mail;
-            // Favor the user's Organization mail if it is set.
-            // This address should forward to $user_info['user']->mail anyway.
-            // TODO: maybe we should have a preference indicating
-            // which one the user prefers.
-            $org_email_record = wk_get_organization_mail($user_info['user']);
-            if ($org_email_record && $org_email_record->confirmed) {
-              $member_email_address = $org_email_record->email;
-            }
             if ($user_info['weight'] <= $email_threshhold) {
-              $members[] = strtolower($member_email_address);
+              // Delivery option is one of 'login', 'org' or 'both'.
+              // Use 'both' if it has not been set.
+              $deliveryOption = !empty($user_info['user']->field_delivery_options[LANGUAGE_NONE][0]['value']) ? $user_info['user']->field_delivery_options[LANGUAGE_NONE][0]['value'] : 'both';
+              if (($deliveryOption == 'org') || ($deliveryOption == 'both')) {
+                $org_email_record = wk_get_organization_mail($user_info['user']);
+                if ($org_email_record && $org_email_record->confirmed) {
+                  $members[] = strtolower($org_email_record->email);
+                }
+                elseif ($deliveryOption == 'org') {
+                  $deliveryOption = 'login';
+                }
+              }
+              if (($deliveryOption == 'login') || ($deliveryOption == 'both')) {
+                $members[] = strtolower($user_info['user']->mail);
+              }
             }
           }
         }
@@ -4975,6 +4980,14 @@ function wk_user_view($account, $view_mode) {
           ),
         );
 
+        if (($user->uid == $account->uid)) {
+          $deliveryOption = $account->field_delivery_options[LANGUAGE_NONE][0]['value'];
+          $account->content['select_delivery_options'] = array(
+            '#type' => 'delivery-options',
+            '#weight' => 100,
+            'delivery_options_display' => drupal_get_form('wk_select_delivery_options', $account, $org_mail, $deliveryOption),
+          );
+        }
       }
       else {
 
@@ -5007,6 +5020,57 @@ function wk_user_view($account, $view_mode) {
   }
 }
 
+function wk_select_delivery_options($form, &$form_state, $account, $org_mail, $selectedDeliveryOption = 'both') {
+  global $base_url;
+  $options = array(
+    'login' => t('Login email (@email)', array('@email' => $account->mail)),
+    'org' => t('Organization email (@email)', array('@email' => $org_mail)),
+    'both' => t('Both'),
+  );
+  $form['uid'] = array(
+    '#type' => 'hidden',
+    '#value' => $account->uid,
+  );
+  $form['choices'] = array(
+    '#title' => t('Delivery Options'),
+    '#description' => t('Select which addresses email forwards should be sent to.'),
+    '#type' => 'radios',
+    '#options' => $options,
+    '#default_value' => $selectedDeliveryOption,
+  );
+  $form['description'] = array(
+    '#type' => 'item',
+    '#markup' => t('<span class="note">The most reliable delivery option is to the organization email address. Set up an email forward in your gmail account if direct delivery to your login email address is not working. By the way, the base url is @url</span>', array('@url' => $base_url)),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Update',
+  );
+  return $form;
+}
+
+function wk_select_delivery_options_submit(&$form_state) {
+  $uid = $form_state['uid']['#value'];
+  $account = user_load($uid);
+
+  $deliveryOption = $form_state['choices']['#value'];
+
+  $edit = array(
+    'field_delivery_options' => array(
+      LANGUAGE_NONE => array(
+        0 => array(
+          'value' => $deliveryOption,
+        ),
+      ),
+    ),
+  );
+  user_save($account, $edit);
+
+  // Let the user know something happened.
+  // We will create the address in hook_cron.
+  drupal_set_message(t("Mail delivery options set to %option.", array('%option' => $deliveryOption)));
+}
+
 function wk_request_organization_email($form, &$form_state, $account) {
   $names = wk_potential_email_names($account->name);
   // Add '@westkingdom.org' on the end of each name.
@@ -5034,7 +5098,6 @@ function wk_request_organization_email($form, &$form_state, $account) {
     '#value' => 'Request',
   );
   return $form;
-
 }
 
 function wk_get_organization_email_info($mail) {
