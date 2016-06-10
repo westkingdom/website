@@ -5021,7 +5021,9 @@ function wk_user_view($account, $view_mode) {
 }
 
 function wk_select_delivery_options($form, &$form_state, $account, $org_mail, $selectedDeliveryOption = 'both') {
-  global $base_url;
+  if (empty($selectedDeliveryOption)) {
+    $selectedDeliveryOption = 'both';
+  }
   $options = array(
     'login' => t('Login email (@email)', array('@email' => $account->mail)),
     'org' => t('Organization email (@email)', array('@email' => $org_mail)),
@@ -5040,7 +5042,7 @@ function wk_select_delivery_options($form, &$form_state, $account, $org_mail, $s
   );
   $form['description'] = array(
     '#type' => 'item',
-    '#markup' => t('<span class="note">The most reliable delivery option is to the organization email address. Set up an email forward in your gmail account if direct delivery to your login email address is not working. By the way, the base url is @url</span>', array('@url' => $base_url)),
+    '#markup' => t('<span class="note">The most reliable delivery option is to the organization email address. Set up an email forward in your gmail account if direct delivery to your login email address is not working.</span>'),
   );
   $form['submit'] = array(
     '#type' => 'submit',
