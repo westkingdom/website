@@ -125,7 +125,9 @@ if(isset($field_link[LANGUAGE_NONE][0]['url'])) {
       hide($content['links']);
       $content['file']['#prefix'] = $link_prefix;
       $content['file']['#suffix'] = $link_suffix;
-      $content['field_file_image_title_text'][0]['#markup'] = $link_prefix . $content['field_file_image_title_text'][0]['#markup'] . $link_suffix;
+      if (isset($content['field_file_image_title_text'][0])) {
+        $content['field_file_image_title_text'][0]['#markup'] = $link_prefix . $content['field_file_image_title_text'][0]['#markup'] . $link_suffix;
+      }
       print render($content);
     ?>
   </div>
