@@ -5426,6 +5426,12 @@ function wk_email_request_get_activity_retries($eid) {
   return $data['r'];
 }
 
+function wk_email_request_bump_retry_counter($eid) {
+  $data = wk_email_request_get_activity_data($eid);
+  $data['r']++;
+  wk_email_request_set_activity_data($eid, $data);
+}
+
 function wk_email_request_get_activity_retry_delta($eid) {
   return min(wk_email_request_get_activity_retries($eid) * ONE_MINUTE * 15, ONE_DAY);
 }
