@@ -5108,7 +5108,14 @@ function wk_request_organization_email($form, &$form_state, $account) {
 
 function wk_get_organization_email_info($client, $mail) {
   $service = new Google_Service_Directory($client);
-  return $service->users->get($mail);
+  try {
+    $email_info = $service->users->get($mail);
+  }
+  catch (\Exception $e) {
+    return null;
+  }
+
+  return $email_info;
 }
 
 function wk_request_organization_email_validate($form, &$form_state) {
