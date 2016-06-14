@@ -1546,8 +1546,8 @@ function wk_simple_redirect_button_form($form, &$form_state, $label, $url, $text
   return $form;
 }
 
-function wk_simple_redirect_button_form_submit(&$form_state) {
-  $url = $form_state['url']['#value'];
+function wk_simple_redirect_button_form_submit($form, &$form_state) {
+  $url = $form_state['values']['url'];
   drupal_goto($url);
 }
 
@@ -1738,24 +1738,24 @@ function wk_officer_promote_heirs($form, &$form_state, $node) {
   return $form;
 }
 
-function wk_officer_promote_form_submit(&$form_state) {
-  $nid = $form_state['nid']['#value'];
+function wk_officer_promote_form_submit($form, &$form_state) {
+  $nid = $form_state['values']['nid'];
   $heirs_node = wk_get_heirs_node($nid);
 
   $node = wk_get_heirs_node($nid);
   if ($heirs_node) {
-    return wk_officer_promote_heirs_submit($form_state, $heirs_node);
+    return wk_officer_promote_heirs_submit($form, $form_state, $heirs_node);
   }
   else {
-    return wk_officer_promote_submit($form_state);
+    return wk_officer_promote_submit($form, $form_state);
   }
 }
 
-function wk_officer_promote_submit(&$form_state) {
-  $nid = $form_state['nid']['#value'];
-  $primary_officer_title = $form_state['primary_officer_title']['#value'];
-  $retain = $form_state['retain']['#value'];
-  $new_officer_parts = explode('.', $form_state['deputies']['#value']);
+function wk_officer_promote_submit($form, &$form_state) {
+  $nid = $form_state['values']['nid'];
+  $primary_officer_title = $form_state['values']['primary_officer_title'];
+  $retain = $form_state['values']['retain'];
+  $new_officer_parts = explode('.', $form_state['values']['deputies']);
 
   $officer_uid = array_pop($new_officer_parts);
 
@@ -1770,8 +1770,8 @@ function wk_officer_promote_submit(&$form_state) {
 
 }
 
-function wk_officer_promote_heirs_submit(&$form_state, $heirs_node) {
-  $nid = $form_state['nid']['#value'];
+function wk_officer_promote_heirs_submit($form, &$form_state, $heirs_node) {
+  $nid = $form_state['values']['nid'];
   $regent_node = wk_get_royals_node($nid);
 
   // Get a list of all of the UIDs of the group
@@ -1787,7 +1787,7 @@ function wk_officer_promote_heirs_submit(&$form_state, $heirs_node) {
     if (substr($key, 0, 6) == 'title-') {
       $uid = substr($key, 6);
       $title = $info['#value'];
-      $weight = $form_state['weight-' . $uid]['#value'];
+      $weight = $form_state['values']['weight-' . $uid];
 
       $user_list[] = array(
         'uid' => $uid,
@@ -1843,8 +1843,8 @@ function wk_reject_date_request($form, &$form_state, $id) {
   return $form;
 }
 
-function wk_reject_date_request_submit(&$form_state) {
-  $id = $form_state['request-id']['#value'];
+function wk_reject_date_request_submit($form, &$form_state) {
+  $id = $form_state['values']['request-id'];
   $date_request = new EntityDrupalWrapper('entityform', $id);
   $date_request->delete();
   drupal_goto('approve-date-requests');
@@ -3095,12 +3095,16 @@ function wk_email_request_approval_form($form, &$form_state) {
 function _wk_process_approve_selected_email_requests($form, &$form_state) {
   $unconfirmed = wk_unconfirmed_addresses_in_domain('@westkingdom.org');
   $client = wk_get_google_apps_client();
+  if (empty($client->getAccessToken())) {
+    drupal_set_message('Could not authenticate with Google Apps.', 'error');
+    return;
+  }
   $service = new Google_Service_Directory($client);
 
   foreach ($form_state['values']['approve_checkboxes'] as $eid => $selected) {
     if ($selected) {
       $info = multiple_email_load($eid);
-      wk_create_one_requested_email_address($eid, $info);
+      wk_create_one_requested_email_address($client, $eid, $info);
     }
   }
 }
@@ -5051,11 +5055,11 @@ function wk_select_delivery_options($form, &$form_state, $account, $org_mail, $s
   return $form;
 }
 
-function wk_select_delivery_options_submit(&$form_state) {
-  $uid = $form_state['uid']['#value'];
+function wk_select_delivery_options_submit($form, &$form_state) {
+  $uid = $form_state['values']['uid'];
   $account = user_load($uid);
 
-  $deliveryOption = $form_state['choices']['#value'];
+  $deliveryOption = $form_state['values']['choices'];
 
   $edit = array(
     'field_delivery_options' => array(
@@ -5102,35 +5106,50 @@ function wk_request_organization_email($form, &$form_state, $account) {
   return $form;
 }
 
-function wk_get_organization_email_info($mail) {
-  $client = wk_get_google_apps_client();
+function wk_get_organization_email_info($client, $mail) {
   $service = new Google_Service_Directory($client);
-
   return $service->users->get($mail);
 }
 
 function wk_request_organization_email_validate($form, &$form_state) {
-  $mail = $form_state['choices']['#value'];
-  if (wk_get_organization_email_info($mail)) {
-    return form_set_error('choices', t("The address !mail is already in use by another user.  Please make another selection, or contact the Kingdom Webminister.", array('!mail' => $mail)));
+  $mail = $form_state['values']['choices'];
+  if (!$mail) {
+    return form_set_error('choices', t("No address selected."));
   }
-
-  $uid = $form_state['uid']['#value'];
+  $client = wk_get_google_apps_client();
+  if (empty($client->getAccessToken())) {
+    return form_set_error('choices', t("Google Apps services not available."));
+  }
+  $uid = $form_state['values']['uid'];
   $account = user_load($uid);
   if (!isset($account->field_real_name[LANGUAGE_NONE][0]['value']) || empty($account->field_real_name[LANGUAGE_NONE][0]['value'])) {
     return form_set_error('choices', t("Your request to create %mail cannot be processed, because the 'Real Name' field has not been provided for your account.", array("%mail" => $mail)));
   }
+
+  $email_info = wk_get_organization_email_info($client, $mail);
+  if ($email_info && ($email_info->getName()->fullName == $account->field_real_name[LANGUAGE_NONE][0]['value'])) {
+    $form_state['#verified'] = TRUE;
+    return TRUE;
+  }
+  if ($email_info) {
+    return form_set_error('choices', t("The address !mail is already in use by another user.  Please make another selection, or contact the Kingdom Webminister.", array('!mail' => $mail)));
+  }
 }
 
-function wk_request_organization_email_submit(&$form_state) {
-  $uid = $form_state['uid']['#value'];
+function wk_request_organization_email_submit($form, &$form_state) {
+  $uid = $form_state['values']['uid'];
   $account = user_load($uid);
 
-  $mail = $form_state['choices']['#value'];
+  $mail = $form_state['values']['choices'];
 
   // Create a record in the multiple-email module's tables.
   // This will be marked as "unconfirmed".
   $eid = multiple_email_register_email($account->uid, $mail);
+  if (isset($form_state['#verified'])) {
+    $eid = multiple_email_register_email($account->uid, $mail, TRUE, $eid);
+    drupal_set_message(t("%mail has been set up for your use.", array("%mail" => $mail)));
+    return;
+  }
 
   // Let the user know something happened.
   // We will create the address in hook_cron.
@@ -5343,9 +5362,13 @@ function wk_cron() {
 }
 
 function wk_process_some_email_address_requests($max_addresses_to_create) {
+  $client = wk_get_google_apps_client();
+  if (empty($client->getAccessToken())) {
+    return;
+  }
   $unconfirmed = wk_unconfirmed_addresses_in_domain('@westkingdom.org');
   foreach ($unconfirmed as $eid => $mmail) {
-    $result = wk_create_one_requested_email_address($eid, $mmail);
+    $result = wk_create_one_requested_email_address($client, $eid, $mmail);
 
     // The result will be FALSE if no progress was made on the
     // current address; in this instance, we will not count it as
@@ -5364,11 +5387,10 @@ function wk_process_some_email_address_requests($max_addresses_to_create) {
 // This function does not create the requested address in one step;
 // you must call it repeatedly until it is done.  It is sometimes necessary
 // to wait a bit between calls, to give Google time to process requests.
-function wk_create_one_requested_email_address($eid, $mmail) {
+function wk_create_one_requested_email_address($client, $eid, $mmail) {
   $org_email = $mmail->email;
   $account = user_load($mmail->uid);
 
-  $client = wk_get_google_apps_client();
   $service = new Google_Service_Directory($client);
 
   return wk_add_organization_account($service, $account, $org_email, $eid);
