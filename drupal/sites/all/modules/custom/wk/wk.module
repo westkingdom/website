@@ -2062,6 +2062,14 @@ function wk_menu() {
     'access callback' => 'user_access',
     'access arguments' => array('configure calendar requests'),
   );
+  $items['users/%/mail/reset'] = array(
+    'title' => 'Organization email password reset',
+    'description' => 'Reset the password used to log into your westkingdom.org Google Apps account.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wk_google_apps_password_reset', 1),
+    'access callback' => 'wk_user_access_or_self',
+    'access arguments' => array('administer users', 1),
+  );
 /*
   // "mail" tab on group node
   $items['node/%wk_og_group_node/mail'] = array(
@@ -2387,6 +2395,14 @@ function wk_user_access_or_officer_in_nodes_branch($permission, $nid, $office_li
   return FALSE;
 }
 
+function wk_user_access_or_self($permission, $uid) {
+  global $user;
+  if (user_access($permission)) {
+    return TRUE;
+  }
+  return ($user->uid && ($user->uid == $uid));
+}
+
 function wk_user_access_or_group_member($permission, $group_list) {
   if (user_access($permission)) {
     return TRUE;
@@ -2552,6 +2568,7 @@ function _wk_earliest_event_request_data() {
 
   return strtotime("$year-$month-1 12:00:00");
 }
+
 
 function wk_calendar_status($form, &$form_state, $branch_group = NULL) {
   global $user;
@@ -4980,7 +4997,7 @@ function wk_user_view($account, $view_mode) {
     <div class="field-item">@org</div>
   </div>
 </div>
-<span class="note">E-mail sent to %org may be configured to forward to one of your other accounts; log on to your <a href="!url">West Kingdom Google Apps</a> account to set this up.</span>', array('@org' => $org_mail, '%org' => $org_mail, '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org')),
+<span class="note">E-mail sent to %org may be configured to forward to one of your other accounts; log on to your <a href="!url">West Kingdom Google Apps</a> account to set this up. You may !reset if you do not know it.</span>', array('@org' => $org_mail, '%org' => $org_mail, '%email' => $account->mail, '!url' => 'http://www.google.com/a/westkingdom.org', '!reset' => l('reset your Google Apps password', 'users/' . $account->uid . '/mail/reset'))),
           ),
         );
 
@@ -5104,6 +5121,51 @@ function wk_request_organization_email($form, &$form_state, $account) {
     '#value' => 'Request',
   );
   return $form;
+}
+
+function wk_google_apps_password_reset($form, &$form_state, $uid) {
+  $account = user_load($uid);
+  $org_email = wk_get_organization_mail($account);
+  if (!$org_email) {
+    $form = wk_request_organization_email($form, $form_state, $account);
+    return $form;
+  }
+  $form['uid'] = array(
+    '#type' => 'hidden',
+    '#value' => $account->uid,
+  );
+  $form['email'] = array(
+    '#type' => 'hidden',
+    '#value' => strtolower($org_email->email),
+  );
+  $form['password'] = array(
+    '#type' => 'password_confirm',
+    '#title' => t('New Google Apps password for %name', array('%name' => $account->name)),
+    '#size' => 25,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Reset',
+  );
+  return $form;
+}
+
+function wk_google_apps_password_reset_submit($form, &$form_state) {
+  $uid = $form_state['values']['uid'];
+  $org_email = $form_state['values']['email'];
+  $password = $form_state['values']['password'];
+  try {
+    $client = wk_get_google_apps_client();
+    $service = new Google_Service_Directory($client);
+    $email_info = $service->users->get($org_email);
+    $email_info->setPassword($password);
+    $service->users->patch($org_email, $email_info);
+    drupal_set_message(t('Google Apps password changed.'));
+  }
+  catch (\Exception $e) {
+    drupal_set_message(t('Failed to contact Google Apps; password not changed.'), 'error');
+  }
+  drupal_goto('user/' . $uid);
 }
 
 function wk_get_organization_email_info($client, $mail) {
