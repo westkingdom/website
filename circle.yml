@@ -22,3 +22,8 @@ test:
   post:
     - bin/stop-webserver
 
+deployment:
+  prod:
+    branch: master
+    commands:
+      - cd drupal && ../bin/drush @wkweb.stage ssh '(cd .. && git pull && composer install --no-dev); drush updatedb'
