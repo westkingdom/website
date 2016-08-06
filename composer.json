@@ -95,7 +95,8 @@
         "drupal/views_data_export": "7.3.*",
         "drupal/wysiwyg": "7.2.*",
         "drupal/wysiwyg_filter": "7.1.*",
-        "drupal/drupal-driver": "dev-master"
+        "drupal/drupal-driver": "dev-master",
+        "drupal/date_ical": "7.3.*"
     },
     "require-dev": {
         "pantheon-systems/ci-scripts": "1.*"
