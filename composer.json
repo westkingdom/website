@@ -98,7 +98,8 @@
         "drupal/drupal-driver": "dev-master"
     },
     "require-dev": {
-        "pantheon-systems/ci-scripts": "1.*"
+        "pantheon-systems/ci-scripts": "1.*",
+        "phpunit/phpunit": "^4.8"
     },
     "config": {
         "bin-dir": "bin/",
