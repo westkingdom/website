@@ -12,7 +12,6 @@ Directory of Files
 
 -  **drupal:** Drupal root
 -  **features:** Behat tests
--  **travis:** Public/Private key pair for Travis testing
 -  **scripts:** Define configuration and environment for tests
 -  **bin:** Scripts provided from Composer dependencies.
 
@@ -23,11 +22,14 @@ Configuration
 Uses drush_ctex_bonus to export configuration, which is imported again via the [install-configuration](https://github.com/westkingdom/website/blob/master/scripts/install-configuration) script.
 
 
-Deploying
----------
+Deploying Changes
+-----------------
 
-tbd
+After making any change to the site, create a pull request on GitHub. This will cause all of the unit tests to run on Circle CI.
 
+Once the tests pass, merge the PR into the `master` branch as usual. This will automatically deploy the site to http://stage.westkingdom.org. Inspect the deployed site and ensure that everything is operational. The staging site is protected with basic authentication to discourage web browsers. The username is `WEST` and the password is `WEST`.
+
+To deploy changes to the live site, merge the `master` branch into the `live` branch and push it up to GitHub. This will automatically deploy the site to http://westkingdom.org.
 
 Testing Locally
 ---------------
@@ -36,4 +38,3 @@ Run:
 
 ./bin/local-test
 
-The tests are also run via Travis automatically on every push to the central GitHub repository.
