@@ -21,6 +21,7 @@ test:
 
   post:
     - bin/stop-webserver
+    - ls -al $HOME/.ssh
 
 deployment:
   live:
