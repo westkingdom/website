@@ -1219,8 +1219,7 @@
                 "drupal": {
                     "version": "7.x-2.10",
                     "datestamp": "1491562083"
-                },
-                "patches_applied": []
+                }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [

@@ -2,9 +2,6 @@
   "patches": {
     "drupal/domain": {
       "Domain_conf permissions": "https://www.drupal.org/files/issues/domain-conf-450688-%2310.patch"
-    },
-    "drupal/date": {
-      "Calendar nav bug": "https://www.drupal.org/files/issues/calendar_pager_broken-2375235-35.patch"
     }
   }
 }
