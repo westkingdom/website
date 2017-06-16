@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "7e6405ea905111bd9801347ce9d300e0",
+    "content-hash": "c66843f50f4a5a78d614342e86c2c0c7",
     "packages": [
         {
             "name": "composer/installers",
@@ -1213,13 +1213,39 @@
             },
             "type": "drupal-module",
             "extra": {
-                "branch-alias": {
-                    "dev-2.x": "2.x-dev"
+                "enable-patching": true,
+                "patches-file": "composer-patches.json",
+                "installer-paths": {
+                    "drupal/sites/all/modules/contrib/{$name}/": [
+                        "type:drupal-module"
+                    ],
+                    "drupal/sites/all/themes/contrib/{$name}/": [
+                        "type:drupal-theme"
+                    ],
+                    "drupal/sites/all/drush/{$name}/": [
+                        "type:drupal-drush"
+                    ],
+                    "drupal/profiles/{$name}/": [
+                        "type:drupal-profile"
+                    ],
+                    "drupal/": [
+                        "drupal/drupal"
+                    ]
                 },
-                "drupal": {
-                    "version": "7.x-2.10",
-                    "datestamp": "1491562083"
-                }
+                "preserve-paths": [
+                    "drupal/sites/all/modules/contrib",
+                    "drupal/sites/all/modules/custom",
+                    "drupal/sites/all/modules/modified",
+                    "drupal/sites/all/themes",
+                    "drupal/sites/all/libraries",
+                    "drupal/sites/all/drush",
+                    "drupal/sites/all/vendor",
+                    "drupal/sites/default/settings.php",
+                    "drupal/sites/default/files",
+                    "drupal/drush",
+                    "drupal/files",
+                    "drupal/temp"
+                ]
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
