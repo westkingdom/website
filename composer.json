@@ -111,6 +111,7 @@
         "patches-file": "composer-patches.json",
         "installer-paths": {
             "drupal/sites/all/modules/contrib/{$name}/": ["type:drupal-module"],
+            "drupal/sites/all/themes/contrib/{$name}/": ["type:drupal-theme"],
             "drupal/sites/all/drush/{$name}/": ["type:drupal-drush"],
             "drupal/profiles/{$name}/": ["type:drupal-profile"],
             "drupal/": ["drupal/drupal"]
