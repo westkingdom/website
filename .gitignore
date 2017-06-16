@@ -37,7 +37,7 @@ drupal/themes/
 drupal/update.php
 drupal/web.config
 drupal/xmlrpc.php
-
+drupal/temp
 .vagrant
 **/.DS_Store
 **/pkg/
