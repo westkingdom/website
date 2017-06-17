@@ -467,6 +467,14 @@ div.media img,
 
 /* ----- Regnum change form ----- */
 
+#field-institutional-memory-email-add-more-wrapper {
+  display: none;
+}
+
+#edit-field-signed-warrant {
+  display: none;
+}
+
 #regnum-change-entityform-edit-form #edit-taxonomy-vocabulary-2 {
   float: right;
   width: 50%;
