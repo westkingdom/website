@@ -1087,6 +1087,28 @@ function regnum_block_info() {
   return $blocks;
 }
 
+function regnum_pending_submissions() {
+    global $user;
+    $result = regnum_submissions_user_can_approve($user);
+    $result = regnum_remove_approved_forms($result);
+
+    $submission_list = [];
+    foreach ($result as $id => $info) {
+      $submission = $info['submission'];
+      $regnum_form_bundle = $submission->getBundle();
+      $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+      $user_info = _regnum_entity_to_data_array($submission, $field_map);
+      $user_info = _regnum_fix_up_submission_data($user_info);
+      $submission_list[] = '<li>' . l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm") . '<pre>' . var_export($user_info, true) . '</pre></li>';
+    }
+
+    if (empty($submission_list)) {
+      return 'No pending submissions';
+    }
+
+    return '<ul>' . implode('', $submission_list) . '</ul>';
+}
+
 /**
  * Implementation of hook_block_view().
  */
@@ -1100,7 +1122,7 @@ function regnum_block_view($delta = '') {
       $content = '';
       $user_page = menu_get_object('user', 1);
       if (($user_page != NULL) && ($user != NULL) && ($user->uid == $user_page->uid)) {
-        $result = regnum_submissions_user_can_approve($user_page);
+        $result = regnum_submissions_user_can_approve($user);
         $result = regnum_remove_approved_forms($result);
         foreach ($result as $id => $info) {
           $submission = $info['submission'];
@@ -1171,6 +1193,9 @@ function regnum_remove_approved_forms($submission_list) {
   return $result;
 }
 
+/**
+ * Implement hook_menu
+ */
 function regnum_menu() {
   $items = array();
 
@@ -1190,6 +1215,13 @@ function regnum_menu() {
     'page arguments' => array(1),
     'access callback' => 'regnum_submission_access',
     'access arguments' => array(1),
+  );
+
+  $items['regnum/pending'] = array(
+    'title' => 'Pending regnum change submissions',
+    'description' => 'Show list of all pending regnum change submissions.',
+    'page callback' => 'regnum_pending_submissions',
+    'access arguments' => array('administer users'),
   );
 
   $items['admin/config/regnum'] = array(
