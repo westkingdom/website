@@ -180,7 +180,7 @@ function regnum_assign_officer($user_officer_info, $group_info) {
   }
   $user_wrapper->save();
 
-  return regnum_assign_user_to_office($user, $group_info, $user_officer_info['title'], $user_officer_info['deputy'], TRUE);
+  return regnum_assign_user_to_office($user, $group_info, $user_officer_info['title'], $user_officer_info['deputy'], FALSE);
 }
 
 function regnum_assign_user_to_office($user, $group_info, $desiredTitle, $asDeputy = FALSE, $retain_former_officer = FALSE) {
@@ -1164,7 +1164,7 @@ function regnum_remove_approved_forms($submission_list) {
   $result = array();
   foreach($submission_list as $id => $info) {
     $submission = $info['submission'];
-    if ($submission->field_submission_status->value() != "approved") {
+    if ($submission->field_submission_status->value() == "pending") {
       $result[$id] = $info;
     }
   }
@@ -1456,16 +1456,18 @@ function regnum_pending_submissions_form($form, &$form_state) {
     $user_info = _regnum_fix_up_submission_data($user_info);
     // $submission_list[] = '<li>' . l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm") . '<pre>' . var_export($user_info, true) . '</pre></li>';
 
-    $submission_render_array = entityform_page_view($submission);
+    $submission_entity = entityform_load($id);
+    $submission_render_array = entityform_page_view($submission_entity);
     $form_element_id = 'submission-' . $id;
 
     $form[$form_element_id] = array(
       '#type' => 'fieldset',
-      '#title' => t("!name: !title.", _regnum_map_to_dt_data($user_info)),
+      '#title' => t("!branch !office: !name", _regnum_map_to_dt_data($user_info)),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
     $form[$form_element_id]['info'] = $submission_render_array;
+
 
     $form[$form_element_id]['export'] = array(
       '#markup' => '<pre>' . var_export($user_info, true) . '</pre>',
