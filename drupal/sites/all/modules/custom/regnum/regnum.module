@@ -1087,28 +1087,6 @@ function regnum_block_info() {
   return $blocks;
 }
 
-function regnum_pending_submissions() {
-    global $user;
-    $result = regnum_submissions_user_can_approve($user);
-    $result = regnum_remove_approved_forms($result);
-
-    $submission_list = [];
-    foreach ($result as $id => $info) {
-      $submission = $info['submission'];
-      $regnum_form_bundle = $submission->getBundle();
-      $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
-      $user_info = _regnum_entity_to_data_array($submission, $field_map);
-      $user_info = _regnum_fix_up_submission_data($user_info);
-      $submission_list[] = '<li>' . l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm") . '<pre>' . var_export($user_info, true) . '</pre></li>';
-    }
-
-    if (empty($submission_list)) {
-      return 'No pending submissions';
-    }
-
-    return '<ul>' . implode('', $submission_list) . '</ul>';
-}
-
 /**
  * Implementation of hook_block_view().
  */
@@ -1220,7 +1198,8 @@ function regnum_menu() {
   $items['regnum/pending'] = array(
     'title' => 'Pending regnum change submissions',
     'description' => 'Show list of all pending regnum change submissions.',
-    'page callback' => 'regnum_pending_submissions',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_pending_submissions_form'),
     'access arguments' => array('administer users'),
   );
 
@@ -1464,6 +1443,54 @@ function regnum_warrant($submission_id) {
   exit;
 }
 
+function regnum_pending_submissions_form($form, &$form_state) {
+  global $user;
+  $result = regnum_submissions_user_can_approve($user);
+  $result = regnum_remove_approved_forms($result);
+
+  foreach ($result as $id => $info) {
+    $submission = $info['submission'];
+    $regnum_form_bundle = $submission->getBundle();
+    $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+    $user_info = _regnum_entity_to_data_array($submission, $field_map);
+    $user_info = _regnum_fix_up_submission_data($user_info);
+    // $submission_list[] = '<li>' . l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm") . '<pre>' . var_export($user_info, true) . '</pre></li>';
+
+    $submission_render_array = entityform_page_view($submission);
+    $form_element_id = 'submission-' . $id;
+
+    $form[$form_element_id] = array(
+      '#type' => 'fieldset',
+      '#title' => t("!name: !title.", _regnum_map_to_dt_data($user_info)),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+    $form[$form_element_id]['info'] = $submission_render_array;
+
+    $form[$form_element_id]['export'] = array(
+      '#markup' => '<pre>' . var_export($user_info, true) . '</pre>',
+    );
+
+    $form[$form_element_id]['id'] = array(
+      '#type' => 'hidden',
+      '#value' => $id,
+      '#attributes' => array('id' => $form_element_id . '-id')
+    );
+    $form[$form_element_id]['edit'] = array(
+      '#markup' => l("#$id", "regnum/$id/confirm"),
+    );
+  }
+
+  if (empty($result)) {
+    $form['no-submissions'] = array(
+      '#markup' => t('<p><b>No pending regnum submissions.</p>'),
+    );
+  }
+
+  return $form;
+}
+
+
 function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
   global $user;
   $submission_entity = entityform_load($submission_id);
@@ -1497,23 +1524,32 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
     '#attributes' => array('id' => 'submission')
   );
   $approvable = regnum_submission_is_approvable($submission, $user);
+
+  $submission_status = $submission->field_submission_status->value();
+  if (($submission_status == 'approved') || ($submission_status == 'denied')) {
+    $form['status-indicator'] = array(
+      '#markup' => '<p><b>' . t('This submission is already %status', array('%status' => $submission_status)) . '</b></p>',
+    );
+    $approvable = false;
+  }
+
   if ($approvable) {
     if ($effective_now) {
       $form['approve_button'] = array(
         '#type' => 'submit',
-        '#value' => t('Approve'),
+        '#value' => t('Confirm'),
         '#submit' => array('regnum_submission_confirm_form_approve'),
       );
     }
     else {
       $form['approve_button'] = array(
         '#type' => 'submit',
-        '#value' => t('Approve Now'),
+        '#value' => t('Confirm Now'),
         '#submit' => array('regnum_submission_confirm_form_approve'),
       );
       $form['approve_later_button'] = array(
         '#type' => 'submit',
-        '#value' => t('Approve on Effective Date'),
+        '#value' => t('Confirm on Effective Date'),
         '#submit' => array('regnum_submission_confirm_form_approve_later'),
       );
     }
