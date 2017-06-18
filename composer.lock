@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "c66843f50f4a5a78d614342e86c2c0c7",
+    "content-hash": "bd2bfa3f9e92f297763574f14e026f5c",
     "packages": [
         {
             "name": "composer/installers",
@@ -3568,17 +3568,17 @@
         },
         {
             "name": "drupal/media",
-            "version": "2.7.0",
+            "version": "2.8.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupal.org/project/media",
-                "reference": "7.x-2.7"
+                "reference": "7.x-2.8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/media-7.x-2.7.zip",
+                "url": "https://ftp.drupal.org/files/projects/media-7.x-2.8.zip",
                 "reference": null,
-                "shasum": "72ce851a80673e7bbb21c24cf51b0a0c4f0fe69d"
+                "shasum": "4d6640cea2815e3875a9f251164c5392c49d5e15"
             },
             "require": {
                 "drupal/drupal": "*",
@@ -3598,8 +3598,8 @@
                     "dev-2.x": "2.x-dev"
                 },
                 "drupal": {
-                    "version": "7.x-2.7",
-                    "datestamp": "1497543542"
+                    "version": "7.x-2.8",
+                    "datestamp": "1497597544"
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
@@ -3710,6 +3710,57 @@
             "homepage": "https://www.drupal.org/project/media_crop",
             "support": {
                 "source": "http://cgit.drupalcode.org/media_crop"
+            }
+        },
+        {
+            "name": "drupal/module_filter",
+            "version": "2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupal.org/project/module_filter",
+                "reference": "7.x-2.1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/module_filter-7.x-2.1.zip",
+                "reference": null,
+                "shasum": "0555a3f8b7832b61b327764d18cfdc16806c2bd9"
+            },
+            "require": {
+                "drupal/drupal": "~7.0"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "branch-alias": {
+                    "dev-2.x": "2.x-dev"
+                },
+                "drupal": {
+                    "version": "7.x-2.1",
+                    "datestamp": "1497029343"
+                }
+            },
+            "notification-url": "https://packages.drupal.org/7/downloads",
+            "license": [
+                "GPL-2.0+"
+            ],
+            "authors": [
+                {
+                    "name": "greenSkin",
+                    "homepage": "https://www.drupal.org/user/173855"
+                },
+                {
+                    "name": "realityloop",
+                    "homepage": "https://www.drupal.org/user/139189"
+                },
+                {
+                    "name": "shumushin",
+                    "homepage": "https://www.drupal.org/user/22093"
+                }
+            ],
+            "description": "Filter the modules list.",
+            "homepage": "https://www.drupal.org/project/module_filter",
+            "support": {
+                "source": "http://cgit.drupalcode.org/module_filter"
             }
         },
         {
@@ -5403,12 +5454,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/drush-ops/drush.git",
-                "reference": "95b57af5c69c3daa6d677615c4053a433848c7f1"
+                "reference": "8c93e0c871fbd2c7a90300ee5f8fd651c1e3f0d0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drush-ops/drush/zipball/95b57af5c69c3daa6d677615c4053a433848c7f1",
-                "reference": "95b57af5c69c3daa6d677615c4053a433848c7f1",
+                "url": "https://api.github.com/repos/drush-ops/drush/zipball/8c93e0c871fbd2c7a90300ee5f8fd651c1e3f0d0",
+                "reference": "8c93e0c871fbd2c7a90300ee5f8fd651c1e3f0d0",
                 "shasum": ""
             },
             "require": {
@@ -5500,7 +5551,7 @@
             ],
             "description": "Drush is a command line shell and scripting interface for Drupal, a veritable Swiss Army knife designed to make life easier for those of us who spend some of our working hours hacking away at the command prompt.",
             "homepage": "http://www.drush.org",
-            "time": "2017-06-09 11:58:08"
+            "time": "2017-06-17 13:54:07"
         },
         {
             "name": "google/apiclient",

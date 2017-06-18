@@ -71,6 +71,7 @@
         "drupal/machine_name": "^1",
         "drupal/media": "^2",
         "drupal/media_crop": "^1",
+        "drupal/module_filter": "^2",
         "drupal/multiform": "^1",
         "drupal/multiple_email": "^1",
         "drupal/og": "^2",
