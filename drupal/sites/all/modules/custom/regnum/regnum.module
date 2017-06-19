@@ -1211,19 +1211,27 @@ function regnum_menu() {
     'access callback' => TRUE,
   );
 
-  $items['regnum/select/officer-group'] = array(
+  $items['regnum/select/branch'] = array(
     'title' => 'Regnum Change - Kingdom or Principality for New Officer',
     'description' => 'Select the group for a new officer.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('regnum_select_officer_group_form'),
+    'page arguments' => array('regnum_select_officer_branch_form'),
     'access callback' => TRUE,
   );
 
-  $items['regnum/select/officer-group/%'] = array(
-    'title' => 'Regnum Change - Specific Branch Group for New Officer',
-    'description' => 'Select the specific group for a new officer.',
+  $items['regnum/select/%/specific-branch'] = array(
+    'title' => 'Regnum Change - Branch for New Officer',
+    'description' => 'Select the group for a new officer.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('regnum_select_officer_specific_group_form', 3),
+    'page arguments' => array('regnum_select_officer_specific_branch_form', 2),
+    'access callback' => TRUE,
+  );
+
+  $items['regnum/select/%/office'] = array(
+    'title' => 'Regnum Change - Select Office',
+    'description' => 'Select the office for a new officer.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_office', 2),
     'access callback' => TRUE,
   );
 
@@ -1502,7 +1510,7 @@ function regnum_select_form($form, &$form_state) {
   </div>
 
   <div id='appointed-to-office'>
-    <a href="/regnum/select/officer-group">I was appointed to an office</a>
+    <a href="/regnum/select/branch">I was appointed to an office</a>
   </div>
 
   <div id='baron'>
@@ -1515,10 +1523,29 @@ EOT
     return $form;
 }
 
-// regnum/select/officer-group
-function regnum_select_officer_group_form($form, &$form_state) {
-  $url = '/regnum/select/officer-group/%';
-  $output = regnum_select_kingdom_or_principality($url, 'Kingdom Officer', 'Officer', []);
+// regnum/select/branch
+function regnum_select_officer_branch_form($form, &$form_state) {
+  $url = '/regnum/select/{tid}/specific-branch';
+  $kingdom_url = '/regnum/select/{tid}/office';
+  $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
+  $output = regnum_select_primary_or_secondary($kingdom_tid, $url, 'Kingdom Officer', '{name}', [], $kingdom_url);
+
+  $form['text'] = array(
+    '#markup' => "<div id='select-officer-kingdom-or-principality'>$output</div>",
+  );
+
+  return $form;
+}
+
+// regnum/select/%/specific-branch
+function regnum_select_officer_specific_branch_form($form, &$form_state, $principality_tid) {
+  $url = '/regnum/select/{tid}/office';
+  $label = 'Principality Officer in {name}';
+  $term = regnum_normalize_term($principality_tid);
+  if (strstr($term->name, 'Barony')) {
+    $label = 'Baronial Officer in {name}';
+  }
+  $output = regnum_select_primary_or_secondary($principality_tid, $url, $label, '{name}', NULL, NULL, '/regnum/select/{tid}/specific-branch');
 
   $form['text'] = array(
     '#markup' => "<div id='select-officer-kingdom-or-principality'>$output</div>",
@@ -1557,18 +1584,29 @@ function regnum_branch_arms($term) {
   return '';
 }
 
-function regnum_select_kingdom_or_principality_item($tid, $tournament_type, $url, $extra_class = '') {
+function regnum_select_primary_or_secondary_item($tid, $label, $url, $extra_class = '') {
   $term = regnum_normalize_term($tid);
   $arms = regnum_branch_arms($term);
 
-  $url = str_replace('%', $tid, $url);
   $name = $term->name;
+
+  $replacements = [
+    '{name}' => $name,
+    '{shortname}' => _wk_term_short_name($term),
+    '{tid}' => $tid,
+  ];
+
+  $url = str_replace(array_keys($replacements), array_values($replacements), $url);
+  $label = str_replace(array_keys($replacements), array_values($replacements), $label);
+
+  $areas = $term->description;
 
   return <<<EOT
 <div class='select-kingdom-or-principality-item $extra_class'>
-  <div id='arms'><a href="$url">$arms</a></div>
+  <div class='arms'><a href="$url">$arms</a></div>
 
-  <div id='label'><a href="$url">$name $tournament_type</a></div>
+  <div class='label'><a href="$url">$label</a></div>
+  <div class='included-areas'>$areas</div>
 </div>
 
 EOT;
@@ -1576,8 +1614,9 @@ EOT;
 
 // regnum/select/tournament
 function regnum_select_tournament_form($form, &$form_state) {
-  $url = '/regnum/select/tournament/%';
-  $output = regnum_select_kingdom_or_principality($url, 'Crown Tournament', 'Coronet', [ 59 ]);
+  $url = '/regnum/select/tournament/{tid}';
+  $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
+  $output = regnum_select_primary_or_secondary($kingdom_tid, $url, '{name} Crown Tournament', '{shortname} Coronet', [ 59 ]);
 
   $form['text'] = array(
     '#markup' => "<div id='select-tournament-kingdom-or-principality'>$output</div>",
@@ -1586,37 +1625,59 @@ function regnum_select_tournament_form($form, &$form_state) {
   return $form;
 }
 
-function regnum_select_kingdom_or_principality($url, $kingdom_label, $principality_label, $remove_items = []) {
-  $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
+function regnum_select_primary_or_secondary($primary_item_tid, $url, $primary_item_label, $secondary_item_label, $remove_items = [], $primary_item_url = NULL, $url_for_items_with_children = NULL) {
+  if (!$primary_item_url) {
+    $primary_item_url = $url;
+  }
 
-  $principalities = regnum_children_of_branch_tids($kingdom_tid);
+  $principalities = regnum_children_of_branch_tids($primary_item_tid);
   // TODO: We should find a better way to remove items we do not want.
+  // TODO: Remove any where field_in_abeyance is set?
   foreach ($remove_items as $remove) {
     unset($principalities[$remove]);
   }
 
-  $extra_class = 'count-' . count($principalities);
-
   $output = "<div id='kingdom-selection'>";
-  $output .= regnum_select_kingdom_or_principality_item($kingdom_tid, $kingdom_label, $url, $extra_class);
+  $output .= regnum_select_primary_or_secondary_item($primary_item_tid, $primary_item_label, $primary_item_url);
   $output .= "</div>";
 
-  $output .= "<div id='principality-selection'>";
-  foreach ($principalities as $principality_tid) {
-    $output .= regnum_select_kingdom_or_principality_item($principality_tid, $principality_label, $url, $extra_class);
+  $output .= regnum_arrange_branches_in_rows($principalities, $secondary_item_label, $number, $url, $url_for_items_with_children);
+
+  return $output;
+}
+
+function regnum_arrange_branches_in_rows($principalities, $secondary_item_label, $number, $url, $url_for_items_with_children) {
+  $output = '';
+
+  $number = min(count($principalities), 5);
+  $extra_class = 'count-' . $number;
+
+  while (!empty($principalities)) {
+    $row = array_slice($principalities, 0, $number);
+    $principalities = array_slice($principalities, $number);
+    $output .= "<div id='principality-selection'>";
+    foreach ($row as $principality_tid) {
+      $item_url = $url;
+      if ($url_for_items_with_children) {
+        $children = regnum_children_of_branch_tids($principality_tid);
+        if (!empty($children)) {
+          $item_url = $url_for_items_with_children;
+        }
+      }
+      $output .= regnum_select_primary_or_secondary_item($principality_tid, $secondary_item_label, $item_url, $extra_class);
+    }
+    $output .= "</div>";
   }
-  $output .= "</div>";
 
   return $output;
 }
 
 // regnum/select/tournament/%
 function regnum_select_tournament_involvement_form($form, &$form_state, $tournament_branch) {
-  dpm($tournament_branch);
     $form['text'] = array(
       '#markup' => <<<EOT
   <div id='tournament-winner'>
-    <a href="/regnum/$tournament_branch/regent">I won the tournament</a>
+    <a href="/regnum/$tournament_branch/heirs">I won the tournament</a>
   </div>
 
   <div id='appointed-to-office'>
@@ -1645,17 +1706,19 @@ EOT
     return $form;
 }
 
-// regnum/select/officer-group/%
-function regnum_select_officer_specific_group_form($form, &$form_state, $principality) {
+// regnum/select/office
+function regnum_select_office($form, &$form_state) {
     $form['text'] = array(
       '#markup' => <<<EOT
-      Which specific group in a Principality?
+      Which Office?
 EOT
 ,
     );
 
     return $form;
 }
+
+
 
 function regnum_pending_submissions_form($form, &$form_state) {
   global $user;
