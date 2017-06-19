@@ -1195,6 +1195,54 @@ function regnum_menu() {
     'access arguments' => array(1),
   );
 
+  $items['regnum/select'] = array(
+    'title' => 'Regnum Change',
+    'description' => 'Select the type of Regnum form to submit.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_form'),
+    'access callback' => TRUE,
+  );
+
+  $items['regnum/select/barony'] = array(
+    'title' => 'Regnum Change - Barony',
+    'description' => 'Select the Barony.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_barony_form'),
+    'access callback' => TRUE,
+  );
+
+  $items['regnum/select/officer-group'] = array(
+    'title' => 'Regnum Change - Kingdom or Principality for New Officer',
+    'description' => 'Select the group for a new officer.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_officer_group_form'),
+    'access callback' => TRUE,
+  );
+
+  $items['regnum/select/officer-group/%'] = array(
+    'title' => 'Regnum Change - Specific Branch Group for New Officer',
+    'description' => 'Select the specific group for a new officer.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_officer_specific_group_form', 3),
+    'access callback' => TRUE,
+  );
+
+  $items['regnum/select/tournament'] = array(
+    'title' => 'Regnum Change - Select Tournament',
+    'description' => 'Select which Crown or Coronet tournament.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_tournament_form'),
+    'access callback' => TRUE,
+  );
+
+  $items['regnum/select/tournament/%'] = array(
+    'title' => 'Regnum Change - Specify Involvement',
+    'description' => 'Select your involvement in the tournament.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('regnum_select_tournament_involvement_form', 3),
+    'access callback' => TRUE,
+  );
+
   $items['regnum/pending'] = array(
     'title' => 'Pending regnum change submissions',
     'description' => 'Show list of all pending regnum change submissions.',
@@ -1441,6 +1489,172 @@ function regnum_warrant($submission_id) {
   </body>
 </html>";
   exit;
+}
+
+// It's kind of horrible to have nothing but static html in this form, as
+// this could just be a node. However, I don't want to mix code and database
+// pages in this workflow.
+function regnum_select_form($form, &$form_state) {
+    $form['text'] = array(
+      '#markup' => <<<EOT
+  <div id='tournament-winner'>
+    <a href="/regnum/select/tournament">I won a tournament</a>
+  </div>
+
+  <div id='appointed-to-office'>
+    <a href="/regnum/select/officer-group">I was appointed to an office</a>
+  </div>
+
+  <div id='baron'>
+    <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group.</a>
+  </div>
+EOT
+,
+    );
+
+    return $form;
+}
+
+// regnum/select/officer-group
+function regnum_select_officer_group_form($form, &$form_state) {
+  $url = '/regnum/select/officer-group/%';
+  $output = regnum_select_kingdom_or_principality($url, 'Kingdom Officer', 'Officer', []);
+
+  $form['text'] = array(
+    '#markup' => "<div id='select-officer-kingdom-or-principality'>$output</div>",
+  );
+
+  return $form;
+}
+
+// This function is duplicated as wk_children_of_branch_tids :P
+function regnum_children_of_branch_tids($parent_tid) {
+  $branch_group_tree = taxonomy_get_tree(2);
+  $result = array();
+  foreach ($branch_group_tree as $term) {
+    if (in_array($parent_tid, $term->parents)) {
+      $result[$term->tid] = $term->tid;
+    }
+  }
+  return $result;
+}
+
+function regnum_normalize_term($tid_or_term) {
+  if (is_array($tid_or_term)) {
+    $tid_or_term = $tid_or_term['tid'];
+  }
+  if (!is_object($tid_or_term)) {
+    return taxonomy_term_load($tid_or_term);
+  }
+  return $tid_or_term;
+}
+
+function regnum_branch_arms($term) {
+  $view = field_view_field("taxonomy_term", $term, "field_arms");
+  if (!empty($view)) {
+    return render($view);
+  }
+  return '';
+}
+
+function regnum_select_kingdom_or_principality_item($tid, $tournament_type, $url, $extra_class = '') {
+  $term = regnum_normalize_term($tid);
+  $arms = regnum_branch_arms($term);
+
+  $url = str_replace('%', $tid, $url);
+  $name = $term->name;
+
+  return <<<EOT
+<div class='select-kingdom-or-principality-item $extra_class'>
+  <div id='arms'><a href="$url">$arms</a></div>
+
+  <div id='label'><a href="$url">$name $tournament_type</a></div>
+</div>
+
+EOT;
+}
+
+// regnum/select/tournament
+function regnum_select_tournament_form($form, &$form_state) {
+  $url = '/regnum/select/tournament/%';
+  $output = regnum_select_kingdom_or_principality($url, 'Crown Tournament', 'Coronet', [ 59 ]);
+
+  $form['text'] = array(
+    '#markup' => "<div id='select-tournament-kingdom-or-principality'>$output</div>",
+  );
+
+  return $form;
+}
+
+function regnum_select_kingdom_or_principality($url, $kingdom_label, $principality_label, $remove_items = []) {
+  $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
+
+  $principalities = regnum_children_of_branch_tids($kingdom_tid);
+  // TODO: We should find a better way to remove items we do not want.
+  foreach ($remove_items as $remove) {
+    unset($principalities[$remove]);
+  }
+
+  $extra_class = 'count-' . count($principalities);
+
+  $output = "<div id='kingdom-selection'>";
+  $output .= regnum_select_kingdom_or_principality_item($kingdom_tid, $kingdom_label, $url, $extra_class);
+  $output .= "</div>";
+
+  $output .= "<div id='principality-selection'>";
+  foreach ($principalities as $principality_tid) {
+    $output .= regnum_select_kingdom_or_principality_item($principality_tid, $principality_label, $url, $extra_class);
+  }
+  $output .= "</div>";
+
+  return $output;
+}
+
+// regnum/select/tournament/%
+function regnum_select_tournament_involvement_form($form, &$form_state, $tournament_branch) {
+  dpm($tournament_branch);
+    $form['text'] = array(
+      '#markup' => <<<EOT
+  <div id='tournament-winner'>
+    <a href="/regnum/$tournament_branch/regent">I won the tournament</a>
+  </div>
+
+  <div id='appointed-to-office'>
+    <a href="/regnum/$tournament_branch/consort">I was the consort</a>
+  </div>
+
+  <div id='baron'>
+    <a href="/regnum/$tournament_branch/head-of-court">I agreed to serve as Head of Court.</a>
+  </div>
+EOT
+,
+    );
+
+    return $form;
+}
+
+// regnum/select/barony
+function regnum_select_barony_form($form, &$form_state) {
+    $form['text'] = array(
+      '#markup' => <<<EOT
+      Which barony?
+EOT
+,
+    );
+
+    return $form;
+}
+
+// regnum/select/officer-group/%
+function regnum_select_officer_specific_group_form($form, &$form_state, $principality) {
+    $form['text'] = array(
+      '#markup' => <<<EOT
+      Which specific group in a Principality?
+EOT
+,
+    );
+
+    return $form;
 }
 
 function regnum_pending_submissions_form($form, &$form_state) {
@@ -2673,7 +2887,8 @@ function _regnum_repair_domain_color_theme() {
   $fform_state['values']['palette'] = $fform_state['values']['info']['schemes'][$scheme]['colors'];
   $fform_state['values']['scheme'] = $scheme;
   // submitting the form
-  color_scheme_form_submit($fform, $fform_state);
+  // Comment this out because it applies to the wrong domain, corrupting the Kingdom color scheme. :(
+  //color_scheme_form_submit($fform, $fform_state);
 }
 
 function regnum_create_aliases_for_all_domains($alias_prefixes, $redirect = 0) {

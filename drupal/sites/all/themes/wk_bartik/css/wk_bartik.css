@@ -467,6 +467,42 @@ div.media img,
 
 /* ----- Regnum change form ----- */
 
+.select-kingdom-or-principality-item {
+  text-align: center;
+}
+
+#kingdom-selection {
+  text-align: center;
+  width: 100%;
+}
+
+#principality-selection {
+  display: flex;
+  text-align: center;
+  width: 100%;
+}
+
+#principality-selection .select-kingdom-or-principality-item.count-3 {
+  width: 33%;
+}
+
+#principality-selection .select-kingdom-or-principality-item.count-4 {
+  width: 25%;
+}
+
+#principality-selection .select-kingdom-or-principality-item.count-5 {
+  width: 20%;
+}
+
+.select-kingdom-or-principality-item .field-name-field-arms .field-label {
+  display: none;
+}
+
+#principality-selection .field-name-field-arms img {
+  margin: 5%;
+  height: auto;
+}
+
 #field-institutional-memory-email-add-more-wrapper {
   display: none;
 }
