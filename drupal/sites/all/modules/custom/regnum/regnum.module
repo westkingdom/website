@@ -1528,7 +1528,7 @@ function regnum_select_officer_branch_form($form, &$form_state) {
   $url = '/regnum/select/{tid}/specific-branch';
   $kingdom_url = '/regnum/select/{tid}/office';
   $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
-  $output = regnum_select_primary_or_secondary($kingdom_tid, $url, 'Kingdom Officer', '{name}', [], $kingdom_url);
+  $output = regnum_select_primary_or_secondary($kingdom_tid, $url, 'Kingdom Officer', '{name}', NULL, $kingdom_url);
 
   $form['text'] = array(
     '#markup' => "<div id='select-officer-kingdom-or-principality'>$output</div>",
@@ -1555,12 +1555,13 @@ function regnum_select_officer_specific_branch_form($form, &$form_state, $princi
 }
 
 // This function is duplicated as wk_children_of_branch_tids :P
-function regnum_children_of_branch_tids($parent_tid) {
-  $branch_group_tree = taxonomy_get_tree(2);
+function regnum_children_of_term($parent_tid) {
+  $parent_term = regnum_normalize_term($parent_tid);
+  $vocabulary_tree = taxonomy_get_tree($parent_term->vid);
   $result = array();
-  foreach ($branch_group_tree as $term) {
-    if (in_array($parent_tid, $term->parents)) {
-      $result[$term->tid] = $term->tid;
+  foreach ($vocabulary_tree as $child_term) {
+    if (in_array($parent_term->tid, $child_term->parents)) {
+      $result[$child_term->tid] = $child_term->tid;
     }
   }
   return $result;
@@ -1577,7 +1578,8 @@ function regnum_normalize_term($tid_or_term) {
 }
 
 function regnum_branch_arms($term) {
-  $view = field_view_field("taxonomy_term", $term, "field_arms");
+  $field_name = ($term->vid == 2) ? 'field_arms' : 'field_badge';
+  $view = field_view_field("taxonomy_term", $term, $field_name);
   if (!empty($view)) {
     return render($view);
   }
@@ -1616,7 +1618,10 @@ EOT;
 function regnum_select_tournament_form($form, &$form_state) {
   $url = '/regnum/select/tournament/{tid}';
   $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
-  $output = regnum_select_primary_or_secondary($kingdom_tid, $url, '{name} Crown Tournament', '{shortname} Coronet', [ 59 ]);
+  $remove_marches = function ($tid) {
+    return $tid != 59;
+  };
+  $output = regnum_select_primary_or_secondary($kingdom_tid, $url, '{name} Crown Tournament', '{shortname} Coronet', $remove_marches);
 
   $form['text'] = array(
     '#markup' => "<div id='select-tournament-kingdom-or-principality'>$output</div>",
@@ -1625,17 +1630,31 @@ function regnum_select_tournament_form($form, &$form_state) {
   return $form;
 }
 
-function regnum_select_primary_or_secondary($primary_item_tid, $url, $primary_item_label, $secondary_item_label, $remove_items = [], $primary_item_url = NULL, $url_for_items_with_children = NULL) {
+function regnum_select_office_greater_or_lesser($url) {
+  $greater_offices = regnum_children_of_term(94); // TODO: Better way to identify greater & lesser officers?
+  $lesser_offices = regnum_children_of_term(95);
+
+  $output = regnum_arrange_branches_in_rows($greater_offices, '{name}', 4, $url);
+
+  $output .= '<h3>' . t('Lesser Offices') . '</h3>';
+
+  $output .= regnum_arrange_branches_in_rows($lesser_offices, '{name}', 5, $url);
+
+  return $output;
+}
+
+function regnum_select_primary_or_secondary($primary_item_tid, $url, $primary_item_label, $secondary_item_label, $remove_fn = NULL, $primary_item_url = NULL, $url_for_items_with_children = NULL) {
   if (!$primary_item_url) {
     $primary_item_url = $url;
   }
 
-  $principalities = regnum_children_of_branch_tids($primary_item_tid);
-  // TODO: We should find a better way to remove items we do not want.
+  $principalities = regnum_children_of_term($primary_item_tid);
   // TODO: Remove any where field_in_abeyance is set?
-  foreach ($remove_items as $remove) {
-    unset($principalities[$remove]);
+  if ($remove_fn) {
+    $principalities = array_filter($principalities, $remove_fn);
   }
+
+  $number = min(count($principalities), 5);
 
   $output = "<div id='kingdom-selection'>";
   $output .= regnum_select_primary_or_secondary_item($primary_item_tid, $primary_item_label, $primary_item_url);
@@ -1646,10 +1665,9 @@ function regnum_select_primary_or_secondary($primary_item_tid, $url, $primary_it
   return $output;
 }
 
-function regnum_arrange_branches_in_rows($principalities, $secondary_item_label, $number, $url, $url_for_items_with_children) {
+function regnum_arrange_branches_in_rows($principalities, $secondary_item_label, $number, $url, $url_for_items_with_children = '') {
   $output = '';
 
-  $number = min(count($principalities), 5);
   $extra_class = 'count-' . $number;
 
   while (!empty($principalities)) {
@@ -1658,8 +1676,8 @@ function regnum_arrange_branches_in_rows($principalities, $secondary_item_label,
     $output .= "<div id='principality-selection'>";
     foreach ($row as $principality_tid) {
       $item_url = $url;
-      if ($url_for_items_with_children) {
-        $children = regnum_children_of_branch_tids($principality_tid);
+      if (!empty($url_for_items_with_children)) {
+        $children = regnum_children_of_term($principality_tid);
         if (!empty($children)) {
           $item_url = $url_for_items_with_children;
         }
@@ -1706,13 +1724,13 @@ EOT
     return $form;
 }
 
-// regnum/select/office
-function regnum_select_office($form, &$form_state) {
+// regnum/select/%/office
+function regnum_select_office($form, &$form_state, $branch_tid) {
+  $url = "/regnum/$branch_tid/{tid}";
+  $output = regnum_select_office_greater_or_lesser($url);
+
     $form['text'] = array(
-      '#markup' => <<<EOT
-      Which Office?
-EOT
-,
+      '#markup' => $output,
     );
 
     return $form;
