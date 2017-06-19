@@ -1215,7 +1215,7 @@ function regnum_menu() {
     'title' => 'Regnum Change - Kingdom or Principality for New Officer',
     'description' => 'Select the group for a new officer.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('regnum_select_officer_group_form'),
+    'page arguments' => array('regnum_select_officer_branch_form'),
     'access callback' => TRUE,
   );
 
@@ -1524,7 +1524,7 @@ EOT
 }
 
 // regnum/select/branch
-function regnum_select_officer_group_form($form, &$form_state) {
+function regnum_select_officer_branch_form($form, &$form_state) {
   $url = '/regnum/select/{tid}/specific-branch';
   $kingdom_url = '/regnum/select/{tid}/office';
   $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
@@ -1540,7 +1540,12 @@ function regnum_select_officer_group_form($form, &$form_state) {
 // regnum/select/%/specific-branch
 function regnum_select_officer_specific_branch_form($form, &$form_state, $principality_tid) {
   $url = '/regnum/select/{tid}/office';
-  $output = regnum_select_primary_or_secondary($principality_tid, $url, 'Principality Officer in {name}', '{name}', NULL, NULL, '/regnum/select/{tid}/specific-branch');
+  $label = 'Principality Officer in {name}';
+  $term = regnum_normalize_term($principality_tid);
+  if (strstr($term->name, 'Barony')) {
+    $label = 'Baronial Officer in {name}';
+  }
+  $output = regnum_select_primary_or_secondary($principality_tid, $url, $label, '{name}', NULL, NULL, '/regnum/select/{tid}/specific-branch');
 
   $form['text'] = array(
     '#markup' => "<div id='select-officer-kingdom-or-principality'>$output</div>",
@@ -1594,11 +1599,14 @@ function regnum_select_primary_or_secondary_item($tid, $label, $url, $extra_clas
   $url = str_replace(array_keys($replacements), array_values($replacements), $url);
   $label = str_replace(array_keys($replacements), array_values($replacements), $label);
 
+  $areas = $term->description;
+
   return <<<EOT
 <div class='select-kingdom-or-principality-item $extra_class'>
-  <div id='arms'><a href="$url">$arms</a></div>
+  <div class='arms'><a href="$url">$arms</a></div>
 
-  <div id='label'><a href="$url">$label</a></div>
+  <div class='label'><a href="$url">$label</a></div>
+  <div class='included-areas'>$areas</div>
 </div>
 
 EOT;
@@ -1624,16 +1632,25 @@ function regnum_select_primary_or_secondary($primary_item_tid, $url, $primary_it
 
   $principalities = regnum_children_of_branch_tids($primary_item_tid);
   // TODO: We should find a better way to remove items we do not want.
+  // TODO: Remove any where field_in_abeyance is set?
   foreach ($remove_items as $remove) {
     unset($principalities[$remove]);
   }
 
+  $output = "<div id='kingdom-selection'>";
+  $output .= regnum_select_primary_or_secondary_item($primary_item_tid, $primary_item_label, $primary_item_url);
+  $output .= "</div>";
+
+  $output .= regnum_arrange_branches_in_rows($principalities, $secondary_item_label, $number, $url, $url_for_items_with_children);
+
+  return $output;
+}
+
+function regnum_arrange_branches_in_rows($principalities, $secondary_item_label, $number, $url, $url_for_items_with_children) {
+  $output = '';
+
   $number = min(count($principalities), 5);
   $extra_class = 'count-' . $number;
-
-  $output = "<div id='kingdom-selection'>";
-  $output .= regnum_select_primary_or_secondary_item($primary_item_tid, $primary_item_label, $primary_item_url, $extra_class);
-  $output .= "</div>";
 
   while (!empty($principalities)) {
     $row = array_slice($principalities, 0, $number);
@@ -1660,7 +1677,7 @@ function regnum_select_tournament_involvement_form($form, &$form_state, $tournam
     $form['text'] = array(
       '#markup' => <<<EOT
   <div id='tournament-winner'>
-    <a href="/regnum/$tournament_branch/regent">I won the tournament</a>
+    <a href="/regnum/$tournament_branch/heirs">I won the tournament</a>
   </div>
 
   <div id='appointed-to-office'>

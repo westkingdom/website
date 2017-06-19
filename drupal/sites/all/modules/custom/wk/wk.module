@@ -1238,7 +1238,7 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
     // Special checking!
     if (($office_from_menu == 'consort') || ($office_from_menu == 'head-of-court')) {
       $volunteer = ucfirst(str_replace('-', ' ', $office_from_menu));
-      $office_from_menu = 'regent';
+      $office_from_menu = 'heirs'; // TODO: This should be 'regent' if investiture has already happened.
       $office_label = $volunteer;
     }
     $terms = taxonomy_get_tree(3);

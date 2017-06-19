@@ -498,6 +498,11 @@ div.media img,
   display: none;
 }
 
+.included-areas {
+  font-size: 80%;
+  color: gray;
+}
+
 #principality-selection .field-name-field-arms img {
   margin: 5%;
   height: auto;
