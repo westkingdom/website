@@ -27,9 +27,9 @@ deployment:
     branch: live
     commands:
       - cd drupal && ../bin/drush @wkweb.live ssh '(cd .. && git pull && composer install --no-dev)'
-      - cd drupal && ../bin/drush @wkweb.live updatedb --yes
+      - cd drupal && ../bin/drush @wkweb.live updatedb --yes && ../bin/drush @wkweb.stage cc all --yes
   stage:
     branch: master
     commands:
       - cd drupal && ../bin/drush @wkweb.stage ssh '(cd .. && git pull && composer install --no-dev)'
-      - cd drupal && ../bin/drush @wkweb.stage updatedb --yes
+      - cd drupal && ../bin/drush @wkweb.stage updatedb --yes && ../bin/drush @wkweb.stage cc all --yes
