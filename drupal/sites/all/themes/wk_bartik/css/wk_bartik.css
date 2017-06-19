@@ -494,7 +494,8 @@ div.media img,
   width: 20%;
 }
 
-.select-kingdom-or-principality-item .field-name-field-arms .field-label {
+.select-kingdom-or-principality-item .field-name-field-arms .field-label,
+.select-kingdom-or-principality-item .field-name-field-badge .field-label {
   display: none;
 }
 
