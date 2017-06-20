@@ -1630,8 +1630,26 @@ function regnum_select_tournament_form($form, &$form_state) {
   return $form;
 }
 
+function regnum_select_barony($primary_item_tid, $url) {
+  $principalities = regnum_children_of_term($primary_item_tid);
+
+  $output = '';
+  foreach ($principalities as $principality_tid) {
+    $branch_groups = regnum_children_of_term($principality_tid);
+    $branch_groups = array_filter($branch_groups, function ($tid) {
+      $term = taxonomy_term_load($tid);
+      return strstr($term->name, 'Barony') !== FALSE;
+    });
+    if (!empty($branch_groups)) {
+      $output .= regnum_arrange_branches_in_rows($branch_groups, '{name}', 5, $url);
+    }
+  }
+  return $output;
+}
+
 function regnum_select_office_greater_or_lesser($url) {
-  $greater_offices = regnum_children_of_term(94); // TODO: Better way to identify greater & lesser officers?
+  // TODO: Better way to identify greater & lesser officers?
+  $greater_offices = regnum_children_of_term(94);
   $lesser_offices = regnum_children_of_term(95);
 
   $output = regnum_arrange_branches_in_rows($greater_offices, '{name}', 4, $url);
@@ -1714,14 +1732,14 @@ EOT
 
 // regnum/select/barony
 function regnum_select_barony_form($form, &$form_state) {
-    $form['text'] = array(
-      '#markup' => <<<EOT
-      Which barony?
-EOT
-,
-    );
+  $kingdom_tid = 2; // KINGDOM_OF_THE_WEST_TID in wk.module :P
+  $url = '/regnum/{tid}/baron';
+  $output = regnum_select_barony($kingdom_tid, $url);
+  $form['text'] = array(
+    '#markup' => $output,
+  );
 
-    return $form;
+  return $form;
 }
 
 // regnum/select/%/office
