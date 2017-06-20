@@ -1503,24 +1503,49 @@ function regnum_warrant($submission_id) {
 // this could just be a node. However, I don't want to mix code and database
 // pages in this workflow.
 function regnum_select_form($form, &$form_state) {
-    $form['text'] = array(
-      '#markup' => <<<EOT
-  <div id='tournament-winner'>
-    <a href="/regnum/select/tournament">I won a tournament</a>
+  $module_path = drupal_get_path("module", "regnum");
+
+  $won_a_tournament = "/$module_path/images/won-a-tournament.jpg";
+  $appointed_to_office = "/$module_path/images/won-a-tournament.jpg";
+  $stepped_up_as_baron = "/$module_path/images/won-a-tournament.jpg";
+
+  $form['text'] = array(
+    '#markup' => <<<EOT
+<div class='regnum-select-row first'>
+  <div id='tournament-winner' class='selection-item'>
+    <div id='image'>
+      <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
+    </div>
+    <div id='label'>
+      <a href="/regnum/select/tournament">I won a tournament</a>
+    </div>
   </div>
 
-  <div id='appointed-to-office'>
-    <a href="/regnum/select/branch">I was appointed to an office</a>
+  <div id='appointed-to-office' class='selection-item'>
+    <div id='image'>
+      <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
+    </div>
+    <div id='label'>
+      <a href="/regnum/select/branch">I was appointed to an office</a>
+    </div>
   </div>
+</div>
 
-  <div id='baron'>
-    <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group.</a>
+<div class='regnum-select-row second'>
+  <div id='baron' class='selection-item'>
+    <div id='image'>
+      <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
+    </div>
+    <div id='label'>
+      <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group.</a>
+    </div>
   </div>
+</div>
 EOT
 ,
-    );
+  );
 
-    return $form;
+  return $form;
 }
 
 // regnum/select/branch
