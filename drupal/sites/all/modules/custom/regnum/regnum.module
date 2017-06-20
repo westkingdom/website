@@ -1586,6 +1586,21 @@ function regnum_branch_arms($term) {
   return '';
 }
 
+function regnum_section_heading_for_baronies($principality_tid) {
+  $term = regnum_normalize_term($principality_tid);
+  $arms = regnum_branch_arms($term);
+
+  $name = $term->name;
+
+  return <<<EOT
+<div class='select-barony-header'>
+  $arms <div class='select-barony-label'>$name</div>
+</div>
+
+EOT;
+
+}
+
 function regnum_select_primary_or_secondary_item($tid, $label, $url, $extra_class = '') {
   $term = regnum_normalize_term($tid);
   $arms = regnum_branch_arms($term);
@@ -1641,6 +1656,7 @@ function regnum_select_barony($primary_item_tid, $url) {
       return strstr($term->name, 'Barony') !== FALSE;
     });
     if (!empty($branch_groups)) {
+      $output .= regnum_section_heading_for_baronies($principality_tid);
       $output .= regnum_arrange_branches_in_rows($branch_groups, '{name}', 5, $url);
     }
   }

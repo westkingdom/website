@@ -467,6 +467,23 @@ div.media img,
 
 /* ----- Regnum change form ----- */
 
+.select-barony-header .select-barony-label {
+  font-size: 24px;
+}
+
+.select-barony-header .field-label {
+  display: none;
+}
+
+.select-barony-header .field-name-field-arms {
+  float: left;
+}
+
+.select-barony-header img {
+  width: 32px;
+  margin-right: 12px;
+}
+
 .select-kingdom-or-principality-item {
   text-align: center;
 }
