@@ -465,7 +465,28 @@ div.media img,
   width: 90%;
 }
 
-/* ----- Regnum change form ----- */
+/* ----- Regnum pending submissions form -----*/
+
+#regnum-pending-submissions-form fieldset.collapsed,
+#regnum-pending-submissions-form fieldset.collapsed legend {
+  border: none;
+  margin-bottom: 0px;
+}
+
+#regnum-pending-submissions-form fieldset {
+  margin-top: -20px;
+  margin-left: 16px;
+}
+
+#regnum-pending-submissions-form fieldset legend {
+  font-size: 70%;
+}
+
+#regnum-pending-submissions-form fieldset h2 {
+  display: none;
+}
+
+/* ----- Regnum selection ----- */
 
 .regnum-select-row {
   display: flex;
@@ -547,6 +568,8 @@ div.media img,
   margin: 5%;
   height: auto;
 }
+
+/* ----- Regnum change form ----- */
 
 #field-institutional-memory-email-add-more-wrapper {
   display: none;

@@ -1502,12 +1502,14 @@ function regnum_warrant($submission_id) {
 // It's kind of horrible to have nothing but static html in this form, as
 // this could just be a node. However, I don't want to mix code and database
 // pages in this workflow.
+// TODO: Maybe these images could be added to a taxonomy term and rendered
+// with some of the existing code.
 function regnum_select_form($form, &$form_state) {
   $module_path = drupal_get_path("module", "regnum");
 
-  $won_a_tournament = "/$module_path/images/won-a-tournament.jpg";
-  $appointed_to_office = "/$module_path/images/won-a-tournament.jpg";
-  $stepped_up_as_baron = "/$module_path/images/won-a-tournament.jpg";
+  $won_a_tournament = "/$module_path/images/won-a-tournament.png";
+  $appointed_to_office = "/$module_path/images/officer.png";
+  $stepped_up_as_baron = "/$module_path/images/became-baron.png";
 
   $form['text'] = array(
     '#markup' => <<<EOT
@@ -1523,7 +1525,7 @@ function regnum_select_form($form, &$form_state) {
 
   <div id='appointed-to-office' class='selection-item'>
     <div id='image'>
-      <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
+      <a href="/regnum/select/tournament"><img src="$appointed_to_office" alt="I won a tournament"/></a>
     </div>
     <div id='label'>
       <a href="/regnum/select/branch">I was appointed to an office</a>
@@ -1534,7 +1536,7 @@ function regnum_select_form($form, &$form_state) {
 <div class='regnum-select-row second'>
   <div id='baron' class='selection-item'>
     <div id='image'>
-      <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
+      <a href="/regnum/select/tournament"><img src="$stepped_up_as_baron" alt="I won a tournament"/></a>
     </div>
     <div id='label'>
       <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group.</a>
@@ -1768,7 +1770,49 @@ EOT
 ,
     );
 
-    return $form;
+  $module_path = drupal_get_path("module", "regnum");
+
+  $won_a_tournament = "/$module_path/images/won-a-tournament.png";
+  $consort = "/$module_path/images/officer.png";
+  $head_of_court = "/$module_path/images/officer.png";
+
+  $form['text'] = array(
+    '#markup' => <<<EOT
+<div class='regnum-select-row first'>
+  <div id='tournament-winner' class='selection-item'>
+    <div id='image'>
+      <a href="/regnum/$tournament_branch/heirs"><img src="$won_a_tournament" alt="I won a tournament"/></a>
+    </div>
+    <div id='label'>
+      <a href="/regnum/$tournament_branch/heirs">I won the tournament</a>
+    </div>
+  </div>
+
+  <div id='appointed-to-office' class='selection-item'>
+    <div id='image'>
+      <a href="/regnum/$tournament_branch/consort"><img src="$consort" alt="I was the consort"/></a>
+    </div>
+    <div id='label'>
+      <a href="/regnum/$tournament_branch/consort">I was the consort</a>
+    </div>
+  </div>
+</div>
+
+<div class='regnum-select-row second'>
+  <div id='baron' class='selection-item'>
+    <div id='image'>
+      <a href="/regnum/$tournament_branch/head-of-court"><img src="$head_of_court" alt="I am Head of Court."/></a>
+    </div>
+    <div id='label'>
+    <a href="/regnum/$tournament_branch/head-of-court">I am Head of Court.</a>
+    </div>
+  </div>
+</div>
+EOT
+,
+  );
+
+  return $form;
 }
 
 // regnum/select/barony
@@ -1802,6 +1846,8 @@ function regnum_pending_submissions_form($form, &$form_state) {
   $result = regnum_submissions_user_can_approve($user);
   $result = regnum_remove_approved_forms($result);
 
+  $some_are_approved_later = false;
+
   foreach ($result as $id => $info) {
     $submission = $info['submission'];
     $regnum_form_bundle = $submission->getBundle();
@@ -1812,19 +1858,41 @@ function regnum_pending_submissions_form($form, &$form_state) {
 
     $submission_entity = entityform_load($id);
     $submission_render_array = entityform_page_view($submission_entity);
+
+    // Make the submission details display a little more compact
+    // hide($submission_render_array['entityform'][$id]['info']);
+    hide($submission_render_array['entityform'][$id]['field_office']);
+    hide($submission_render_array['entityform'][$id]['taxonomy_vocabulary_2']);
+    hide($submission_render_array['entityform'][$id]['field_submission_status']);
+    hide($submission_render_array['entityform'][$id]['field_institutional_memory_email']);
+/*
+    // Is the effective date in the future?
+    $unixtime = regnum_get_date_value_as_epoch($submission->field_effective_date->value());
+    $effective_now = ($unixtime < time());
+    if (!$effective_now) {
+      $some_are_approved_later = true;
+    }
+*/
+    $form['select-' . $id] = array(
+      '#type' => 'checkbox',
+      '#checked' => FALSE,
+      '#default_value' => $id,
+      '#title' => t("!branch !office: !name", _regnum_map_to_dt_data($user_info)) . ' ' .  l("#$id", "regnum/$id/confirm"),
+    );
+
     $form_element_id = 'submission-' . $id;
 
     $form[$form_element_id] = array(
       '#type' => 'fieldset',
-      '#title' => t("!branch !office: !name", _regnum_map_to_dt_data($user_info)),
+      '#title' => t("Details"),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
     $form[$form_element_id]['info'] = $submission_render_array;
 
-
+/*
     $form[$form_element_id]['export'] = array(
-      '#markup' => '<pre>' . var_export($user_info, true) . '</pre>',
+      '#markup' => '<pre>' . var_export($submission_render_array, true) . '</pre>',
     );
 
     $form[$form_element_id]['id'] = array(
@@ -1832,9 +1900,11 @@ function regnum_pending_submissions_form($form, &$form_state) {
       '#value' => $id,
       '#attributes' => array('id' => $form_element_id . '-id')
     );
+
     $form[$form_element_id]['edit'] = array(
       '#markup' => l("#$id", "regnum/$id/confirm"),
     );
+*/
   }
 
   if (empty($result)) {
@@ -1842,10 +1912,48 @@ function regnum_pending_submissions_form($form, &$form_state) {
       '#markup' => t('<p><b>No pending regnum submissions.</p>'),
     );
   }
+/*
+  else {
+    if (!$some_are_approved_later) {
+      $form['approve_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Confirm'),
+        '#submit' => array('regnum_submission_confirm_form_approve'),
+      );
+    }
+    else {
+      $form['approve_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Confirm Now'),
+        '#submit' => array('regnum_submission_confirm_form_approve'),
+      );
+      $form['approve_later_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Confirm on Effective Date'),
+        '#submit' => array('regnum_submission_confirm_form_approve_later'),
+      );
+    }
+    $form['deny_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Deny'),
+      '#submit' => array('regnum_submission_confirm_form_deny'),
+    );
+    $form['cancel_button'] = array(
+      '#type' => 'submit',
+      '#value' => t('Cancel'),
+      '#submit' => array('regnum_submission_confirm_form_cancel'),
+    );
 
+  }
+*/
   return $form;
 }
 
+function regnum_get_date_value_as_epoch($dv) {
+  // TODO: This presumes $dv['date_type'] == 'datetime'. Is there a Drupal API to do this?
+  $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+  return $d->format('U');
+}
 
 function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
   global $user;
@@ -1858,10 +1966,7 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
   $user_info = _regnum_fix_up_submission_data($user_info);
   $content = t("!name has applied for !title.", _regnum_map_to_dt_data($user_info)) . '<br>';
 
-  // TODO: This presumes $dv['date_type'] == 'datetime'. Is there a Drupal API to do this?
-  $dv = $submission->field_effective_date->value();
-  $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
-  $unixtime = $d->format('U');
+  $unixtime = regnum_get_date_value_as_epoch($submission->field_effective_date->value());
   $effective_now = ($unixtime < time());
 
 /*
