@@ -427,6 +427,26 @@ function regnum_submission_is_approvable($submission, $the_user) {
 }
 
 /**
+ * This does the same work as entityform_get_submissions, but also adds
+ * a submission status conditional to avoid querying records that we do
+ * not need to consider.
+ */
+function regnum_get_submissions_of_status($entityform_bundle = NULL, $submission_status = 'pending') {
+  $submissions = array();
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', "entityform");
+  if ($entityform_bundle) {
+    $query->propertyCondition('type', $entityform_bundle);
+  }
+  $query->fieldCondition('field_submission_status', 'value', 'pending', '=');
+  $result = $query->execute();
+  if (isset($result['entityform'])) {
+    $submissions = $result['entityform'];
+  }
+  return $submissions;
+}
+
+/**
  * Given a user ID or user record, return a list of submissions
  * that can be approved by the user.
  *
@@ -461,7 +481,7 @@ function regnum_submissions_user_can_approve($the_user) {
   }
   foreach (_regnum_configured_entityforms() as $entityform_bundle => $info) {
     // Now iterate over all of the submissions.
-    $toc = entityform_get_submissions($entityform_bundle);
+    $toc = regnum_get_submissions_of_status($entityform_bundle);
     foreach ($toc as $id => $info) {
       $submission = new EntityDrupalWrapper('entityform', $id);
       $approval_offices = regnum_approval_offices_for_submission($submission);
@@ -1101,18 +1121,22 @@ function regnum_block_view($delta = '') {
       $user_page = menu_get_object('user', 1);
       if (($user_page != NULL) && ($user != NULL) && ($user->uid == $user_page->uid)) {
         $result = regnum_submissions_user_can_approve($user);
-        $result = regnum_remove_approved_forms($result);
-        foreach ($result as $id => $info) {
+
+        if (count($result) == 1) {
+          $info = reset($result);
           $submission = $info['submission'];
           $regnum_form_bundle = $submission->getBundle();
           $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
           $user_info = _regnum_entity_to_data_array($submission, $field_map);
           $user_info = _regnum_fix_up_submission_data($user_info);
-          $content .= l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm") . '</br>';
+          $content .= t('You have one Regnum submission form to approve:') . '<br/>' . l(t("!name: !title.", _regnum_map_to_dt_data($user_info)), "regnum/$id/confirm");
+        }
+        else {
+          $content .= t('You have !link to approve.', ['!link' => l(t('!count Regnum submissions', ['!count' => count($result)]), 'regnum/pending')]);
         }
       }
       if (!empty($content)) {
-        $block['subject'] = t('Approval List for ' . $user->name);
+        $block['subject'] = t('Regnum approvals');
         $block['content'] = t($content);
       }
       break;
@@ -1158,17 +1182,6 @@ function regnum_block_view($delta = '') {
       break;
   }
   return $block;
-}
-
-function regnum_remove_approved_forms($submission_list) {
-  $result = array();
-  foreach($submission_list as $id => $info) {
-    $submission = $info['submission'];
-    if ($submission->field_submission_status->value() == "pending") {
-      $result[$id] = $info;
-    }
-  }
-  return $result;
 }
 
 /**
@@ -1753,23 +1766,6 @@ function regnum_arrange_branches_in_rows($principalities, $secondary_item_label,
 
 // regnum/select/tournament/%
 function regnum_select_tournament_involvement_form($form, &$form_state, $tournament_branch) {
-    $form['text'] = array(
-      '#markup' => <<<EOT
-  <div id='tournament-winner'>
-    <a href="/regnum/$tournament_branch/heirs">I won the tournament</a>
-  </div>
-
-  <div id='appointed-to-office'>
-    <a href="/regnum/$tournament_branch/consort">I was the consort</a>
-  </div>
-
-  <div id='baron'>
-    <a href="/regnum/$tournament_branch/head-of-court">I agreed to serve as Head of Court.</a>
-  </div>
-EOT
-,
-    );
-
   $module_path = drupal_get_path("module", "regnum");
 
   $won_a_tournament = "/$module_path/images/won-a-tournament.png";
@@ -1844,7 +1840,6 @@ function regnum_select_office($form, &$form_state, $branch_tid) {
 function regnum_pending_submissions_form($form, &$form_state) {
   global $user;
   $result = regnum_submissions_user_can_approve($user);
-  $result = regnum_remove_approved_forms($result);
 
   $some_are_approved_later = false;
 
@@ -1865,19 +1860,22 @@ function regnum_pending_submissions_form($form, &$form_state) {
     hide($submission_render_array['entityform'][$id]['taxonomy_vocabulary_2']);
     hide($submission_render_array['entityform'][$id]['field_submission_status']);
     hide($submission_render_array['entityform'][$id]['field_institutional_memory_email']);
-/*
+
     // Is the effective date in the future?
     $unixtime = regnum_get_date_value_as_epoch($submission->field_effective_date->value());
     $effective_now = ($unixtime < time());
+    $effective_label = '';
     if (!$effective_now) {
       $some_are_approved_later = true;
+      $d = regnum_get_date_time($submission->field_effective_date->value());
+      $effective_label = ' &nbsp; <b>Effective ' . $d->format('Y F j') . '</b>';
     }
-*/
+
     $form['select-' . $id] = array(
       '#type' => 'checkbox',
       '#checked' => FALSE,
       '#default_value' => $id,
-      '#title' => t("!branch !office: !name", _regnum_map_to_dt_data($user_info)) . ' ' .  l("#$id", "regnum/$id/confirm"),
+      '#title' => t("!branch !office: !name", _regnum_map_to_dt_data($user_info)) . ' ' .  l("#$id", "regnum/$id/confirm") . $effective_label,
     );
 
     $form_element_id = 'submission-' . $id;
@@ -1891,6 +1889,10 @@ function regnum_pending_submissions_form($form, &$form_state) {
     $form[$form_element_id]['info'] = $submission_render_array;
 
 /*
+    $form[$form_element_id]['effective-date'] = array(
+      '#markup' => '<pre>' . var_export($submission->field_effective_date->value()
+, true) . '</pre>',
+    );
     $form[$form_element_id]['export'] = array(
       '#markup' => '<pre>' . var_export($submission_render_array, true) . '</pre>',
     );
@@ -1912,7 +1914,6 @@ function regnum_pending_submissions_form($form, &$form_state) {
       '#markup' => t('<p><b>No pending regnum submissions.</p>'),
     );
   }
-/*
   else {
     if (!$some_are_approved_later) {
       $form['approve_button'] = array(
@@ -1945,13 +1946,24 @@ function regnum_pending_submissions_form($form, &$form_state) {
     );
 
   }
-*/
+
   return $form;
 }
 
-function regnum_get_date_value_as_epoch($dv) {
+function regnum_get_date_time($dv) {
   // TODO: This presumes $dv['date_type'] == 'datetime'. Is there a Drupal API to do this?
-  $d = new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+  return new DateTime($dv['value'], new DateTimeZone($dv['timezone']));
+}
+
+function regnum_get_date_value_as_epoch($dv) {
+  // Make up a value in the recent past if there is no value in the date.
+  // TODO: Interim, to work around some bad entries. Should probably remove
+  // this once those are gone. Need to validate that it is not possible to
+  // submit new entries with null dates before doing that tho.
+  if ($dv == NULL) {
+    return time() - 600;
+  }
+  $d = regnum_get_date_time($dv);
   return $d->format('U');
 }
 
@@ -2054,48 +2066,176 @@ function regnum_submission_access($submission_id) {
   return FALSE;
 }
 
+function regnum_submission_get_selected($form_state, $prefix) {
+  $result = [];
+
+  foreach ($form_state['values'] as $key => $value) {
+    if ((substr($key, 0, strlen($prefix)) == $prefix) && $value) {
+      $result[] = substr($key, strlen($prefix));
+    }
+  }
+
+  return $result;
+}
+
+function regnum_submission_get_selected_or_single($form_state, $multiple_prefix, $single_id) {
+  if (isset($form_state['values'][$single_id])) {
+    return [ $form_state['values'][$single_id] ];
+  }
+  return regnum_submission_get_selected($form_state, $multiple_prefix);
+}
+
+function regnum_load_submissions($submission_ids) {
+  $result = [];
+
+  foreach ($submission_ids as $submission_id) {
+    $result[$submission_id] = new EntityDrupalWrapper('entityform', $submission_id);
+  }
+
+  return $result;
+}
+
+function regnum_separate_approvable_submissions($submissions, $user) {
+  return array_filter(
+    $submissions,
+    function ($submission) use ($user) {
+      return regnum_submission_is_approvable($submission, $user);
+    }
+  );
+}
+
+/**
+ * Return a message about the provided submissions.
+ *
+ * If the submissions list is empty, the result will be empty.
+ *
+ * If the submission list has one item in it, then the 'single message'
+ * will be returned, with all values substituted.
+ *
+ * If the submission list has multiple items in it, then the result will
+ * be the 'multiple message', with the !list item substituted with the
+ * implode-ed result of the 'item message' being used with each submission
+ * in turn.
+ */
+function regnum_message_about_submissions($submissions, $singleMessage, $multipleMessage, $itemMessage, $separator) {
+  if (empty($submissions)) {
+    return '';
+  }
+
+  if (count($submissions) == 1) {
+    return regnum_submission_message(reset($submissions), $singleMessage);
+  }
+
+  $itemMessages = [];
+  foreach ($submissions as $submission) {
+    $itemMessages[] = regnum_submission_message($submission, $itemMessage);
+  }
+
+  return str_replace('!list', implode($separator, $itemMessages), $multipleMessage);
+}
+
+function regnum_submission_message($submission, $message) {
+  $regnum_form_bundle = $submission->getBundle();
+  $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
+  $user_info = _regnum_entity_to_data_array($submission, $field_map);
+  $user_info = _regnum_fix_up_submission_data($user_info);
+  $replacements = _regnum_map_to_dt_data($user_info);
+
+  return str_replace(array_keys($replacements), array_values($replacements), $message);
+}
+
+function regnum_set_message_about_submissions($submissions, $singleMessage, $multipleMessage, $itemMessage, $separator, $messageType) {
+  $message = regnum_message_about_submissions($submissions, $singleMessage, $multipleMessage, $itemMessage, $separator);
+
+  if (!empty($message)) {
+    drupal_set_message($message, $messageType);
+  }
+}
+
+function regnum_set_generic_submission_error($submissions, $action) {
+  regnum_set_message_about_submissions(
+    $inaccessibleSubmissions,
+    t('You do not have access rights to !action !user', ['!action' => $action, '!user' => '!name to !branch !office']),
+    t('You do not have access rights to !action the following regnum submissions: !list', ['!action' => $action, '!list' => '<ul><li>!list</li></ul>']),
+    '!name: !branch !office',
+    '</li><li>',
+    'error'
+  );
+
+}
+
 function regnum_submission_confirm_form_approve($form, &$form_state) {
   global $user;
-  $submission_id = $form['submission-id']['#value'];
-  $submission = new EntityDrupalWrapper('entityform', $submission_id);
-  $approvable = regnum_submission_is_approvable($submission, $user);
-  if ($approvable) {
+  $submission_ids = regnum_submission_get_selected_or_single($form_state, 'select-', 'submission-id');
+  $submissions = regnum_load_submissions($submission_ids);
+
+  $approvableSubmissions = regnum_separate_approvable_submissions($submissions, $user);
+  $inaccessibleSubmissions = array_diff_assoc($submissions, $approvableSubmissions);
+
+  foreach ($approvableSubmissions as $submission) {
     regnum_approve_officer($submission, $user);
-    drupal_set_message(t("Submission approved."), 'ok');
   }
-  else {
-    drupal_set_message(t("You do not have access rights to approve this Regnum change submission."), 'error');
-  }
+
+  regnum_set_message_about_submissions(
+    $approvableSubmissions,
+    'Approved regnum submission for !name: !branch !office',
+    'Approved the following regnum submissions: <ul><li>!list</li></ul>',
+    '!name: !branch !office',
+    '</li><li>',
+    'ok'
+  );
+
+  regnum_set_generic_submission_error($inaccessibleSubmissions, 'approve');
   drupal_goto("user");
 }
 
 function regnum_submission_confirm_form_approve_later($form, &$form_state) {
   global $user;
-  $submission_id = $form['submission-id']['#value'];
-  $submission = new EntityDrupalWrapper('entityform', $submission_id);
-  $approvable = regnum_submission_is_approvable($submission, $user);
-  if ($approvable) {
+  $submission_ids = regnum_submission_get_selected_or_single($form_state, 'select-', 'submission-id');
+  $submissions = regnum_load_submissions($submission_ids);
+
+  $approvableSubmissions = regnum_separate_approvable_submissions($submissions, $user);
+  $inaccessibleSubmissions = array_diff_assoc($submissions, $approvableSubmissions);
+
+  foreach ($approvableSubmissions as $submission) {
     regnum_approve_officer_later($submission, $user);
-    drupal_set_message(t("Submission approved, and will become active on the effective date."), 'ok');
   }
-  else {
-    drupal_set_message(t("You do not have access rights to approve this Regnum change submission."), 'error');
-  }
+
+  regnum_set_message_about_submissions(
+    $approvableSubmissions,
+    'Approved regnum submission for !name: !branch !office; will become active on the effective date.',
+    'Approved the following regnum submissions: <ul><li>!list</li></ul>Each of these will become active on the effective date.',
+    '!name: !branch !office',
+    '</li><li>',
+    'ok'
+  );
+
+  regnum_set_generic_submission_error($inaccessibleSubmissions, 'approve');
   drupal_goto("user");
 }
 
 function regnum_submission_confirm_form_deny($form, &$form_state) {
   global $user;
-  $submission_id = $form['submission-id']['#value'];
-  $submission = new EntityDrupalWrapper('entityform', $submission_id);
-  $approvable = regnum_submission_is_approvable($submission, $user);
-  if ($approvable) {
+  $submission_ids = regnum_submission_get_selected_or_single($form_state, 'select-', 'submission-id');
+  $submissions = regnum_load_submissions($submission_ids);
+
+  $approvableSubmissions = regnum_separate_approvable_submissions($submissions, $user);
+  $inaccessibleSubmissions = array_diff_assoc($submissions, $approvableSubmissions);
+
+  foreach ($approvableSubmissions as $submission) {
     regnum_deny_request($submission, $user);
-    drupal_set_message(t("Submission denied."), 'ok');
   }
-  else {
-    drupal_set_message(t("You do not have access rights to deny this Regnum change submission."), 'error');
-  }
+
+  regnum_set_message_about_submissions(
+    $approvableSubmissions,
+    'Denied regnum submission for !name: !branch !office.',
+    'Denied the following regnum submissions: <ul><li>!list</li></ul>',
+    '!name: !branch !office',
+    '</li><li>',
+    'ok'
+  );
+
+  regnum_set_generic_submission_error($inaccessibleSubmissions, 'deny');
   drupal_goto("user");
 }
 
