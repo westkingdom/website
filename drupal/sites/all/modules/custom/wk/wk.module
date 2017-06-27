@@ -1299,11 +1299,13 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
     hide($form['field_institutional_memory_email']);
     hide($form['field_signed_warrant']);
     hide($form['field_effective_date']);
+    // 'hide' does not work on date fields.
+    // See: https://www.drupal.org/node/1419286#comment-11164431
+    $form['field_effective_date']['#access'] = false;
   }
 
   array_unshift($form['#validate'], '_wk_form_validate_exactly_one_branch_group');
 }
-
 
 /**
  * Restrict the kinds of changes that can be made to calendar event nodes
