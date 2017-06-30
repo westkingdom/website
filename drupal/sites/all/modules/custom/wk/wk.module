@@ -1287,13 +1287,15 @@ function wk_form_alter__regnum_change_entityform_edit_form(&$form, &$form_state)
   }
 
   if ($volunteer) {
-    $form['field_deputy'][LANGUAGE_NONE]['#default_value'] = true;
     if ($volunteer == 'deputy') {
       drupal_set_title('Volunteer');
       $form['#prefix'] = '<p>' . t("Thank you for volunteering!  Please provide us with some personal information, so that we can create an account for you on this site.") . '</p>';
     }
-    hide($form['field_deputy']);
-    $form['field_deputy'][LANGUAGE_NONE]['#default_value'] = 1;
+    // hide($form['field_deputy']) does not work well with setting default
+    // value; use #access instead.
+    $form['field_deputy'][LANGUAGE_NONE]['#default_value'] = true;
+    $form['field_deputy']['#access'] = false;
+
     hide($form['field_type_of_deputy']);
     hide($form['field_purpose_of_change']);
     hide($form['field_institutional_memory_email']);
