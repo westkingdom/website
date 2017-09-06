@@ -97,7 +97,8 @@
         "drupal/views_data_export": "^3",
         "drupal/wysiwyg": "^2",
         "drupal/wysiwyg_filter": "^1",
-        "drupal/drupal-driver": "dev-master"
+        "drupal/drupal-driver": "dev-master",
+        "drupal/google_recaptcha": "^1.2"
     },
     "require-dev": {
         "pantheon-systems/ci-scripts": "1.*",
