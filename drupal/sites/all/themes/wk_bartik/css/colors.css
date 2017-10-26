@@ -60,6 +60,12 @@ a:active {
   color: #fffeff;
 }
 
+/* ---------- Captcha Stuff ------------- */
+
+.form-item .form-type-textfield .form-item-captcha-response {
+  color: #3b3b3b;
+}
+
 /* ---------- Calendar Colors ----------- */
 
 td.single-day div.monthview .calendar-event-type--0 {
