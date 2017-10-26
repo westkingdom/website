@@ -62,7 +62,7 @@ a:active {
 
 /* ---------- Captcha Stuff ------------- */
 
-.form-item .form-type-textfield .form-item-captcha-response {
+fieldset.captcha:nth-child(4) {
   color: #3b3b3b;
 }
 
