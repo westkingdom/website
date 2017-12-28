@@ -37,8 +37,20 @@ function _regnum_configured_entityforms() {
 function regnum_form_alter(&$form, &$form_state) {
   global $user;
   if ($form['#form_id'] == 'regnum_change_entityform_edit_form') {
+    $menu_item = menu_get_item();
+    // page_aguments always has at least 2 arguments:
+    //  [0] (Object) EntityForm
+    //  [1] 'submit'
+    // If there are more than that, the extras are the rest of the
+    // items on the path as selected by regnum/select. If we haven't
+    // been through regnum/select yet, go there now.
+    if (count($menu_item['page_arguments']) <= 2) {
+      drupal_goto('regnum/select');
+    }
+    //dpm($menu_item);
+    //dpm($form);
+    //dpm($form_state);
     if ($user->uid && !isset($form['#entity']->uid)) {
-      //dpm($form_state);
       //dpm($user);
       foreach ($form as $key => $item) {
         if ($key == 'field_society_name') {
@@ -1532,16 +1544,16 @@ function regnum_select_form($form, &$form_state) {
       <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
     </div>
     <div id='label'>
-      <a href="/regnum/select/tournament">I won a tournament</a>
+      <a href="/regnum/select/tournament">I won / consorted a tournament (includes head of court)</a>
     </div>
   </div>
 
   <div id='appointed-to-office' class='selection-item'>
     <div id='image'>
-      <a href="/regnum/select/branch"><img src="$appointed_to_office" alt="I won a tournament"/></a>
+      <a href="/regnum/select/branch"><img src="$appointed_to_office" alt="I was appointed to an office"/></a>
     </div>
     <div id='label'>
-      <a href="/regnum/select/branch">I was appointed to an office</a>
+      <a href="/regnum/select/branch">I was appointed to an office (includes deputies)</a>
     </div>
   </div>
 </div>
@@ -1549,10 +1561,10 @@ function regnum_select_form($form, &$form_state) {
 <div class='regnum-select-row second'>
   <div id='baron' class='selection-item'>
     <div id='image'>
-      <a href="/regnum/select/barony"><img src="$stepped_up_as_baron" alt="I won a tournament"/></a>
+      <a href="/regnum/select/barony"><img src="$stepped_up_as_baron" alt="I stepped up as Baron / Baroness of a group"/></a>
     </div>
     <div id='label'>
-      <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group.</a>
+      <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group</a>
     </div>
   </div>
 </div>
