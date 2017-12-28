@@ -1544,16 +1544,16 @@ function regnum_select_form($form, &$form_state) {
       <a href="/regnum/select/tournament"><img src="$won_a_tournament" alt="I won a tournament"/></a>
     </div>
     <div id='label'>
-      <a href="/regnum/select/tournament">I won a tournament</a>
+      <a href="/regnum/select/tournament">I won / consorted a tournament (includes head of court)</a>
     </div>
   </div>
 
   <div id='appointed-to-office' class='selection-item'>
     <div id='image'>
-      <a href="/regnum/select/branch"><img src="$appointed_to_office" alt="I won a tournament"/></a>
+      <a href="/regnum/select/branch"><img src="$appointed_to_office" alt="I was appointed to an office"/></a>
     </div>
     <div id='label'>
-      <a href="/regnum/select/branch">I was appointed to an office</a>
+      <a href="/regnum/select/branch">I was appointed to an office (includes deputies)</a>
     </div>
   </div>
 </div>
@@ -1561,10 +1561,10 @@ function regnum_select_form($form, &$form_state) {
 <div class='regnum-select-row second'>
   <div id='baron' class='selection-item'>
     <div id='image'>
-      <a href="/regnum/select/barony"><img src="$stepped_up_as_baron" alt="I won a tournament"/></a>
+      <a href="/regnum/select/barony"><img src="$stepped_up_as_baron" alt="I stepped up as Baron / Baroness of a group"/></a>
     </div>
     <div id='label'>
-      <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group.</a>
+      <a href="/regnum/select/barony">I stepped up as Baron / Baroness of a group</a>
     </div>
   </div>
 </div>
