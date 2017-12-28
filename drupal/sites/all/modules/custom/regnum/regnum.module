@@ -37,8 +37,20 @@ function _regnum_configured_entityforms() {
 function regnum_form_alter(&$form, &$form_state) {
   global $user;
   if ($form['#form_id'] == 'regnum_change_entityform_edit_form') {
+    $menu_item = menu_get_item();
+    // page_aguments always has at least 2 arguments:
+    //  [0] (Object) EntityForm
+    //  [1] 'submit'
+    // If there are more than that, the extras are the rest of the
+    // items on the path as selected by regnum/select. If we haven't
+    // been through regnum/select yet, go there now.
+    if (count($menu_item['page_arguments']) <= 2) {
+      drupal_goto('regnum/select');
+    }
+    //dpm($menu_item);
+    //dpm($form);
+    //dpm($form_state);
     if ($user->uid && !isset($form['#entity']->uid)) {
-      //dpm($form_state);
       //dpm($user);
       foreach ($form as $key => $item) {
         if ($key == 'field_society_name') {
