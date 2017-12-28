@@ -25,26 +25,26 @@ Feature: Regnum
 
   @api
   Scenario: Regnum form loads
-    Given I am on "/regnum"
+    Given I am on "/regnum/fill-in"
     Then I should see "Regnum Change"
     And I should see "Seneschal"
 
   @api
   Scenario: Regnum form loads for a logged-in user
     Given I am logged in as a user with the "administrator" role
-    And I am on "/regnum"
+    And I am on "/regnum/fill-in"
     Then I should see "Regnum Change"
 
   @api
   Scenario: Submit Regnum with some required fields missing
-    Given I am on "/regnum"
+    Given I am on "/regnum/fill-in"
     And I enter "john.doe@domain.com" for "Personal email address"
     And I press "Submit Form"
     Then I should see "Office field is required."
 
   @api
   Scenario: Submit Regnum with some required fields missing
-    Given I am on "/regnum"
+    Given I am on "/regnum/fill-in"
     And I enter "john.doe@domain.com" for "Personal email address"
     And I check the box "Principality of Contrivance"
     And I check the box "Chatalaine"
