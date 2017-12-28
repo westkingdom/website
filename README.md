@@ -27,9 +27,9 @@ Deploying Changes
 
 After making any change to the site, create a pull request on GitHub. This will cause all of the unit tests to run on Circle CI.
 
-Once the tests pass, merge the PR into the `master` branch as usual. This will automatically deploy the site to http://stage.westkingdom.org. Inspect the deployed site and ensure that everything is operational. The staging site is protected with basic authentication to discourage web browsers. The username is `WEST` and the password is `WEST`.
+Once the tests pass, merge the PR into the `master` branch as usual. This will automatically deploy the site to the live site at http://westkingdom.org. 
 
-To deploy changes to the live site, merge the `master` branch into the `live` branch and push it up to GitHub. This will automatically deploy the site to http://westkingdom.org.
+If you would like to test on the stage site (http://stage.westkingdom.org) first, then push code to the 'stage' branch. Inspect the deployed site and ensure that everything is operational. The staging site is protected with basic authentication to discourage web browsers. The username is `WEST` and the password is `WEST`.
 
 Testing Locally
 ---------------
