@@ -1291,7 +1291,7 @@ function regnum_menu() {
     'description' => 'Show list of all pending regnum change submissions.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('regnum_pending_submissions_form'),
-    'access arguments' => array('administer users'),
+    'access callback' => 'user_is_logged_in',
   );
 
   $items['admin/config/regnum'] = array(
