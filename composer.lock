@@ -376,7 +376,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/adaptive_image-7.x-1.4.zip",
-                "reference": null,
+                "reference": "7.x-1.4",
                 "shasum": "efc6c1bed77aa549fedaaf7c7439d4ef8fa1a517"
             },
             "require": {
@@ -389,12 +389,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.4",
-                    "datestamp": "1330097138"
+                    "datestamp": "1330097138",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -419,7 +423,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/admin_menu-7.x-3.0-rc5.zip",
-                "reference": null,
+                "reference": "7.x-3.0-rc5",
                 "shasum": "64de77d5b1ed7158549a4fc6f2fd657aaacdaead"
             },
             "require": {
@@ -432,12 +436,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.0-rc5",
-                    "datestamp": "1419029280"
+                    "datestamp": "1419029280",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -478,7 +486,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/admin_views-7.x-1.6.zip",
-                "reference": null,
+                "reference": "7.x-1.6",
                 "shasum": "a56a61d203f9cc79ab17c497c59a56ded1ef1d3c"
             },
             "require": {
@@ -493,12 +501,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.6",
-                    "datestamp": "1470247980"
+                    "datestamp": "1470247980",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -535,7 +547,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/adminimal_theme-7.x-1.24.zip",
-                "reference": null,
+                "reference": "7.x-1.24",
                 "shasum": "f241f630a967ca1f9cb63561031ffb838e739585"
             },
             "require": {
@@ -548,12 +560,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.24",
-                    "datestamp": "1456190940"
+                    "datestamp": "1456190940",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -581,7 +597,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/auto_nodetitle-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "ebba3b293c2cf076bb364aab8a28dc14ef5815b8"
             },
             "require": {
@@ -594,12 +610,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1307449916"
+                    "datestamp": "1307449916",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -609,6 +629,14 @@
                 {
                     "name": "fago",
                     "homepage": "https://www.drupal.org/user/16747"
+                },
+                {
+                    "name": "gaurav.kapoor",
+                    "homepage": "https://www.drupal.org/user/3495331"
+                },
+                {
+                    "name": "jenlampton",
+                    "homepage": "https://www.drupal.org/user/85586"
                 }
             ],
             "description": "Allows hiding of the content title field and automatic title creation.",
@@ -628,7 +656,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/ayah-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "4dd0cebdaf96f8e4b4dadb3d6337c0bfad7aca49"
             },
             "require": {
@@ -641,12 +669,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1359658885"
+                    "datestamp": "1359658885",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -671,7 +703,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/better_formats-7.x-1.0-beta2.zip",
-                "reference": null,
+                "reference": "7.x-1.0-beta2",
                 "shasum": "54a5fa44047203b5dbb4ec56187c297ba6fc4965"
             },
             "require": {
@@ -684,12 +716,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-beta2",
-                    "datestamp": "1453922939"
+                    "datestamp": "1453922939",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -770,7 +806,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/calendar-7.x-3.5.zip",
-                "reference": null,
+                "reference": "7.x-3.5",
                 "shasum": "1d78d9e21b1441a93ac8ba105143841b8207db5b"
             },
             "require": {
@@ -786,12 +822,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.5",
-                    "datestamp": "1413299929"
+                    "datestamp": "1413299929",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -899,7 +939,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/cck-7.x-3.0-alpha3.zip",
-                "reference": null,
+                "reference": "7.x-3.0-alpha3",
                 "shasum": "4ee870bf45bafcc5a7a708c0b4c0fc0e565a6be6"
             },
             "require": {
@@ -912,12 +952,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.0-alpha3",
-                    "datestamp": "1386880105"
+                    "datestamp": "1386880105",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -966,7 +1010,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/ckeditor_link-7.x-2.4.zip",
-                "reference": null,
+                "reference": "7.x-2.4",
                 "shasum": "0db5bf4f69a049181a7b9ebc1cb0d64ce6fb50b6"
             },
             "require": {
@@ -979,12 +1023,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.4",
-                    "datestamp": "1454115839"
+                    "datestamp": "1454115839",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1009,7 +1057,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/cnr-7.x-4.22.zip",
-                "reference": null,
+                "reference": "7.x-4.22",
                 "shasum": "ce5f4c0caf289d6c78c1a71998671b669f4435f7"
             },
             "require": {
@@ -1026,12 +1074,16 @@
                 },
                 "drupal": {
                     "version": "7.x-4.22",
-                    "datestamp": "1321480838"
+                    "datestamp": "1321480838",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1059,7 +1111,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/composer_vendor-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "8c3591934f1a79bb569dd150ba6ff9573055d488"
             },
             "require": {
@@ -1072,12 +1124,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1361374816"
+                    "datestamp": "1361374816",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1102,7 +1158,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/context-7.x-3.7.zip",
-                "reference": null,
+                "reference": "7.x-3.7",
                 "shasum": "c0d211f2257d47b08ebade732bc9c0493250cc41"
             },
             "require": {
@@ -1116,12 +1172,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.7",
-                    "datestamp": "1463605519"
+                    "datestamp": "1463605519",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1135,6 +1195,10 @@
                 {
                     "name": "alex_b",
                     "homepage": "https://www.drupal.org/user/53995"
+                },
+                {
+                    "name": "boshtian",
+                    "homepage": "https://www.drupal.org/user/1773456"
                 },
                 {
                     "name": "colan",
@@ -1358,7 +1422,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/date-7.x-2.10.zip",
-                "reference": null,
+                "reference": "7.x-2.10",
                 "shasum": "f3d11ae63d841420f47ea9568139daa1f684e24e"
             },
             "require": {
@@ -1376,45 +1440,27 @@
             },
             "type": "drupal-module",
             "extra": {
-                "enable-patching": true,
-                "patches-file": "composer-patches.json",
-                "installer-paths": {
-                    "drupal/sites/all/modules/contrib/{$name}/": [
-                        "type:drupal-module"
-                    ],
-                    "drupal/sites/all/themes/contrib/{$name}/": [
-                        "type:drupal-theme"
-                    ],
-                    "drupal/sites/all/drush/{$name}/": [
-                        "type:drupal-drush"
-                    ],
-                    "drupal/profiles/{$name}/": [
-                        "type:drupal-profile"
-                    ],
-                    "drupal/": [
-                        "drupal/drupal"
-                    ]
+                "branch-alias": {
+                    "dev-2.x": "2.x-dev"
                 },
-                "preserve-paths": [
-                    "drupal/sites/all/modules/contrib",
-                    "drupal/sites/all/modules/custom",
-                    "drupal/sites/all/modules/modified",
-                    "drupal/sites/all/themes",
-                    "drupal/sites/all/libraries",
-                    "drupal/sites/all/drush",
-                    "drupal/sites/all/vendor",
-                    "drupal/sites/default/settings.php",
-                    "drupal/sites/default/files",
-                    "drupal/drush",
-                    "drupal/files",
-                    "drupal/temp"
-                ]
+                "drupal": {
+                    "version": "7.x-2.10",
+                    "datestamp": "1491562115",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
+                {
+                    "name": "DamienMcKenna",
+                    "homepage": "https://www.drupal.org/user/108450"
+                },
                 {
                     "name": "David Goode",
                     "homepage": "https://www.drupal.org/user/291318"
@@ -1476,14 +1522,22 @@
                 },
                 "drupal": {
                     "version": "7.x-2.10",
-                    "datestamp": "1491562083"
+                    "datestamp": "1491562115",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
+                {
+                    "name": "DamienMcKenna",
+                    "homepage": "https://www.drupal.org/user/108450"
+                },
                 {
                     "name": "David Goode",
                     "homepage": "https://www.drupal.org/user/291318"
@@ -1547,14 +1601,22 @@
                 },
                 "drupal": {
                     "version": "7.x-2.10",
-                    "datestamp": "1491562083"
+                    "datestamp": "1491562115",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
+                {
+                    "name": "DamienMcKenna",
+                    "homepage": "https://www.drupal.org/user/108450"
+                },
                 {
                     "name": "David Goode",
                     "homepage": "https://www.drupal.org/user/291318"
@@ -1613,7 +1675,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/delta-7.x-3.0-beta11.zip",
-                "reference": null,
+                "reference": "7.x-3.0-beta11",
                 "shasum": "e0fb67d78040bb007dbf940f58229083cee84751"
             },
             "require": {
@@ -1627,12 +1689,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.0-beta11",
-                    "datestamp": "1343161343"
+                    "datestamp": "1343161343",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Beta releases are not covered by Drupal security advisories."
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1661,7 +1727,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/devel-7.x-1.5.zip",
-                "reference": null,
+                "reference": "7.x-1.5",
                 "shasum": "9065fe4fbaa260e087b4d2b1876bf8a768fade13"
             },
             "require": {
@@ -1674,25 +1740,21 @@
                 },
                 "drupal": {
                     "version": "7.x-1.5",
-                    "datestamp": "1398963228"
+                    "datestamp": "1398963228",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
-                    "name": "Dave Reid",
-                    "homepage": "https://www.drupal.org/user/53892"
-                },
-                {
                     "name": "catch",
                     "homepage": "https://www.drupal.org/user/35733"
-                },
-                {
-                    "name": "effulgentsia",
-                    "homepage": "https://www.drupal.org/user/78040"
                 },
                 {
                     "name": "juampynr",
@@ -1717,10 +1779,6 @@
                 {
                     "name": "willzyx",
                     "homepage": "https://www.drupal.org/user/1043862"
-                },
-                {
-                    "name": "yched",
-                    "homepage": "https://www.drupal.org/user/39567"
                 }
             ],
             "description": "Various blocks, pages, and functions for developers.",
@@ -1740,7 +1798,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/diff-7.x-3.3.zip",
-                "reference": null,
+                "reference": "7.x-3.3",
                 "shasum": "177ff52882593537c20c3a4df340a390726c86b2"
             },
             "require": {
@@ -1753,12 +1811,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.3",
-                    "datestamp": "1482211683"
+                    "datestamp": "1482211683",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1837,9 +1899,7 @@
                         "message": "Covered by Drupal's security advisory policy"
                     }
                 },
-                "patches_applied": {
-                    "Domain_conf permissions": "https://www.drupal.org/files/issues/domain-conf-450688-%2310.patch"
-                }
+                "patches_applied": []
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
@@ -1872,7 +1932,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/domain_access_bridge-7.x-1.5.zip",
-                "reference": null,
+                "reference": "7.x-1.5",
                 "shasum": "fdba75e4c1dd41a9f58e8018ddcc374b480f74b8"
             },
             "require": {
@@ -1886,12 +1946,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.5",
-                    "datestamp": "1417558080"
+                    "datestamp": "1417558080",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1916,7 +1980,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/domain_blocks-7.x-3.0.zip",
-                "reference": null,
+                "reference": "7.x-3.0",
                 "shasum": "79443447e1b4db2439eca87f848e9a280025ee00"
             },
             "require": {
@@ -1930,12 +1994,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.0",
-                    "datestamp": "1445361539"
+                    "datestamp": "1445361539",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -1960,7 +2028,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/domain_views-7.x-1.5.zip",
-                "reference": null,
+                "reference": "7.x-1.5",
                 "shasum": "f0c45dd5f0a1a27c19c2e4b3e55880881514ad3e"
             },
             "require": {
@@ -1975,12 +2043,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.5",
-                    "datestamp": "1348846267"
+                    "datestamp": "1348846267",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2017,7 +2089,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/domaincontext-7.x-1.0-alpha1.zip",
-                "reference": null,
+                "reference": "7.x-1.0-alpha1",
                 "shasum": "bb8f7ef4ecd9a32907b6d51647d7eeae0075cadc"
             },
             "require": {
@@ -2032,12 +2104,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-alpha1",
-                    "datestamp": "1330573242"
+                    "datestamp": "1330573242",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2291,7 +2367,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/email_confirm-7.x-1.3.zip",
-                "reference": null,
+                "reference": "7.x-1.3",
                 "shasum": "a475b311012fb891f03773cb604bf09eae6590c7"
             },
             "require": {
@@ -2304,12 +2380,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.3",
-                    "datestamp": "1476741839"
+                    "datestamp": "1476741839",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2466,7 +2546,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/entity_view_mode-7.x-1.0-rc1.zip",
-                "reference": null,
+                "reference": "7.x-1.0-rc1",
                 "shasum": "4136381aa9a4d2b6181da47ea3ab4b26afde0a39"
             },
             "require": {
@@ -2479,12 +2559,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-rc1",
-                    "datestamp": "1368242412"
+                    "datestamp": "1368242412",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2494,10 +2578,6 @@
                 {
                     "name": "Dave Reid",
                     "homepage": "https://www.drupal.org/user/53892"
-                },
-                {
-                    "name": "bangpound",
-                    "homepage": "https://www.drupal.org/user/100456"
                 },
                 {
                     "name": "becw",
@@ -2521,7 +2601,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/entityform-7.x-1.4.zip",
-                "reference": null,
+                "reference": "7.x-1.4",
                 "shasum": "7fe91c6eb6c9b5dad7f54baba035bff6ad7eaf3d"
             },
             "require": {
@@ -2543,12 +2623,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.4",
-                    "datestamp": "1386702299"
+                    "datestamp": "1386702299",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2658,7 +2742,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/entityreference_prepopulate-7.x-1.7.zip",
-                "reference": null,
+                "reference": "7.x-1.7",
                 "shasum": "c63e872779c5bf226009b5723146fc4dc030e3b6"
             },
             "require": {
@@ -2672,12 +2756,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.7",
-                    "datestamp": "1485445388"
+                    "datestamp": "1485445388",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2702,7 +2790,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/environment_indicator-7.x-1.1.zip",
-                "reference": null,
+                "reference": "7.x-1.1",
                 "shasum": "24871a822978b9c9f25b99659f35f0bcb64df7dc"
             },
             "require": {
@@ -2715,12 +2803,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.1",
-                    "datestamp": "1321741240"
+                    "datestamp": "1321741240",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2749,7 +2841,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/features-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "84cd02d7a0795b6cc617d16f3620291716a2fada"
             },
             "require": {
@@ -2762,12 +2854,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1343240292"
+                    "datestamp": "1343240292",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -2816,7 +2912,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/features_extra-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "89eeee2e7ad6fd27505689c07a3a1eb218690a3a"
             },
             "require": {
@@ -2836,14 +2932,22 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1439376839"
+                    "datestamp": "1439376839",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
+                {
+                    "name": "RenatoG",
+                    "homepage": "https://www.drupal.org/user/3326031"
+                },
                 {
                     "name": "brynbellomy",
                     "homepage": "https://www.drupal.org/user/537416"
@@ -2855,10 +2959,6 @@
                 {
                     "name": "pearcec",
                     "homepage": "https://www.drupal.org/user/101931"
-                },
-                {
-                    "name": "pfrenssen",
-                    "homepage": "https://www.drupal.org/user/382067"
                 },
                 {
                     "name": "pirog",
@@ -2953,7 +3053,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/field_permissions-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "2740c83973674e273223885ca0d938079362aa87"
             },
             "require": {
@@ -2966,12 +3066,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1476649739"
+                    "datestamp": "1476649739",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3177,7 +3281,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/html5_tools-7.x-1.3.zip",
-                "reference": null,
+                "reference": "7.x-1.3",
                 "shasum": "432d1e9c783824bf364904e1900a860525bae828"
             },
             "require": {
@@ -3191,12 +3295,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.3",
-                    "datestamp": "1446569342"
+                    "datestamp": "1446569342",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3233,7 +3341,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/image_resize_filter-7.x-1.16.zip",
-                "reference": null,
+                "reference": "7.x-1.16",
                 "shasum": "38625ef3929204bad75f8c2b9b1a4945baf44c1a"
             },
             "require": {
@@ -3246,12 +3354,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.16",
-                    "datestamp": "1438457939"
+                    "datestamp": "1438457939",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3356,7 +3468,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/imagecrop-7.x-1.0-rc3.zip",
-                "reference": null,
+                "reference": "7.x-1.0-rc3",
                 "shasum": "4996c99ca1d82665bccf01140750fb3e2659ad88"
             },
             "require": {
@@ -3369,12 +3481,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-rc3",
-                    "datestamp": "1314822418"
+                    "datestamp": "1314822418",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3415,7 +3531,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/jquery_update-7.x-2.7.zip",
-                "reference": null,
+                "reference": "7.x-2.7",
                 "shasum": "1f1e663f63a6872923f0fc9cd51510f64233bae2"
             },
             "require": {
@@ -3428,12 +3544,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.7",
-                    "datestamp": "1445458536"
+                    "datestamp": "1445458536",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3445,7 +3565,7 @@
                     "homepage": "https://www.drupal.org/user/632950"
                 },
                 {
-                    "name": "eric.duran7@gmail.com",
+                    "name": "ericduran",
                     "homepage": "https://www.drupal.org/user/244460"
                 },
                 {
@@ -3486,7 +3606,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/libraries-7.x-2.3.zip",
-                "reference": null,
+                "reference": "7.x-2.3",
                 "shasum": "1c54f921bec25b89ce0e9312bfea606f1a07fbd4"
             },
             "require": {
@@ -3499,12 +3619,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.3",
-                    "datestamp": "1463077439"
+                    "datestamp": "1463077439",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3541,7 +3665,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/link-7.x-1.4.zip",
-                "reference": null,
+                "reference": "7.x-1.4",
                 "shasum": "e83d70c5598194125fa2ccfa2c638a238aef812a"
             },
             "require": {
@@ -3554,14 +3678,22 @@
                 },
                 "drupal": {
                     "version": "7.x-1.4",
-                    "datestamp": "1452830639"
+                    "datestamp": "1452830639",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
+                {
+                    "name": "RenatoG",
+                    "homepage": "https://www.drupal.org/user/3326031"
+                },
                 {
                     "name": "clemens.tolboom",
                     "homepage": "https://www.drupal.org/user/125814"
@@ -3581,6 +3713,18 @@
                 {
                     "name": "mrfelton",
                     "homepage": "https://www.drupal.org/user/305669"
+                },
+                {
+                    "name": "nileema.jadhav",
+                    "homepage": "https://www.drupal.org/user/3269182"
+                },
+                {
+                    "name": "pifagor",
+                    "homepage": "https://www.drupal.org/user/2375692"
+                },
+                {
+                    "name": "ruchirashree",
+                    "homepage": "https://www.drupal.org/user/1625494"
                 },
                 {
                     "name": "sumitmadan",
@@ -3608,7 +3752,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/location-7.x-3.7.zip",
-                "reference": null,
+                "reference": "7.x-3.7",
                 "shasum": "08c842fbb8fb24c9cde3689c85e23213dfd39796"
             },
             "require": {
@@ -3625,12 +3769,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.7",
-                    "datestamp": "1438695539"
+                    "datestamp": "1438695539",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3667,7 +3815,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/logintoboggan-7.x-1.5.zip",
-                "reference": null,
+                "reference": "7.x-1.5",
                 "shasum": "7bc53752c4c77255aea13b5ee0f5ab1046f927ce"
             },
             "require": {
@@ -3685,12 +3833,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.5",
-                    "datestamp": "1430505479"
+                    "datestamp": "1430505479",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3716,6 +3868,10 @@
                 {
                     "name": "jdanthinne",
                     "homepage": "https://www.drupal.org/user/313766"
+                },
+                {
+                    "name": "matason",
+                    "homepage": "https://www.drupal.org/user/81488"
                 },
                 {
                     "name": "md2",
@@ -3751,7 +3907,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/machine_name-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "dabd66802bb716843db16e2b68d282e84c7160b4"
             },
             "require": {
@@ -3764,12 +3920,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1353012408"
+                    "datestamp": "1353012408",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3918,7 +4078,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/media_crop-7.x-1.4.zip",
-                "reference": null,
+                "reference": "7.x-1.4",
                 "shasum": "8aceac5a5df107ab4efcbecebe5ee738cb1c986a"
             },
             "require": {
@@ -3931,12 +4091,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.4",
-                    "datestamp": "1332411346"
+                    "datestamp": "1332411346",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -3964,7 +4128,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/module_filter-7.x-2.1.zip",
-                "reference": null,
+                "reference": "7.x-2.1",
                 "shasum": "0555a3f8b7832b61b327764d18cfdc16806c2bd9"
             },
             "require": {
@@ -3977,12 +4141,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.1",
-                    "datestamp": "1497029343"
+                    "datestamp": "1497029602",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4082,7 +4250,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/multiple_email-7.x-1.0-beta5.zip",
-                "reference": null,
+                "reference": "7.x-1.0-beta5",
                 "shasum": "2d64b85b7c8fd77e10d8e9b925a561ebd9791c08"
             },
             "require": {
@@ -4095,12 +4263,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-beta5",
-                    "datestamp": "1451922839"
+                    "datestamp": "1451922839",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4141,7 +4313,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/og-7.x-2.9.zip",
-                "reference": null,
+                "reference": "7.x-2.9",
                 "shasum": "648c09989d35725303bab106ebe0b7102296d6e9"
             },
             "require": {
@@ -4168,12 +4340,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.9",
-                    "datestamp": "1461171804"
+                    "datestamp": "1461171804",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4183,6 +4359,10 @@
                 {
                     "name": "Grayside",
                     "homepage": "https://www.drupal.org/user/346868"
+                },
+                {
+                    "name": "RoySegall",
+                    "homepage": "https://www.drupal.org/user/1812910"
                 },
                 {
                     "name": "Zen",
@@ -4230,7 +4410,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/og_create_perms-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "f102ee400e8362e17785a850908bb8636f29c0eb"
             },
             "require": {
@@ -4244,12 +4424,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1296576744"
+                    "datestamp": "1296576744",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4274,7 +4458,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/om_maximenu-7.x-1.44.zip",
-                "reference": null,
+                "reference": "7.x-1.44",
                 "shasum": "a24a895c6ed0740bf8b5d33447fd4a80a161940c"
             },
             "require": {
@@ -4287,12 +4471,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.44",
-                    "datestamp": "1352324584"
+                    "datestamp": "1352324584",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4329,7 +4517,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/passwordless-7.x-1.10.zip",
-                "reference": null,
+                "reference": "7.x-1.10",
                 "shasum": "8c02a7d7a837d4679678530947590bc0a4b51678"
             },
             "require": {
@@ -4343,12 +4531,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.10",
-                    "datestamp": "1429195681"
+                    "datestamp": "1429195681",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4373,7 +4565,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/pathauto-7.x-1.3.zip",
-                "reference": null,
+                "reference": "7.x-1.3",
                 "shasum": "a4c73f3129f22ecfb9de446068e7dd3c3a45412b"
             },
             "require": {
@@ -4387,12 +4579,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.3",
-                    "datestamp": "1444232639"
+                    "datestamp": "1444232639",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4429,7 +4625,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/picture-7.x-1.5.zip",
-                "reference": null,
+                "reference": "7.x-1.5",
                 "shasum": "bd6485231e9b96d9b7e56230829c2c2c2a6ebb0e"
             },
             "require": {
@@ -4448,12 +4644,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.5",
-                    "datestamp": "1402928327"
+                    "datestamp": "1402928327",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4482,7 +4682,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/plupload-7.x-1.7.zip",
-                "reference": null,
+                "reference": "7.x-1.7",
                 "shasum": "7d1861fb282b71c3e3f8471ccf3de20c7158aeef"
             },
             "require": {
@@ -4495,12 +4695,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.7",
-                    "datestamp": "1415390712"
+                    "datestamp": "1415390712",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4624,7 +4828,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/redirect-7.x-1.0-rc3.zip",
-                "reference": null,
+                "reference": "7.x-1.0-rc3",
                 "shasum": "9eb84deb433f33c1bb16920a6ca3f6dfbf18257c"
             },
             "require": {
@@ -4637,12 +4841,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-rc3",
-                    "datestamp": "1436393339"
+                    "datestamp": "1436393339",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "RC releases are not covered by Drupal security advisories."
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4671,7 +4879,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/references-7.x-2.2.zip",
-                "reference": null,
+                "reference": "7.x-2.2",
                 "shasum": "4b5b207703c1016ab389c57bb39ae6d44b24b1bc"
             },
             "require": {
@@ -4687,12 +4895,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.2",
-                    "datestamp": "1492586282"
+                    "datestamp": "1492586282",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4729,7 +4941,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/references_dialog-7.x-1.0-beta2.zip",
-                "reference": null,
+                "reference": "7.x-1.0-beta2",
                 "shasum": "c3cc13448e4149c7f3e7033f7a75ad2a39cc8613"
             },
             "require": {
@@ -4743,12 +4955,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-beta2",
-                    "datestamp": "1468341539"
+                    "datestamp": "1468341539",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4793,7 +5009,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/rules-7.x-2.3.zip",
-                "reference": null,
+                "reference": "7.x-2.3",
                 "shasum": "e72d40c0f54aba44cfabce3c2a6f536f20efe06e"
             },
             "require": {
@@ -4811,12 +5027,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.3",
-                    "datestamp": "1384566690"
+                    "datestamp": "1384566690",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -4915,7 +5135,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/stage_file_proxy-7.x-1.7.zip",
-                "reference": null,
+                "reference": "7.x-1.7",
                 "shasum": "820c18652af8403402b64ecdf15abedb8b43f6a1"
             },
             "require": {
@@ -4928,17 +5148,25 @@
                 },
                 "drupal": {
                     "version": "7.x-1.7",
-                    "datestamp": "1428604381"
+                    "datestamp": "1428604381",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
                     "name": "BarisW",
                     "homepage": "https://www.drupal.org/user/107229"
+                },
+                {
+                    "name": "axel.rutz",
+                    "homepage": "https://www.drupal.org/user/229048"
                 },
                 {
                     "name": "greggles",
@@ -4982,7 +5210,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/strongarm-7.x-2.0.zip",
-                "reference": null,
+                "reference": "7.x-2.0",
                 "shasum": "51600bef5ca2ac240958764e1e8389f70639595c"
             },
             "require": {
@@ -4996,12 +5224,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.0",
-                    "datestamp": "1339604214"
+                    "datestamp": "1339604214",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5046,7 +5278,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/subpathauto-7.x-1.3.zip",
-                "reference": null,
+                "reference": "7.x-1.3",
                 "shasum": "53cbd240e0723e278bc5dfb03ed7930979c4b098"
             },
             "require": {
@@ -5059,12 +5291,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.3",
-                    "datestamp": "1347990612"
+                    "datestamp": "1347990612",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5164,7 +5400,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/token-7.x-1.7.zip",
-                "reference": null,
+                "reference": "7.x-1.7",
                 "shasum": "433827b79b944c05e38d144c9b95e5494116ff67"
             },
             "require": {
@@ -5177,12 +5413,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.7",
-                    "datestamp": "1485316084"
+                    "datestamp": "1485316084",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5227,7 +5467,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/token_filter-7.x-1.1.zip",
-                "reference": null,
+                "reference": "7.x-1.1",
                 "shasum": "ae88c19a50759039e08ef60f45cec1f1c8ba329d"
             },
             "require": {
@@ -5241,12 +5481,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.1",
-                    "datestamp": "1325700944"
+                    "datestamp": "1325700944",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5291,7 +5535,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/update_advanced-7.x-1.0-rc1.zip",
-                "reference": null,
+                "reference": "7.x-1.0-rc1",
                 "shasum": "c1cc718e274f3526a26f86aebfd54d70e48dede1"
             },
             "require": {
@@ -5304,12 +5548,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-rc1",
-                    "datestamp": "1365179719"
+                    "datestamp": "1365179719",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5342,7 +5590,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/uuid-7.x-1.0.zip",
-                "reference": null,
+                "reference": "7.x-1.0",
                 "shasum": "6badd2aa8b047edb7ef7c1568296482582782a59"
             },
             "require": {
@@ -5361,12 +5609,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0",
-                    "datestamp": "1493291943"
+                    "datestamp": "1493291943",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5403,7 +5655,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/uuid_features-7.x-1.0-rc1.zip",
-                "reference": null,
+                "reference": "7.x-1.0-rc1",
                 "shasum": "b99e55464d326d5f5ff7f9eeb3c25a589f55507e"
             },
             "require": {
@@ -5419,12 +5671,16 @@
                 },
                 "drupal": {
                     "version": "7.x-1.0-rc1",
-                    "datestamp": "1486189084"
+                    "datestamp": "1486189084",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5569,7 +5825,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/views_bulk_operations-7.x-3.4.zip",
-                "reference": null,
+                "reference": "7.x-3.4",
                 "shasum": "350a860f34165255bfb6d1c8dadbe558aa5b79e2"
             },
             "require": {
@@ -5584,14 +5840,22 @@
                 },
                 "drupal": {
                     "version": "7.x-3.4",
-                    "datestamp": "1487698683"
+                    "datestamp": "1487698683",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
+                {
+                    "name": "Graber",
+                    "homepage": "https://www.drupal.org/user/1599440"
+                },
                 {
                     "name": "Jon Pugh",
                     "homepage": "https://www.drupal.org/user/17028"
@@ -5626,7 +5890,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/views_data_export-7.x-3.2.zip",
-                "reference": null,
+                "reference": "7.x-3.2",
                 "shasum": "3afc2819f30aa48d3cb368d177859b45e60a3293"
             },
             "require": {
@@ -5640,12 +5904,16 @@
                 },
                 "drupal": {
                     "version": "7.x-3.2",
-                    "datestamp": "1491379384"
+                    "datestamp": "1491379384",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
@@ -5690,7 +5958,7 @@
             "dist": {
                 "type": "zip",
                 "url": "https://ftp.drupal.org/files/projects/wysiwyg-7.x-2.4.zip",
-                "reference": null,
+                "reference": "7.x-2.4",
                 "shasum": "aa3b0666b3763cd50c174f9be95374b1067b2457"
             },
             "require": {
@@ -5703,12 +5971,16 @@
                 },
                 "drupal": {
                     "version": "7.x-2.4",
-                    "datestamp": "1493674442"
+                    "datestamp": "1493674442",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
                 }
             },
             "notification-url": "https://packages.drupal.org/7/downloads",
             "license": [
-                "GPL-2.0+"
+                "GPL-2.0-or-later"
             ],
             "authors": [
                 {
