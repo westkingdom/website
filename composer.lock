@@ -1249,7 +1249,7 @@
         },
         {
             "name": "drupal/core-render",
-            "version": "8.5.2",
+            "version": "8.5.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-render.git",
@@ -1284,7 +1284,7 @@
         },
         {
             "name": "drupal/core-utility",
-            "version": "8.5.2",
+            "version": "8.5.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-utility.git",
@@ -2133,17 +2133,17 @@
         },
         {
             "name": "drupal/drupal",
-            "version": "7.58.0",
+            "version": "7.59.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupal.org/project/drupal",
-                "reference": "7.58"
+                "reference": "7.59"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/drupal-7.58.zip",
-                "reference": "7.58",
-                "shasum": "4fc6d540f529bb98dc2b811e1c1193de858a5d79"
+                "url": "https://ftp.drupal.org/files/projects/drupal-7.59.zip",
+                "reference": "7.59",
+                "shasum": "6f9c6ec087c3e76b880d28b59d7f2afb4587e095"
             },
             "type": "drupal-core",
             "extra": {
@@ -2151,8 +2151,8 @@
                     "dev-7.x": "7.x-dev"
                 },
                 "drupal": {
-                    "version": "7.58",
-                    "datestamp": "1522264797",
+                    "version": "7.59",
+                    "datestamp": "1524674011",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -2215,10 +2215,6 @@
                 {
                     "name": "lauriii",
                     "homepage": "https://www.drupal.org/user/1078742"
-                },
-                {
-                    "name": "mlhess",
-                    "homepage": "https://www.drupal.org/user/102818"
                 },
                 {
                     "name": "plach",
@@ -3961,17 +3957,17 @@
         },
         {
             "name": "drupal/media",
-            "version": "2.18.0",
+            "version": "2.19.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupal.org/project/media",
-                "reference": "7.x-2.18"
+                "reference": "7.x-2.19"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/media-7.x-2.18.zip",
-                "reference": "7.x-2.18",
-                "shasum": "ca1f6314303d850ba1478fcd8132da79beeff36d"
+                "url": "https://ftp.drupal.org/files/projects/media-7.x-2.19.zip",
+                "reference": "7.x-2.19",
+                "shasum": "aa7fa71d8694875b6fb3a8acb745e6e3d622c9ce"
             },
             "require": {
                 "drupal/drupal": "*",
@@ -3991,8 +3987,8 @@
                     "dev-2.x": "2.x-dev"
                 },
                 "drupal": {
-                    "version": "7.x-2.18",
-                    "datestamp": "1523965984",
+                    "version": "7.x-2.19",
+                    "datestamp": "1524944353",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -5126,17 +5122,17 @@
         },
         {
             "name": "drupal/stage_file_proxy",
-            "version": "1.7.0",
+            "version": "1.8.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupal.org/project/stage_file_proxy",
-                "reference": "7.x-1.7"
+                "reference": "7.x-1.8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/stage_file_proxy-7.x-1.7.zip",
-                "reference": "7.x-1.7",
-                "shasum": "820c18652af8403402b64ecdf15abedb8b43f6a1"
+                "url": "https://ftp.drupal.org/files/projects/stage_file_proxy-7.x-1.8.zip",
+                "reference": "7.x-1.8",
+                "shasum": "807adb941157d16f428383eea634176cdbee924d"
             },
             "require": {
                 "drupal/drupal": "~7.0"
@@ -5147,8 +5143,8 @@
                     "dev-1.x": "1.x-dev"
                 },
                 "drupal": {
-                    "version": "7.x-1.7",
-                    "datestamp": "1428604381",
+                    "version": "7.x-1.8",
+                    "datestamp": "1524669480",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -7109,16 +7105,16 @@
         },
         {
             "name": "symfony/yaml",
-            "version": "v2.8.38",
+            "version": "v2.8.39",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/yaml.git",
-                "reference": "be720fcfae4614df204190d57795351059946a77"
+                "reference": "d20bd2bdee063863e426297af41eda45ccad6f7e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/yaml/zipball/be720fcfae4614df204190d57795351059946a77",
-                "reference": "be720fcfae4614df204190d57795351059946a77",
+                "url": "https://api.github.com/repos/symfony/yaml/zipball/d20bd2bdee063863e426297af41eda45ccad6f7e",
+                "reference": "d20bd2bdee063863e426297af41eda45ccad6f7e",
                 "shasum": ""
             },
             "require": {
@@ -7154,7 +7150,7 @@
             ],
             "description": "Symfony Yaml Component",
             "homepage": "https://symfony.com",
-            "time": "2018-01-03T07:36:31+00:00"
+            "time": "2018-04-08T07:53:13+00:00"
         },
         {
             "name": "webmozart/assert",
