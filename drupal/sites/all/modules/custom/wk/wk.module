@@ -107,8 +107,8 @@ function wk_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings)
   // then copy that class to the <div> that wraps the image.
   if (isset($element['content']['file']['#attributes']['class'])) {
     foreach ($element['content']['file']['#attributes']['class'] as $item) {
-      if (!in_array($item, array('media-element')) && !array_key_exists($item, $element['content']['#attributes']['class'])) {
-        $element['content']['#attributes']['class'][] = $item;
+      if (!in_array($item, array('media-element')) && isset($element['content']['#attributes']['class']) && !array_key_exists($item, $element['content']['#attributes']['class'])) {
+        _wk_add_class($element['content']['#attributes'], $item);
       }
     }
   }
@@ -116,19 +116,33 @@ function wk_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings)
   // to see if 'float: right' or 'float: left' were applied.
   if (isset($element['content']['file']['#attributes']['style'])) {
     if (strstr($element['content']['file']['#attributes']['style'], 'right')) {
-      $element['content']['#attributes']['class'][] = 'media-right';
+      _wk_add_class($element['content']['#attributes'], 'media-right');
     }
     if (strstr($element['content']['file']['#attributes']['style'], 'left')) {
-      $element['content']['#attributes']['class'][] = 'media-left';
+      _wk_add_class($element['content']['#attributes'], 'media-left');
     }
   }
   if (isset($element['content']['file']['#file']->field_image_width[LANGUAGE_NONE])) {
     $width = $element['content']['file']['#file']->field_image_width[LANGUAGE_NONE];
+    if (is_array($width) && isset($width[0]['value'])) {
+      $width = $width[0]['value'];
+    }
     if (!empty($width) && ($width != '_none')) {
-      $element['content']['#attributes']['class'][] = 'media-width-' . $width;
+      if (is_array($width)) {
+        print "What width is an array?\n" . var_export($width, true) . "\n";
+      }
+      _wk_add_class($element['content']['#attributes'], 'media-width-' . $width);
     }
   }
 }
+
+function _wk_add_class(&$item, $additional) {
+  if (isset($item['class']) && !is_array($item['class'])) {
+    $item['class'] = [$item['class']];
+  }
+  $item['class'][] = $additional;
+}
+
 
 /**
  * This is the hook form alter for the media edit dialog that
@@ -4467,7 +4481,7 @@ function _wk_term_short_name($term) {
   if (isset($term->field_short_name[LANGUAGE_NONE][0]['value'])) {
     $short_name = $term->field_short_name[LANGUAGE_NONE][0]['value'];
   }
-  if (empty($short_name)) {
+  if (empty($short_name) && is_object($term)) {
     $short_name = _wk_shorten_name($term->name);
   }
 
