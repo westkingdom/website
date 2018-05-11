@@ -181,6 +181,9 @@ function regnum_user_access($entityform_bundle, $user = NULL) {
 function regnum_assign_officer($user_officer_info, $group_info) {
   // Get a reference to the user and the office being assigned to.
   $user = _regnum_get_or_create_user($user_officer_info);
+  if (!$user) {
+    return false;
+  }
 
   // If the user's email address has been changed, then
   // update it in the user record.
@@ -308,6 +311,7 @@ function _regnum_assign_user_to_officer_node_assign_roles($user, $officer_node, 
       }
     }
   }
+  return true;
 }
 
 function regnum_remove_user_from_office($office_node, $uid) {
@@ -346,7 +350,12 @@ function regnum_approve_officer($submission, $approver = null) {
   $user_info = _regnum_entity_to_data_array($submission, $field_map);
   $user_info = _regnum_fix_up_submission_data($user_info);
   $group_info = _regnum_group_info($submission);
-  regnum_assign_officer($user_info, $group_info);
+  $result = regnum_assign_officer($user_info, $group_info);
+
+  if (!$result) {
+    return $result;
+  }
+
   // Mark $submission as approved, so that we do not show it again
   $submission->field_submission_status->set("approved");
   // If we were given an approver, then record it for posterity.
@@ -358,6 +367,8 @@ function regnum_approve_officer($submission, $approver = null) {
   // Notify the user in the Regnum change, and all officers who can approve
   // this submission that the change was processed.
   _regnum_mail_notify('regnum_submission_approved', $submission);
+
+  return true;
 }
 
 function regnum_approve_officer_later($submission, $approver = null) {
@@ -783,7 +794,6 @@ function _regnum_get_user($user_info) {
     $query = "SELECT uid FROM {users} WHERE name = :name";
     unset($parameters[':mail']);
   }
-
   $result = db_query($query, $parameters);
   $uid = $result->fetchField();
   $user = $uid ? user_load($uid) : NULL;
@@ -807,7 +817,13 @@ function _regnum_get_or_create_user($user_info) {
       'access' => '0',
       'status' => 1,
     );
-    $new_user_object = user_save(NULL, $new_user, NULL);
+    try {
+      $new_user_object = user_save(NULL, $new_user, NULL);
+    }
+    catch (\Exception $e) {
+      drupal_set_message(t("Could not create a new user record for @name: @message", ['@name' => $user_info['name'], '@message' => $e->getMessage()]), 'error');
+      return false;
+    }
     $uid = $new_user_object->uid;
     $user = user_load($uid);
   }
@@ -2195,7 +2211,10 @@ function regnum_submission_confirm_form_approve($form, &$form_state) {
   $inaccessibleSubmissions = array_diff_assoc($submissions, $approvableSubmissions);
 
   foreach ($approvableSubmissions as $submission) {
-    regnum_approve_officer($submission, $user);
+    $result = regnum_approve_officer($submission, $user);
+    if (!$result) {
+      return $result;
+    }
   }
 
   regnum_set_message_about_submissions(
