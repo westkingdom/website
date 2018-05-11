@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "9a8b9e9abeab1fc4b06b3e3ea8b255d8",
+    "content-hash": "d9f5abd1937a9c851ad9e284063414fe",
     "packages": [
         {
             "name": "composer/installers",
@@ -4996,17 +4996,17 @@
         },
         {
             "name": "drupal/rules",
-            "version": "2.3.0",
+            "version": "2.10.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupal.org/project/rules",
-                "reference": "7.x-2.3"
+                "reference": "7.x-2.10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/rules-7.x-2.3.zip",
-                "reference": "7.x-2.3",
-                "shasum": "e72d40c0f54aba44cfabce3c2a6f536f20efe06e"
+                "url": "https://ftp.drupal.org/files/projects/rules-7.x-2.10.zip",
+                "reference": "7.x-2.10",
+                "shasum": "8d727f737f1a01b699c2a867ffcdc9c6e34ad04c"
             },
             "require": {
                 "drupal/drupal": "~7.0",
@@ -5022,8 +5022,8 @@
                     "dev-2.x": "2.x-dev"
                 },
                 "drupal": {
-                    "version": "7.x-2.3",
-                    "datestamp": "1384566690",
+                    "version": "7.x-2.10",
+                    "datestamp": "1492697942",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"

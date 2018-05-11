@@ -77,7 +77,7 @@
         "drupal/redirect": "^1",
         "drupal/references": "^2.0",
         "drupal/references_dialog": "^1",
-        "drupal/rules": "2.3",
+        "drupal/rules": "2.10.0",
         "drupal/smtp": "^1",
         "drupal/stage_file_proxy": "^1",
         "drupal/strongarm": "^2",
