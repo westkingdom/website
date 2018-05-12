@@ -1922,9 +1922,8 @@ function wk_officer_promote_submit($form, &$form_state) {
 
   regnum_assign_user_to_officer_node($new_officer, $officer_node, $primary_officer_title, FALSE, $retain);
 
-  // The form action is [officer url]/promote. We take the `dirname` of this
-  // to strip off the `/promote` and go back to the officer page.
-  drupal_goto(dirname($form['#action']));
+  // Return from the 'promote' page back to the officer page when done
+  drupal_goto('node/' . $officer_node->nid);
 }
 
 function wk_officer_promote_heirs_submit($form, &$form_state, $heirs_node) {
