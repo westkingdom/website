@@ -1917,15 +1917,14 @@ function wk_officer_promote_submit($form, &$form_state) {
 
   $officer_uid = array_pop($new_officer_parts);
 
-  // dpm($retain);
-  // dpm($officer_uid);
-
   $new_officer = user_load($officer_uid);
   $officer_node = node_load($nid);
 
-
   regnum_assign_user_to_officer_node($new_officer, $officer_node, $primary_officer_title, FALSE, $retain);
 
+  // The form action is [officer url]/promote. We take the `dirname` of this
+  // to strip off the `/promote` and go back to the officer page.
+  drupal_goto(dirname($form['#action']));
 }
 
 function wk_officer_promote_heirs_submit($form, &$form_state, $heirs_node) {
@@ -1941,10 +1940,9 @@ function wk_officer_promote_heirs_submit($form, &$form_state, $heirs_node) {
   // Build a list and sort it, so that
   // we handle the regent (weight -10) first
   $user_list = array();
-  foreach ($form_state as $key => $info) {
+  foreach ($form_state['values'] as $key => $title) {
     if (substr($key, 0, 6) == 'title-') {
       $uid = substr($key, 6);
-      $title = $info['#value'];
       $weight = $form_state['values']['weight-' . $uid];
 
       $user_list[] = array(
@@ -1980,6 +1978,9 @@ function wk_officer_promote_heirs_submit($form, &$form_state, $heirs_node) {
   foreach ($regent_uids as $uid) {
     regnum_remove_user_from_office($regent_node, $uid);
   }
+
+  // Return to the Regent page, so the use can see the result of the promotion
+  drupal_goto('node/' . $regent_node->nid);
 }
 
 function wk_reject_date_request($form, &$form_state, $id) {
