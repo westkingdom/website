@@ -1551,16 +1551,21 @@ function wk_form_alter(&$form, &$form_state) {
 
 function wk_form_alter__domain_overview_form(&$form, &$form_state) {
   global $user;
-  //dpm($form);
+  //print "<pre>\n";
+  //var_export($form);
+  //print "\n";
+  //var_export($user);
+  //print "</pre>";
   //dpm($form_state);
   //dpm($form_state['node']);
   //dpm(current_path());
   if (!user_access('administer domains')) {
     $no_domains = TRUE;
+    $user_domains = domain_get_user_domains($user);
     foreach ($form['domain'] as $key => $info) {
       if (is_array($info) && array_key_exists('values', $info)) {
         $domain = $info['values']['#value'];
-        if (!array_key_exists($domain['domain_id'], $user->domain_user)) {
+        if (!array_key_exists($domain['domain_id'], $user_domains)) {
           unset($form['domain'][$key]);
           unset($form['domain_actions'][$key]);
           unset($form['default_domain']['#options'][$key]);
@@ -1575,6 +1580,9 @@ function wk_form_alter__domain_overview_form(&$form, &$form_state) {
     unset ($form['submit']);
     if ($no_domains) {
       $form['top']['#markup'] = t('You have no domains that you can edit.');
+    }
+    else {
+      $form['top']['#markup'] = t('You have access to the following subset of domains:');
     }
   }
 }
