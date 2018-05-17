@@ -81,8 +81,10 @@ drush "$SITE_IDENTIFIER" cb-umaster wk_config -y
 # validation failure.
 #
 # The solution is to pre-create any static content
-# that will not be modified by any test prior to
-# running behat.  We will do that here.
+# prior to running behat, and ensure that the static
+# content is not modified by any test (or, if it is,
+# then it must be restored afterwards).  We will define
+# that data here.
 STATIC_TEST_CONTENT="$SELF_DIRNAME/data/static-test-content.yml"
 drush "$SITE_IDENTIFIER" behat import --file="$STATIC_TEST_CONTENT"
 drush "$SITE_IDENTIFIER" cc all

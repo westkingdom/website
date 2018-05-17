@@ -5,6 +5,9 @@ create_term:
     -
       name: Principality of Contrivance
       parent: Kingdom of Imaginarium
+    -
+      name: Principality of Fabrication
+      parent: Kingdom of Imaginarium
   offices:
    -
       name: Seneschal
@@ -12,3 +15,25 @@ create_term:
       name: Web Minister
    -
       name: Chatalaine
+
+
+# Users:
+
+# King Jock
+# Queen Figure
+# Master Ki (Senschal)
+# Sir Insuficientous Relucticance
+
+# Need:
+
+# Heirs for King & Queen
+# Prince & Princess for both Principalities
+
+# A Barony with Baron / Baroness
+# A Shire
+
+
+# Events:
+
+# Contrived Fabrication War
+# Fabricated Contrivance War
