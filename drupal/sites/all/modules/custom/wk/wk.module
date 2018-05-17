@@ -128,9 +128,6 @@ function wk_media_wysiwyg_token_to_markup_alter(&$element, $tag_info, $settings)
       $width = $width[0]['value'];
     }
     if (!empty($width) && ($width != '_none')) {
-      if (is_array($width)) {
-        print "What width is an array?\n" . var_export($width, true) . "\n";
-      }
       _wk_add_class($element['content']['#attributes'], 'media-width-' . $width);
     }
   }
@@ -1551,11 +1548,7 @@ function wk_form_alter(&$form, &$form_state) {
 
 function wk_form_alter__domain_overview_form(&$form, &$form_state) {
   global $user;
-  //print "<pre>\n";
-  //var_export($form);
-  //print "\n";
-  //var_export($user);
-  //print "</pre>";
+  //dpm($form);
   //dpm($form_state);
   //dpm($form_state['node']);
   //dpm(current_path());
@@ -4122,7 +4115,8 @@ function _wk_domain_conf_access_callback($domain, $permission, $alternate_permis
   // edit this domain configuration item if they have the right
   // to do so, as granted by our permission
   global $user;
-  if (array_key_exists($domain['domain_id'], $user->domain_user)) {
+  $user_domains = domain_get_user_domains($user);
+  if (array_key_exists($domain['domain_id'], $user_domains)) {
     return user_access($permission) || (!empty($alternate_permission) && user_access($alternate_permission));
   }
   return FALSE;
