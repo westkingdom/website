@@ -2154,7 +2154,7 @@
                 },
                 "drupal": {
                     "version": "7.59",
-                    "datestamp": "1524674011",
+                    "datestamp": "1524805044",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -2166,10 +2166,6 @@
                 "GPL-2.0-or-later"
             ],
             "authors": [
-                {
-                    "name": "Cottser",
-                    "homepage": "https://www.drupal.org/user/1167326"
-                },
                 {
                     "name": "David_Rothstein",
                     "homepage": "https://www.drupal.org/user/124982"
@@ -4306,17 +4302,17 @@
         },
         {
             "name": "drupal/og",
-            "version": "2.9.0",
+            "version": "2.10.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupal.org/project/og",
-                "reference": "7.x-2.9"
+                "reference": "7.x-2.10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/og-7.x-2.9.zip",
-                "reference": "7.x-2.9",
-                "shasum": "648c09989d35725303bab106ebe0b7102296d6e9"
+                "url": "https://ftp.drupal.org/files/projects/og-7.x-2.10.zip",
+                "reference": "7.x-2.10",
+                "shasum": "099e4639c20b8fc44d6952eb2c86a3167d2a81cb"
             },
             "require": {
                 "drupal/drupal": "*",
@@ -4341,8 +4337,8 @@
                     "dev-2.x": "2.x-dev"
                 },
                 "drupal": {
-                    "version": "7.x-2.9",
-                    "datestamp": "1461171804",
+                    "version": "7.x-2.10",
+                    "datestamp": "1530174224",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -4369,6 +4365,10 @@
                 {
                     "name": "Zen",
                     "homepage": "https://www.drupal.org/user/21209"
+                },
+                {
+                    "name": "alesr",
+                    "homepage": "https://www.drupal.org/user/150704"
                 },
                 {
                     "name": "amitaibu",
@@ -8000,16 +8000,16 @@
         },
         {
             "name": "fabpot/goutte",
-            "version": "v3.2.2",
+            "version": "v3.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/FriendsOfPHP/Goutte.git",
-                "reference": "395f61d7c2e15a813839769553a4de16fa3b3c96"
+                "reference": "3f0eaf0a40181359470651f1565b3e07e3dd31b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/FriendsOfPHP/Goutte/zipball/395f61d7c2e15a813839769553a4de16fa3b3c96",
-                "reference": "395f61d7c2e15a813839769553a4de16fa3b3c96",
+                "url": "https://api.github.com/repos/FriendsOfPHP/Goutte/zipball/3f0eaf0a40181359470651f1565b3e07e3dd31b8",
+                "reference": "3f0eaf0a40181359470651f1565b3e07e3dd31b8",
                 "shasum": ""
             },
             "require": {
@@ -8051,7 +8051,7 @@
             "keywords": [
                 "scraper"
             ],
-            "time": "2017-11-19T08:45:40+00:00"
+            "time": "2018-06-29T15:13:57+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
