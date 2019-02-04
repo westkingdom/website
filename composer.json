@@ -94,6 +94,7 @@
         "drupal/wysiwyg": "^2",
         "drupal/wysiwyg_filter": "^1",
         "drush/drush": "^8",
+        "phpdocumentor/reflection-docblock": "^2",
         "westkingdom/hierarchical-group-email": "~1.0"
     },
     "require-dev": {

@@ -938,6 +938,7 @@ function wk_form_alter__calendar_date_request_entityform_edit_form(&$form, &$for
 }
 
 function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
+  $is_calendar_admin = _wk_is_calendar_admin();
   $current_date = date("Y-m-d") . ' 12:00:00';
   $open_for_all_year = wk_calendar_year_open_for_all_events();
   $earliest_date_epoch = _wk_earliest_event_request_data();
@@ -1016,7 +1017,7 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
               break;
           }
           // No events allowed?  Exit with an error.
-          if (!$number_of_events_allowed) {
+          if (!$is_calendar_admin && !$number_of_events_allowed) {
             return form_set_error($date_field, t("The calendar is not yet open for events in !nextyear.  You may only request dates for events in !thisyear.", array('!nextyear' => $requested_year, '!thisyear' => $open_for_all_year)));
           }
 
@@ -1056,7 +1057,7 @@ function _wk_form_validate_calendar_must_be_open_for_date($form, &$form_state) {
           }
 
           $total = count($items);
-          if ($total >= $number_of_events_allowed) {
+          if (!$is_calendar_admin && ($total >= $number_of_events_allowed)) {
 
             // Test to see if the 'additional information' field contains "I understand".
             $additional_information = $form_state['values']['field_additional_information'][LANGUAGE_NONE][0]['value'];
@@ -3957,6 +3958,17 @@ function _wk_is_branch_web_admin($account = NULL) {
   $branch_officer = array_combine($branch_officer, $branch_officer);
 
   return $branch_officer;
+}
+
+function _wk_is_calendar_admin($account = NULL) {
+  $branch_groups = _wk_is_branch_web_admin($account);
+  foreach ($branch_groups as $branch_group) {
+    $branch_info = taxonomy_term_load($branch_group);
+    if ($branch_info->tid == KINGDOM_OF_THE_WEST_TID) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // If the current user is an officer, return
