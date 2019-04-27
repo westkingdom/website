@@ -36,7 +36,7 @@ jobs:
                 command: composer install
 
             - run:
-                command: bin/disable-php-email
+                command: echo 'sendmail_path=/bin/true' > /usr/local/etc/php/conf.d/sendmail-path.ini
 
             - run:
                 command: bin/install-drupal
