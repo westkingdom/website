@@ -28,6 +28,9 @@ jobs:
             - checkout
 
             - run:
+                command: composer install
+
+            - run:
                 command: bin/disable-php-email
 
             - run:
@@ -51,6 +54,9 @@ jobs:
 
         steps:
             - checkout
+
+            - run:
+                command: composer install
 
             - run:
                 command: cd drupal && ../bin/drush @wkweb.live ssh '(cd .. && git pull && composer install --no-dev)'
