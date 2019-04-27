@@ -70,5 +70,5 @@ jobs:
                 command: cd drupal && ../bin/drush @wkweb.live ssh '(cd .. && git pull && composer install --no-dev)'
 
             - run:
-                command: cd drupal && ../bin/drush @wkweb.live updatedb --yes && ../bin/drush @wkweb.stage cc all --yes
+                command: cd drupal && ../bin/drush @wkweb.live updatedb --yes && ../bin/drush @wkweb.live cc all --yes
 
