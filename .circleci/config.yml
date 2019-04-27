@@ -1,7 +1,5 @@
 # https://circleci.com/docs/2.0/workflows/#using-workspaces-to-share-data-among-jobs
 defaults: &defaults
-  docker:
-    - image: quay.io/pantheon-public/build-tools-ci:4.x
   working_directory: ~/wk
   environment:
     TZ: "/usr/share/zoneinfo/America/Los_Angeles"
@@ -23,6 +21,10 @@ version: 2
 jobs:
     test:
         <<: *defaults
+
+        docker:
+            - image: quay.io/pantheon-public/build-tools-ci:4.x
+            - image: circleci/mysql:5.7.24
 
         steps:
             - checkout
@@ -51,6 +53,9 @@ jobs:
 
     deploy:
         <<: *defaults
+
+        docker:
+            - image: quay.io/pantheon-public/build-tools-ci:4.x
 
         steps:
             - checkout
