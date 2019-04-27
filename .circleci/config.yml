@@ -24,12 +24,7 @@ jobs:
 
         docker:
             - image: wodby/drupal-php:7.0
-            - image: tkuchiki/delayed-mysql
-              environment:
-                MYSQL_ALLOW_EMPTY_PASSWORD: yes
-                MYSQL_ROOT_PASSWORD: ''
-                MYSQL_DATABASE: circleci
-            - image: wodby/drupal-mariadb
+            - image: circleci/mysql:5.7.24
               environment:
                 MYSQL_RANDOM_ROOT_PASSWORD: 1
                 MYSQL_DATABASE: circle_test
