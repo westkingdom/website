@@ -25,10 +25,10 @@ jobs:
         docker:
             - image: circleci/php:7.1
             - image: tkuchiki/delayed-mysql
-                environment:
-                    MYSQL_ALLOW_EMPTY_PASSWORD: yes
-                    MYSQL_ROOT_PASSWORD: ''
-                    MYSQL_DATABASE: circleci
+              environment:
+                MYSQL_ALLOW_EMPTY_PASSWORD: yes
+                MYSQL_ROOT_PASSWORD: ''
+                MYSQL_DATABASE: circleci
 
         steps:
             - checkout
