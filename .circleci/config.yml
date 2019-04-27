@@ -64,7 +64,7 @@ jobs:
                 command: composer install
 
             - run:
-                command: cp ./circleci/ssh-config ~/.ssh/config
+                command: cp .circleci/ssh-config ~/.ssh/config
 
             - run:
                 command: cd drupal && ../bin/drush @wkweb.live ssh '(cd .. && git pull && composer install --no-dev)'
