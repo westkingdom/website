@@ -2411,7 +2411,13 @@ function regnum_tokens($type, $tokens, array $data = array(), array $options = a
           $replacements[$original] = $user_info['info'];
           break;
         case 'approver':
-          $replacements[$original] = 'tbd';
+          // $submission->field_submission_approver->set($approver->uid)
+          $approver_user = $submission->field_submission_approver->value();
+          $approving_username = 'unknown';
+          if ($approver_user) {
+            $approving_username = $approver_user->name;
+          }
+          $replacements[$original] = $approving_username;
           break;
         case 'primary_approver':
         case 'alternate_approvers':
