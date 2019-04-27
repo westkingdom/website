@@ -1,0 +1,60 @@
+# https://circleci.com/docs/2.0/workflows/#using-workspaces-to-share-data-among-jobs
+defaults: &defaults
+  docker:
+    - image: quay.io/pantheon-public/build-tools-ci:4.x
+  working_directory: ~/wk
+  environment:
+    TZ: "/usr/share/zoneinfo/America/Los_Angeles"
+    TERM: dumb
+
+workflows:
+  version: 2
+  test_and_deploy:
+    jobs:
+        - test
+        - deploy:
+            filters:
+                branches:
+                    only: master
+            requires:
+                - test
+
+version: 2
+jobs:
+    test:
+        <<: *defaults
+
+        steps:
+            - checkout
+
+            - run:
+                command: bin/disable-php-email
+
+            - run:
+                command: bin/install-drupal
+
+            - run:
+                command: bin/start-webserver
+                background: true
+
+            - run:
+                command: bin/wait-for-webserver
+
+            - run:
+                command: bin/behat
+
+            - run:
+                command: bin/stop-webserver
+
+    deploy:
+        <<: *defaults
+
+        steps:
+            - checkout
+
+            - run:
+                command: cd drupal && ../bin/drush @wkweb.live ssh '(cd .. && git pull && composer install --no-dev)'
+
+            - run:
+                command: cd drupal && ../bin/drush @wkweb.live updatedb --yes && ../bin/drush @wkweb.stage cc all --yes
+
