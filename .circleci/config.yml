@@ -23,7 +23,7 @@ jobs:
         <<: *defaults
 
         docker:
-            - image: circleci/php:7.1
+            - image: wodby/drupal-php:7.0
             - image: tkuchiki/delayed-mysql
               environment:
                 MYSQL_ALLOW_EMPTY_PASSWORD: yes
