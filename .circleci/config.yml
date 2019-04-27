@@ -42,17 +42,14 @@ jobs:
                 command: bin/install-drupal
 
             - run:
-                command: bin/start-webserver
+                command: drush @localtest rs
                 background: true
 
             - run:
-                command: bin/wait-for-webserver
+                command: sleep 10
 
             - run:
                 command: bin/behat
-
-            - run:
-                command: bin/stop-webserver
 
     deploy:
         <<: *defaults
