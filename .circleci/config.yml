@@ -26,10 +26,8 @@ jobs:
             - image: wodby/drupal-php:7.0
             - image: circleci/mysql:5.7.24
               environment:
-                MYSQL_RANDOM_ROOT_PASSWORD: 1
-                MYSQL_DATABASE: circle_test
-                MYSQL_USER: ubuntu
-                MYSQL_PASSWORD: ''
+                - MYSQL_ALLOW_EMPTY_PASSWORD=true
+                - MYSQL_ROOT_HOST=%
 
         steps:
             - checkout
