@@ -569,6 +569,12 @@ div.media img,
   height: auto;
 }
 
+/* ----- Regnum confirm form ----- */
+
+.entityform-regnum-change h2 {
+  display: none;
+}
+
 /* ----- Regnum change form ----- */
 
 #field-institutional-memory-email-add-more-wrapper {

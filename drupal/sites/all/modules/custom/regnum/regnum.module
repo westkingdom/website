@@ -2014,7 +2014,31 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
   $field_map = _regnum_regnum_change_field_map($regnum_form_bundle);
   $user_info = _regnum_entity_to_data_array($submission, $field_map);
   $user_info = _regnum_fix_up_submission_data($user_info);
-  $content = t("!name has applied for !title.", _regnum_map_to_dt_data($user_info)) . '<br>';
+  // $content = t("!name has applied for !title.", _regnum_map_to_dt_data($user_info)) . '<br>';
+
+  // Put in some info to help guide what is happening
+  $group_info = _regnum_group_info($submission);
+  $officenode = _regnum_find_officer_node($group_info);
+
+  $content = '';
+  if ($officenode) {
+    $branch_tid = $officenode->taxonomy_vocabulary_2[LANGUAGE_NONE][0]['tid'];
+    $office_tid = $officenode->field_office[LANGUAGE_NONE][0]['tid'];
+    $branch_term = taxonomy_term_load($branch_tid);
+    $office_term = taxonomy_term_load($office_tid);
+
+    $branch_name = $branch_term->name;
+    $office_name = $office_term->name;
+
+    $current_officer_uid = $officenode->uid;
+    $current_officer = user_load($current_officer_uid);
+
+    if ($user_info['deputy']) {
+      $content .= t("Request to assist !name, !branch !office, as a deputy:", ['!name' => $current_officer->name, '!branch' => $branch_name, '!office' => $office_name ]);
+    } else {
+      $content .= t("<b>REPLACING</b> !name as !branch !office:", ['!name' => $current_officer->name, '!branch' => $branch_name, '!office' => $office_name ]);
+    }
+  }
 
   $unixtime = regnum_get_date_value_as_epoch($submission->field_effective_date->value());
   $effective_now = ($unixtime < time());
@@ -2028,6 +2052,9 @@ function regnum_submission_confirm_form($form, &$form_state, $submission_id) {
 
   $submission_render_array = entityform_page_view($submission_entity);
 
+  $form['preamble'] = [
+    '#markup' => $content,
+  ];
   $form['info'] = $submission_render_array;
   $form['submission-id'] = array(
     '#type' => 'hidden',
