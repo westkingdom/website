@@ -31,9 +31,12 @@ define("SOCIETY_TID", 75);
 define("KINGDOM_OF_THE_WEST_TID", 2);
 
 define("SENESCHAL_TID", 84);
+define("EXCHEQUER_TID", 81);
+
 define("WEBMINISTER_TID", 93);
 define("HEIRS_TID", 132);
 define("REGENT_TID", 130);
+define("LANDED_BARON_TID", 313);
 
 define("KINGDOM_WEBMINISTER_GID", 851);
 define("KINGDOM_SENESCHAL_GID", 989);

@@ -605,6 +605,7 @@ function regnum_approval_offices_for_submission($submission) {
     // indicates that this submission is an application for the
     // position of Kingdom Seneschal.
     $tids = $group_info['tids'];
+    $request_tids = $tids;
 
     // Now find the name (label) of the approval term -- which is
     // used to determine which taxononmy term indicates the group
@@ -633,20 +634,38 @@ function regnum_approval_offices_for_submission($submission) {
       // For applications for deputy positions, the "primary approver"
       // is simply the office that is being applied for.
       $primary_approver_tids = $tids;
+
       if (!$submission->field_deputy->value()) {
-        if ($primary_approver_tids[$approval_name] != $primary_approver_tid) {
+
+        // Special checking:
+        //   If $tids['office'] is Exchequer or Baron, then we will bump
+        //   $primary_approver_tids['branch'] up to "Kingdom of the West"
+        // This has the effect of only allowing the Kingdom Seneschal to
+        // confirm these submissions.
+        // TODO: Seneschal too?
+
+        // TODO: Do not reference constant defined in wk module
+        $special_approval_list = [SENESCHAL_TID, EXCHEQUER_TID, LANDED_BARON_TID];
+        if (in_array($tids[$approval_name], $special_approval_list)) {
+          $primary_approver_tids[$heirarchy_name] = KINGDOM_OF_THE_WEST_TID;
           $primary_approver_tids[$approval_name] = $primary_approver_tid;
         }
-        elseif($heirarchy_name) {
-          $parents = taxonomy_get_parents($primary_approver_tids[$heirarchy_name]);
-          if ($parents) {
-            $parent = reset($parents);
-            // HACK: Do not go upt to Corpora here.
-            if ($parent->name != "Society for Creative Anachronism Corpora") {
-              $primary_approver_tids[$heirarchy_name] = $parent->tid;
+        else {
+          if ($primary_approver_tids[$approval_name] != $primary_approver_tid) {
+            $primary_approver_tids[$approval_name] = $primary_approver_tid;
+          }
+          elseif($heirarchy_name) {
+            $parents = taxonomy_get_parents($primary_approver_tids[$heirarchy_name]);
+            if ($parents) {
+              $parent = reset($parents);
+              // HACK: Do not go upt to Corpora here.
+              if ($parent->name != "Society for Creative Anachronism Corpora") {
+                $primary_approver_tids[$heirarchy_name] = $parent->tid;
+              }
             }
           }
         }
+
       }
       // Add the primary approver to the approval offices.
       _regnum_add_approval_office($approval_offices, $group_info, $primary_approver_tids);
@@ -656,6 +675,12 @@ function regnum_approval_offices_for_submission($submission) {
       // for the Regnum change.
       $tids = $primary_approver_tids;
       _regnum_add_approval_offices($approval_offices, $group_info, $tids, $approval_name, $group_info['approver-offices']);
+
+      // Also allow the Kingdom Exchequer to approve Exchequers for groups
+      // other than the Kingdom.
+      if (($request_tids[$approval_name] == EXCHEQUER_TID) && ($request_tids[$heirarchy_name] != KINGDOM_OF_THE_WEST_TID)) {
+        _regnum_add_approval_offices($approval_offices, $group_info, $tids, $approval_name, [EXCHEQUER_TID]);
+      }
 
       // Next, we'll walk up the branch group hierarchy
       // until we get to the top.  Note that the top is
