@@ -1,5 +1,7 @@
 <?php
 
+use Drush\User\UserList;
+
 /**
  * Implements hook_drush_command().
  */
@@ -31,7 +33,58 @@ function wk_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all. Remove for full bootstrap of Drupal site.
   );
 
+  $items['wk-insert-email'] = array(
+    'description' => "Add an email address that has already been created to the specified user.",
+    'arguments' => array(
+      'user' => 'Username',
+      'email' => '@westkingdom.org email address',
+    ),
+    'examples' => array(
+      'drush wk-insert-email username address@westkingdom.org',
+    ),
+  );
+
+  $items['wk-show-email'] = array(
+    'description' => "Show organization email address associated with account",
+    'arguments' => array(
+      'user' => 'Username',
+    ),
+    'outputformat' => array(
+      'default' => 'yaml',
+      'pipe-format' => 'var_export',
+
+      'field-labels' => array(
+        'uid' => 'User ID',
+
+        'eid' => 'ID',
+        'uid' => 'UID',
+        'email' => 'e-mail',
+        'time_registered' => 'Registered',
+        'confirmed' => 'Confirmed',
+        'confirm_code' => 'Code',
+        'time_code_generated' => 'Time Code Generated',
+        'attempts' => 'Attempts',
+        'primary_address' => 'Primary',
+      ),
+    ),
+  );
+
   return $items;
+}
+
+function drush_wk_show_email($username) {
+  $user = user_load_by_name($username);
+  $result = multiple_email_load_addresses($user->uid);
+
+  // $result[0] is a map of eid => email address.
+  // The other items in the array are eid => mail record
+  unset($result[0]);
+  return $result;
+}
+
+function drush_wk_insert_email($username, $org_email) {
+  $user = user_load_by_name($username);
+  multiple_email_register_email($user->uid, $org_email, TRUE);
 }
 
 /**
