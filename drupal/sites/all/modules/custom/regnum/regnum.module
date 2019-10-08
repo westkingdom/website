@@ -450,7 +450,7 @@ function regnum_submission_is_approvable($submission, $the_user) {
   $users_groups = og_get_entity_groups("user", $the_user);
   if (array_key_exists('node', $users_groups)) {
     $users_groups = array_flip($users_groups['node']);
-    $approval_offices = regnum_approval_offices_for_submission($submission);
+    $approval_offices = regnum_approval_offices_for_submission($submission, true);
     $users_approval_offices = array_intersect_key($approval_offices, $users_groups);
     if (!empty($users_approval_offices)) {
       $approvable = TRUE;
@@ -517,7 +517,7 @@ function regnum_submissions_user_can_approve($the_user) {
     $toc = regnum_get_submissions_of_status($entityform_bundle);
     foreach ($toc as $id => $info) {
       $submission = new EntityDrupalWrapper('entityform', $id);
-      $approval_offices = regnum_approval_offices_for_submission($submission);
+      $approval_offices = regnum_approval_offices_for_submission($submission, true);
       // Check to see if the user can approve all submissions of this type
       $approvable = regnum_user_access($id, $the_user);
       // If the user cannot approve all submissions, it might still be possible
@@ -554,7 +554,7 @@ function regnum_test_approval_offices($submission) {
   if (is_numeric($submission)) {
     $submission = new EntityDrupalWrapper('entityform', $submission);
   }
-  $approval_offices = regnum_approval_offices_for_submission($submission);
+  $approval_offices = regnum_approval_offices_for_submission($submission, true);
   $approvers = array();
   foreach ($approval_offices as $nid => $node) {
     $approvers[] = regnum_primary_officer($node, TRUE);
@@ -572,8 +572,13 @@ function regnum_test_approval_offices($submission) {
  * list also have the ability to approve the submission,
  * but by convention should only do so if they know
  * that the primary approver approves of this action.
+ *
+ * If $include_deputies is true, then we will allow
+ * "parent group" officers to approve. We typically set
+ * this parameter to 'true' for access checks, and
+ * 'false' for notifications.
  */
-function regnum_approval_offices_for_submission($submission) {
+function regnum_approval_offices_for_submission($submission, $include_deputies = false) {
   $approval_offices = array();
   $approval_name = FALSE;
   $heirarchy_name = FALSE;
@@ -688,7 +693,7 @@ function regnum_approval_offices_for_submission($submission) {
       // that we do not bother anyone other than the officers
       // of the immediate group with approval requests
       // of deputies.
-      if (!$submission->field_deputy->value() && $heirarchy_name && array_key_exists($heirarchy_name, $tids)) {
+      if ((!$submission->field_deputy->value() || $include_deputies) && $heirarchy_name && array_key_exists($heirarchy_name, $tids)) {
         // We will only admit to at most one parent per branch group.
         $parents = taxonomy_get_parents($tids[$heirarchy_name]);
         while ($parents) {
