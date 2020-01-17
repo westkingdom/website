@@ -3308,14 +3308,12 @@ function regnum_domain_initialize($domain) {
   // Save the path to the new homepage as this domain's front page
   domain_conf_variable_set($domain['domain_id'], 'site_frontpage', "$homepage_path");
 
-  // If there is no main menu, create one
-  $main_menu_name = domain_conf_variable_get($domain['domain_id'], 'menu_main_links_source');
-  if (empty($main_menu_name) || ($main_menu_name == 'main-menu')) {
-    // TODO: create a menu for this domain. This should also be called via a hook
-    $menu = _wk_create_branch_menu($branch_term, $homepage_path);
-    // set the created menu as the domain's main menu
-    domain_conf_variable_set($domain['domain_id'], 'menu_main_links_source', $menu["menu_name"]);
-  }
+  // Don't try to be idempotent, just create the main menu
+  // $main_menu_name = domain_conf_variable_get($domain['domain_id'], 'menu_main_links_source');
+  // Create a menu for this domain. TODO: This should also be called via a hook
+  $menu = _wk_create_branch_menu($branch_term, $homepage_path);
+  // set the created menu as the domain's main menu
+  domain_conf_variable_set($domain['domain_id'], 'menu_main_links_source', $menu["menu_name"]);
 
   // Set the site slogan to the taxonomy term description
   domain_conf_variable_set($domain['domain_id'], 'site_slogan', strip_tags($branch_term->description));
