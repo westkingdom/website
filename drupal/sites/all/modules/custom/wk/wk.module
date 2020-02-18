@@ -4727,6 +4727,9 @@ function wk_group_office_shortname($node) {
 
 function wk_group_office_shortname_components($node) {
   $office_shortname_components = array();
+  if (!is_array($node->field_office[LANGUAGE_NONE])) {
+    return $office_shortname_components;
+  }
   foreach ($node->field_office[LANGUAGE_NONE] as $office_node_info) {
     $office_tid = $office_node_info['tid'];
     $officer_info = taxonomy_term_load($office_tid);
