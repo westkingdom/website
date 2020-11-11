@@ -244,21 +244,6 @@
  *   );
  * @endcode
  */
-$databases = array (
-  'default' =>
-  array (
-    'default' =>
-    array (
-      'database' => 'wk7db',
-      'username' => 'root',
-      'password' => '',
-      'host' => '127.0.0.1',
-      'port' => '',
-      'driver' => 'mysql',
-      'prefix' => '',
-    ),
-  ),
-);
 
 /**
  * Quoting of identifiers in MySQL.

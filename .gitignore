@@ -1,4 +1,5 @@
 travis/travis-ci-key
+web/sites/default/settings.local.php
 web/sites/sites/
 web/temp
 .vagrant
