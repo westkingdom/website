@@ -1,0 +1,13 @@
+name = "Multiple E-mail Addresses"
+description = "Allows users to have more than one registered e-mail address"
+core = 7.x
+configure = admin/people/multiple-email
+
+files[] = multiple_email.test
+files[] = views/multiple_email_handler_filter_current.inc
+
+; Information added by Drupal.org packaging script on 2018-09-12
+version = "7.x-1.0-rc1"
+core = "7.x"
+project = "multiple_email"
+datestamp = "1536757987"

@@ -1,0 +1,14 @@
+name = Domain Access Test
+description = Support module for Domain Access testing.
+package = Testing
+core = 7.x
+hidden = TRUE
+
+dependencies[] = domain
+files[] = domain.test
+
+; Information added by Drupal.org packaging script on 2019-12-17
+version = "7.x-3.17"
+core = "7.x"
+project = "domain"
+datestamp = "1576608571"

@@ -1,0 +1,179 @@
+<?php
+
+/**
+ * @file
+ * Tests for Email Confirm module.
+ */
+
+class EmailConfirmTestCase extends DrupalWebTestCase {
+
+  /**
+   * A user able to change her email.
+   *
+   * @var object
+   */
+  protected $web_user;
+
+  /**
+   * A user with permission to skip email confirmation.
+   *
+   * @var object
+   */
+  protected $admin_user;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Email Confirm',
+      'description' => 'Test email confirm module functionality.',
+      'group' => 'Email Confirm',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('email_confirm');
+    $this->web_user = $this->drupalCreateUser();
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer site configuration',
+      'administer users',
+      'bypass email confirmation',
+    ));
+    variable_set('email_confirm_hash_salt', 'a6608c69aaaf51b3d1c74432e505a6cff0034bac5d654a8d54c6743add6b8579');
+  }
+
+  /**
+   * Tests basic email change success for non-admin user.
+   */
+  function testChangeEmail() {
+    $this->drupalLogin($this->web_user);
+
+    // Changes of letter case should not require email confirmation.
+    $edit = array();
+    $edit['current_pass'] = $this->web_user->pass_raw;
+    $edit['mail'] = $this->web_user->mail = drupal_strtoupper($this->web_user->mail);
+    $this->drupalPost("user/" . $this->web_user->uid . "/edit", $edit, t('Save'));
+    $this->assertNoText(t("A confirmation email has been sent to your new email address. You must follow the link provided in that email within 24 hours in order to confirm the change to your account email address."));
+
+    // Assert user's mail has changed by case.
+    $account = user_load($this->web_user->uid);
+    $this->assertIdentical($account->mail, drupal_strtoupper($this->web_user->mail));
+
+    // Now actually change the email.
+    $new_mail = $this->randomName() . '@example.com';
+    $edit['mail'] = $new_mail;
+    $this->drupalPost("user/" . $this->web_user->uid . "/edit", $edit, t('Save'));
+    $this->assertText(t("A confirmation email has been sent to your new email address. You must follow the link provided in that email within 24 hours in order to confirm the change to your account email address."));
+
+    $change_url_path = email_confirm_confirmation_email_url_path($edit['mail'], $this->web_user->uid);
+    $this->drupalGet($change_url_path);
+    $this->assertText(t('Your e-mail address is now @mail.', array('@mail' => $new_mail)));
+  }
+
+  /**
+   * Tests email change failure cases for non-admin user.
+   */
+  function testChangeEmailVariations() {
+    $this->drupalLogin($this->web_user);
+
+    $new_mail = $this->randomName() . '@example.com';
+
+    $edit = array();
+    $edit['current_pass'] = $this->web_user->pass_raw;
+    $edit['mail'] = $new_mail;
+    $this->drupalPost("user/" . $this->web_user->uid . "/edit", $edit, t('Save'));
+    $this->assertText(t("A confirmation email has been sent to your new email address. You must follow the link provided in that email within 24 hours in order to confirm the change to your account email address."));
+
+    $this->assertText(t("You currently have a pending change of your e-mail address to"));
+    $this->assertText($new_mail);
+
+    // Assert user's mail hasn't changed yet.
+    $account = user_load($this->web_user->uid);
+    $this->assertIdentical($account->mail, $this->web_user->mail);
+    $this->assertNotIdentical($account->mail, $new_mail);
+
+    // Get change URL.
+    $change_url_path = email_confirm_confirmation_email_url_path($edit['mail'], $this->web_user->uid);
+    // Indices: 0 'user'. 1 'change-mail'. 2 uid. 3 timestamp. 4 hash.
+    $change_url_path_parts = explode('/', $change_url_path);
+
+    // Confirm a variety of validations on the arguments/hash:
+    // 1. missing all args.
+    $this->drupalGet('user/change-mail/');
+    $this->assertResponse(403, 'Missing args causes a 403.');
+
+    // 2. Non-numeric uid.
+    $this->drupalGet(str_replace('/' . $change_url_path_parts[2] . '/', '/peanut/', $change_url_path));
+    $this->assertResponse(403, 'Non-numeric uid causes a 403.');
+
+    // 3. Missing hash.
+    $this->drupalGet(str_replace('/' . $change_url_path_parts[4], '/', $change_url_path));
+    $this->assertResponse(403, 'Missing hash causes a 403.');
+
+    // 4. Timestamp doesn't match time in hash.
+    $this->drupalGet(str_replace('/' . $change_url_path_parts[3] . '/', '/' . (time() - 1) . '/', $change_url_path));
+    $this->assertText('There was a problem with your one-time e-mail change link. Please attempt the change again.');
+
+    // 5. Account not found (invalid uid).
+    $this->drupalGet(str_replace('/' . $change_url_path_parts[2] . '/', '/' . 42 . '/', $change_url_path));
+    $this->assertResponse(403, 'Invalid uid/account causes a 403.');
+
+    // 6. Passed timeout. Sleep 2 & set timeout to 1 so we can test it.
+    sleep(2);
+    variable_set('email_confirm_timeout', 1);
+    $this->drupalGet($change_url_path);
+    $this->assertText(t('You have tried to use a one-time e-mail change link that has expired. Please attempt the change again.'));
+    // Go back to default timeout.
+    variable_del('email_confirm_timeout');
+
+    // 7. Logged in as a different user.
+    $this->drupalLogout();
+    $this->drupalLogin($this->admin_user);
+    $this->drupalGet($change_url_path);
+    $this->assertText(t('You must be logged in to the same account that requested this e-mail change to proceed.'));
+    $this->drupalLogout();
+    $this->drupalLogin($this->web_user);
+
+    // 8. Timestamp less than account login. Getting the url way up above and
+    // the logout in previous assertion creates this condition.
+    $this->drupalGet($change_url_path);
+    $this->assertText(t('There was a problem with your one-time e-mail change link. Please attempt the change again.'));
+
+    // 9. Timestamp > current.
+    $change_url_path = email_confirm_confirmation_email_url_path($edit['mail'], $this->web_user->uid, time() + 3600);
+    $this->drupalGet($change_url_path);
+    $this->assertText('There was a problem with your one-time e-mail change link. Please attempt the change again.');
+
+    // 10. Invalid hash.
+    // Regenerate a good change url for current login time.
+    $change_url_path = email_confirm_confirmation_email_url_path($edit['mail'], $this->web_user->uid);
+    $change_url_path_parts = explode('/', $change_url_path);
+    $this->drupalGet(str_replace('/' . $change_url_path_parts[4], '/peanut', $change_url_path));
+    $this->assertText('There was a problem with your one-time e-mail change link. Please attempt the change again.');
+
+    // Confirm changed email with good url.
+    $change_url_path = email_confirm_confirmation_email_url_path($edit['mail'], $this->web_user->uid);
+    $this->drupalGet($change_url_path);
+    $this->assertText(t('Your e-mail address is now @mail.', array('@mail' => $new_mail)));
+  }
+
+  /**
+   * Tests admin changing email doesn't require email confirm.
+   */
+  function adminChangeEmail() {
+    $this->drupalLogin($this->admin_user);
+
+    $new_mail = $this->randomName() . '@example.com';
+
+    $edit = array();
+    $edit['mail'] = $new_mail;
+    $this->drupalPost("user/" . $this->web_user->uid . "/edit", $edit, t('Save'));
+    $this->assertNoText(t("A confirmation email has been sent to your new email address. You must follow the link provided in that email within 24 hours in order to confirm the change to your account email address."));
+    $this->assertNoText($this->web_user->mail);
+    $this->assertText($new_mail);
+
+    // Assert user's mail was changed.
+    $account = user_load($this->web_user->uid);
+    $this->assertNotIdentical($account->mail, $this->web_user->mail);
+    $this->assertIdentical($account->mail, $new_mail);
+  }
+
+}

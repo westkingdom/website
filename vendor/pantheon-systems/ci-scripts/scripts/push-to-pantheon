@@ -1,0 +1,278 @@
+#!/bin/bash
+#
+# push-to-pantheon.sh
+#
+# This script will push all of the generated build results created on a
+# CI server such as Travis or Circle to a Drupal site hosted on Pantheon.
+#
+# This script may be called on the CI server, or locally. On the CI server,
+# environment variables are used to authenticate with Pantheon.  When used
+# locally, the script assumes that the user has already authenticated with
+# terminus before calling this script. The environment variables may also
+# be used locally, of course, but this is generally less convenient.
+#
+# This script will look for and parse a behat-pantheon.yml file to determine
+# which Pantheon site to copy to.
+#
+# The specific environment variables we need are:
+#
+#   SITE_NAME:     The human-readable name of the site to give to site-install.
+#                  Optional. Defaults to $PSITE.
+#   PEMAIL:        The email address to log on to Pantheon with.
+#                  Optional. Alternately, use `terminus auth login` first.
+#   PPASS:         The password to log on to Pantheon with.
+#                  Optional. Alternately, use `terminus auth login` first.
+#   SITEPASS:      The password that should be set on the test site.
+#                  Optional. Defaults to a random string (use `drush uli`).
+#   CI_BOT_EMAIL:  The email address to use in the git commit attribution
+#   CI_BOT_NAME:   The name to use in the git commit attribution
+#   DRUSH_VERSION: The version of Drush to use on Pantheon.
+#                  Optional. Defaults to Drush 8.
+#
+# It is also expected that there should be an SSH private key in
+# $HOME/.ssh that can be used to push code to the Pantheon git repository.
+#
+
+SELF_DIRNAME="`dirname -- "$0"`"
+source $SELF_DIRNAME/setup-environment
+
+echo "Push to Pantheon $DRUSH_ALIAS"
+
+# If Terminus is not already in the $PATH, then we will install it later.
+CHECK_TERMINUS="$(which terminus)"
+
+# Check to see if we are already logged on via Terminus (but only if Terminus is installed).
+LOGGED_IN=0
+if [ -n "$CHECK_TERMINUS" ]
+then
+  terminus auth whoami >/dev/null 2>&1
+  terminus auth whoami
+  [ $? == 0 ] && LOGGED_IN=1
+fi
+
+# Do not attempt to push the site up to Pantheon unless the PPASS
+# environment variable is set.  If we receive a PR from an external
+# repository, then the secure environment variables will not be set;
+# if we test PRs, we cannot send them to Pantheon in this instance.
+# We will allow this to run if the user has already logged in, though.
+if [ -n "$PPASS" ] || [ $LOGGED_IN == 1 ]
+then
+  # Dynamic hosts through Pantheon mean constantly checking interactively
+  # that we mean to connect to an unknown host. We ignore those here.
+  grep -q StrictHostKeyChecking "$HOME/.ssh/config"
+  if [ $? != 0 ]
+  then
+    echo "StrictHostKeyChecking no" >> "$HOME/.ssh/config"
+  fi
+
+  # Create a local policy file that specifies the version of Drush that
+  # the CI server should use when running Drush commands remotely on Pantheon.
+  # n.b. we still want to use drush8 for Drupal 8 sites
+  mkdir -p "$HOME/.drush"
+  cat << __EOF__ > "$HOME/.drush/pantheonpolicy.drush.inc"
+<?php
+
+function pantheonpolicy_drush_sitealias_alter(&\$alias_record) {
+  // Fix pantheon aliases!
+  if (isset(\$alias_record['remote-host']) && (substr(\$alias_record['remote-host'], 0, 10) == 'appserver.')) {
+    \$alias_record['path-aliases']['%drush-script'] = 'drush$_DRUSH_VERSION';
+  }
+}
+__EOF__
+
+  # We need to clear the local Drush cache after defining a new policy file
+  drush cc drush
+
+  # Capture the commit message
+  export CI_COMMIT_MSG="$(git log --format=%B --no-merges -n 1)"
+
+  # If Terminus is not already in the $PATH, then install it.
+  if [ -z "$CHECK_TERMINUS" ]
+  then
+    # We install via Composer rather than using curl to fetch the phar
+    # because this way we always get the latest version.
+    # n.b. Composer global require does not work here, because Circle CI starts off
+    # with a global composer.json that requires phpunit 4.1.*, and Terminus
+    # requires 4.6 or later.  We'll make our own location for terminus installs.
+    mkdir -p $HOME/terminus
+    cd $HOME/terminus
+    composer require katzgrau/klogger:dev-master pantheon-systems/cli
+  fi
+
+  if [ $LOGGED_IN == 0 ]
+  then
+    # Set up Terminus and aliases, and wake up the site
+    echo "Log in to Pantheon via Terminus"
+    # Redirect output when logging in.  Terminus prints the email address
+    # used during login to stdout, which will end up in the log.  It's better
+    # to conceal the email address used, to make it harder for a third party
+    # to try to log in via a brute-force password-guessing attack.
+    terminus auth login "$PEMAIL" --password="$PPASS" >/dev/null 2>&1
+    check "Logged in to Pantheon via Terminus" "Could not log in to Pantheon with Terminus"
+  fi
+  echo "Check to see if Pantheon site $PSITE exists"
+  mkdir -p "$HOME/.drush"
+  which terminus
+  PUUID=$(terminus site info --site="$PSITE" --field=id 2>/dev/null)
+  if [ -z "$PUUID" ] && [ -n $AUTOCREATE ]
+  then
+    echo "Creating site $PSITE"
+    terminus sites create --site="$PSITE" --label="$_SITE_NAME"
+    check "Created site $PSITE" "Could not create site $PSITE"
+    PUUID=$(terminus site info --site="$PSITE" --field=id 2>/dev/null)
+  fi
+  if [ -z "$PUUID" ]
+  then
+    echo "Could not get UUID for $PSITE"
+    exit 1
+  fi
+  PUUID=$(echo $PUUID | sed -e 's/^[^:]*: *//')
+  echo "UUID for $PSITE is $PUUID"
+  echo "Fetch aliases via Terminus"
+  terminus sites aliases --location="$HOME/.drush/$ALIASGROUP.aliases.drushrc.php"
+  aborterr "Could not fetch aliases via Terminus"
+  echo "Wake up the site $PSITE"
+  terminus site wake --site="$PSITE" --env="$PENV"
+  check "Site wakeup successful" "Could not wake up site"
+
+  # Make sure we are in git mode
+  terminus site set-connection-mode --site="$PSITE" --env="$PENV" --mode=git
+  check "Changed connection mode to 'git' for $PSITE $PENV environment" "Could not change connection mode to 'git' for $PSITE $PENV environment"
+
+  # Identify the automation user
+  if [ -n "$CI" ]
+  then
+    git config --global user.email "$_CI_BOT_EMAIL"
+    git config --global user.name "$_CI_BOT_NAME"
+  fi
+
+  # Use the 'master' branch for the dev environment; for multidev,
+  # use the branch with the same name as the multidev environment name.
+  BRANCH=master
+  if [ "$PENV" != "dev" ]
+  then
+    BRANCH="$PENV"
+  fi
+
+  # Clone the Pantheon repository into a separate directory, then
+  # move the .git file to the location where we placed our composer targets
+  cd $PROJECT_BASE_DIR
+  REPO="ssh://codeserver.dev.$PUUID@codeserver.dev.$PUUID.drush.in:2222/~/repository.git"
+  mkdir -p "$(basename $WORK_REPO)"
+  rm -rf "$WORK_REPO"
+  git clone --depth 1 --branch "$BRANCH" "$REPO" "$WORK_REPO"
+  check "git clone successful" "Could not clone repository from $REPO"
+
+  # Get rid of any .git directories created by composer
+  rm -rf $(find "$DRUPAL_ROOT" -name ".git")
+  # Move the .git directory we checked out on top of the files we built.
+  # This is functionally equivalent to copying the built files over the
+  # checked-out repository, except more efficient.
+  mv "$WORK_REPO/.git" "$DRUPAL_ROOT"
+
+  # Use our .gitignore file from our source repository to build
+  # a .gitattributes file in our Pantheon repository.  Anything
+  # inside of 'drupal' that is ignored in the source repository is
+  # ignored because it is a built target.  We want to also ignore
+  # the same set of files when making diffs on the Pantheon repository,
+  # to avoid large diffs full of uninteresting changes.
+  if [ ! -f "$DRUPAL_ROOT/.gitattributes" ]
+  then
+    grep drupal $PROJECT_BASE_DIR/.gitignore | sed -e 's#drupal/\(.*\)#\1 -diff#' -e 's#/ -diff#/** -diff#' > "$DRUPAL_ROOT/.gitattributes"
+  fi
+
+  # Output of the diff vs upstream.
+  cd "$DRUPAL_ROOT"
+  echo "Here's the status change!"
+  git status
+
+  # If there is no settings.php file on Pantheon, then we will create one.
+  # n.b. there may be a settings.php file on a CI server if we did a local
+  # test prior to the on-Pantheon test.  If so, we will remove it now, and
+  # replace it with some other settings.php file.
+  chmod +w sites/default
+  rm -f sites/default/settings.php
+  aborterr "Could not remote built settings.php file."
+  if [ ! -f "$WORK_REPO/sites/default/settings.php" ]
+  then
+    cp -f "$WORK_REPO/sites/default/default.settings.php" sites/default/settings.php
+    aborterr "Could not create settings.php with default.settings.php."
+    # settings.php is excluded by our .gitignore, but
+    # we need one on Pantheon in order to use drush si,
+    # so we will add it with `git add -f`.
+    git add -f sites/default/settings.php
+    aborterr "Could not add settings.php"
+    INSTALL_SITE=true
+  else
+    # Maintain existing Pantheon settings.php file.
+    cp "$WORK_REPO/sites/default/settings.php" sites/default/settings.php
+    aborterr "Could not preserve existing settings.php file."
+
+    # Check to see if a pre-installed site is running okay.  If we
+    # can't bootstrap Drupal, then we'll re-install
+    echo "Drush status on the remote site:"
+    drush --strict=0 "$DRUSH_ALIAS" status
+    # Check to see if we are having any bootstrap problems.
+    if [ $? == 0 ]
+    then
+      BOOTSTRAPPED=$(drush  --strict=0 $DRUSH_ALIAS status "Drupal bootstrap" 2>/dev/null)
+    fi
+    if [ $? != 0 ] || [ -z "$BOOTSTRAPPED" ]
+    then
+      # Wipe the site and start over
+      terminus site wipe --site="$PSITE" --env="$PENV" --yes
+      INSTALL_SITE=true
+    fi
+  fi
+
+  # Push our built files up to Pantheon
+  git add --all
+  aborterr "'git add --all' failed"
+  git commit -a -m "Built by CI: '$CI_COMMIT_MSG'"
+  aborterr "'git commit' failed"
+  git push origin "$BRANCH"
+  aborterr "'git push' failed"
+
+  # If we created a settings.php file, then run 'site install'
+  if [ -n "$INSTALL_SITE" ]
+  then
+    # We need to go back to sftp mode to run site-install
+    terminus site set-connection-mode --site="$PSITE" --env="$PENV" --mode=sftp
+    check "Changed connection mode to 'sftp' for $PSITE $PENV environment" "Could not change connection mode to 'sftp' for $PSITE $PENV environment"
+    # Create a new site with site-install.
+    drush --strict=0 $DRUSH_ALIAS -y site-install standard --site-name="$_SITE_NAME Pantheon Test Site" --account-name=admin --account-pass="[REDACTED]"
+    aborterr "Could not install Drupal on Pantheon test site"
+    # Commit the modification made to settings.php and switch back to git mode
+    terminus site code commit --site="$PSITE" --env="$PENV" --message="Settings.php modifications made by site-install" --yes
+    aborterr "Could not commit settings.php changes"
+    terminus site set-connection-mode --site="$PSITE" --env="$PENV" --mode=git
+    aborterr "Could not switch back to git mode"
+    # Because the site password is in the log, generate a new random
+    # password for the site, and change it.  The site owner can use
+    # `drush uli` to log in.
+    if [ -z "$SITEPASS" ]
+    then
+      SITEPASS=$(base64 /dev/urandom | tr -d '/+' | dd bs=32 count=1 2>/dev/null)
+    fi
+    drush --strict=0 $DRUSH_ALIAS user-password admin --password="$SITEPASS"
+    aborterr "Could not reset password on Pantheon test site"
+  else
+    # If the database already exists, just run updatedb to bring it up-to-date
+    # with the code we just pushed.
+    # n.b. If we wanted to re-run our behat tests on the pantheon site, then
+    # we would probably want to install a fresh site every time.
+    drush --strict=0 $DRUSH_ALIAS -y updatedb
+    aborterr "updatedb failed on Pantheon site"
+  fi
+
+  # If we were not given the site uri in a behat configuration file,
+  # then look it up via Terminus.
+  if [ -n "$SITE_URI" ]
+  then
+    SITE_URI=$(drush --strict=0 sa $DRUSH_ALIAS --format=csv --fields=uri 2>/dev/null)
+    aborterr "Could not get URI for $DRUSH_ALIAS"
+  fi
+
+  # Try to curl the homepage, to give the system time to spin up
+  curl --max-time 30 $SITE_URI &>/dev/null
+fi

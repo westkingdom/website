@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# start-webserver
+#
+# Start the PHP built-in webserver.
+#
+
+SELF_DIRNAME="`dirname -- "$0"`"
+source $SELF_DIRNAME/setup-environment
+
+DEFAULT_ENVIRONMENT_SCRIPT="$PROJECT_BASE_DIR/scripts/default-environment"
+if [ -f "$DEFAULT_ENVIRONMENT_SCRIPT" ]
+then
+  source "$DEFAULT_ENVIRONMENT_SCRIPT"
+fi
+
+# What is the URI for the site we are testing?
+FALLBACK_URI="http://localhost:${PORT:-${DEFAULT_PORT:-8088}}"
+TESTURI="${URI:-${DEFAULT_URI:-$FALLBACK_URI}}"
+
+# Set up our $PATH
+export PATH="$PROJECT_BASE_DIR/bin:$HOME/bin:$PATH"
+
+# Use Drush to spin up PHP's built-in webserver
+cd "$DRUPAL_ROOT"
+echo drush runserver --uri="$TESTURI" --server=builtin --strict=0
+drush runserver --uri="$TESTURI" --server=builtin --strict=0 </dev/null &>$HOME/server.log &
+if [ $? != 0 ]
+then
+  echo "Could not start php built-in webserver" >&2
+  exit 1
+fi

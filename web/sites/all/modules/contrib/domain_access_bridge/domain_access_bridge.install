@@ -1,0 +1,68 @@
+<?php
+/**
+ * @file Install file for domain_access_bridge
+ */
+
+/**
+ * Implements hook_install().
+ */
+function domain_access_bridge_install() {
+  // Change module weight, so its hooks are called last
+  db_update('system')
+    ->fields(array('weight' => 500))
+    ->condition('name', 'domain_access_bridge')
+    ->execute();
+}
+
+/**
+ * Implements hook_enable().
+ */
+function domain_access_bridge_enable() {
+  // Mark node access grants for rebuilding
+  node_access_needs_rebuild(TRUE);
+}
+
+/**
+ * Implements hook_disable().
+ */
+function domain_access_bridge_disable() {
+  // Mark node access grants for rebuilding
+  node_access_needs_rebuild(TRUE);
+}
+
+/**
+ * Implements hook_schema().
+ */
+function domain_access_bridge_schema() {
+  $schema['domain_access_bridge'] = array(
+    'description' => 'Grants pairs',
+    'fields' => array(
+      'gid' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Node access grant id'),
+      'domain_realm' => array('type' => 'varchar', 'length' => '40', 'not null' => TRUE, 'default' => '', 'description' => 'Domain node access realm'),
+      'domain_gid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'description' => 'Domain node access grant id'),
+      'access_realm' => array('type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => '', 'description' => 'Content node access realm'),
+      'access_gid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'description' => 'Content node access grant id'),
+    ),
+    'primary key' => array('gid'),
+    'indexes ' => array(
+      'domain_access_bridge_pair' => array('domain_realm', 'domain_gid', 'access_realm', 'access_gid'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Updates {domain_access_bridge}.access_realm length to 255 characters (initially 40 characters).
+ */
+function domain_access_bridge_update_7101() {
+  db_change_field('domain_access_bridge', 'access_realm', 'access_realm', array(
+    'type' => 'varchar',
+    'length' => '255',
+    'not null' => TRUE,
+    'default' => '',
+    'description' => 'Content node access realm')
+  );
+}

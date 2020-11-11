@@ -1,0 +1,27 @@
+{
+    "name": "pantheon-systems/ci-scripts",
+    "description": "Scripts helpful for testing a Drupal site on a Continuous-Integration server, or locally.",
+    "require": {
+        "behat/behat": "3.*",
+        "behat/mink": "*",
+        "drupal/drupal-extension": "*",
+        "drush/drush": "*",
+        "behat/mink-extension": "*",
+        "behat/mink-goutte-driver": "*",
+        "phpunit/phpunit": ">=3.5"
+    },
+    "bin": [
+        "scripts/disable-php-email",
+        "scripts/init-new-project",
+        "scripts/install-drupal",
+        "scripts/local-test",
+        "scripts/pantheon-test",
+        "scripts/prepare-to-install",
+        "scripts/push-to-pantheon",
+        "scripts/setup-before-tests",
+        "scripts/setup-environment",
+        "scripts/start-webserver",
+        "scripts/stop-webserver",
+        "scripts/wait-for-webserver"
+    ]
+}

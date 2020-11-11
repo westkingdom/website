@@ -1,0 +1,16 @@
+name = Domain Blocks
+description = Provides domain specific visibility settings for blocks
+package = Domain Access
+dependencies[] = domain (3.x)
+dependencies[] = block
+core = 7.x
+files[] = domain_blocks.install
+files[] = domain_blocks.module
+
+
+; Information added by Drupal.org packaging script on 2015-10-20
+version = "7.x-3.0"
+core = "7.x"
+project = "domain_blocks"
+datestamp = "1445361540"
+

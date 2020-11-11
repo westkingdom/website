@@ -1,0 +1,136 @@
+<?php
+
+/**
+ * @file
+ * Provides domain specific visibility settings for blocks based on domain
+ * access settings.
+ */
+/**
+ * Implements hook_install().
+ */
+function domain_blocks_install() {
+  // All existing blocks are accesible by all sites by default
+  // Since {block} stores a separate row for each theme a block will appear on,
+  // we'll use DISTINCT to make sure we're not getting doubles.
+  $existing_blocks = db_select('block', 'b')
+    ->fields('b', array('module', 'delta'))
+    ->distinct()
+    ->execute()
+    ->fetchAll();
+  foreach ($existing_blocks as $block) {
+    $fields = array('module' => $block->module, 'delta' => $block->delta, 'realm' => 'domain_site', 'domain_id' => '-1');
+    db_insert('domain_blocks')->fields($fields)->execute();
+  }
+}
+
+/**
+ * Implements hook_schema().
+ * Notice the length of domain_blocks.realm field is not the same as
+ * domain_access.realm. This is due to MySQL key length limitations
+ * (applies to UTF-8 only) - http://bugs.mysql.com/bug.php?id=4541
+ * Since Domain Access only uses grants with length < 14 characters this
+ * inconsistency is irrelevant.
+ */
+function domain_blocks_schema() {
+  $schema['domain_blocks'] = array(
+    'description' => 'Domain Access specific blocks',
+    'fields' => array(
+      'module' => array('type' => 'varchar', 'length' => '64', 'not null' => TRUE, 'default' => ''),
+      'delta' => array('type' => 'varchar', 'length' => '32', 'not null' => TRUE, 'default' => '0'),
+      'realm' => array('type' => 'varchar', 'length' => '20', 'not null ' => TRUE, 'default' => ''),
+      'domain_id' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
+    ),
+    'foreign_keys' => array(
+      'domain_id' => array('domain' => 'domain_id'),
+    ),
+    'indexes' => array(
+      'domain_id' => array('domain_id'),
+      'domain_realm_grant' => array('domain_id', 'realm'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+* Implements hook_dependencies().
+*/
+function domain_blocks_update_dependencies() {
+  //Only apply update 7301 if Domain Access has been updated to
+  //the 7.3 branch.
+  $dependencies['domain_blocks'][7301] = array(
+    'domain' => 7303,
+  );
+  return $dependencies;
+}
+
+
+/**
+ * Update domain_blocks schema to allow negative values in domain_id field.
+ */
+function domain_blocks_update_7300(&$sandbox) {
+  // Determine if there are any entries in {domain_blocks} table that would 
+  // require field change
+  $default = db_query("SELECT * FROM {domain_blocks} WHERE domain_id = 0")->fetchAssoc();
+  if (empty($default)) {
+    return t('Domain Blocks did not find an existing domain 0. No updates required.');
+  }
+
+  // Remove indexes before field change
+  db_drop_index('domain_blocks', 'domain_id');
+  db_drop_index('domain_blocks', 'domain_realm_grant');
+
+  // Set domain_id field to signed int to accommodate negative values
+  // and re-create indexes
+  db_change_field('domain_blocks', 'domain_id', 'domain_id',
+    array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'unsigned' => FALSE,
+      'default' => 0
+      ),
+    array(
+    'indexes' => array(
+        'domain_id' => array('domain_id'),
+        'domain_realm_grant' => array('domain_id', 'realm'),
+      )
+    )
+  );
+  return t('Domain Blocks domain_id field updated.');
+}
+
+/**
+ * Change all references to domain_id 0 to -1 when referring to "all" grant
+ * and to the id of the default domain when referring to the default domain
+ * in domain_blocks table.
+ */
+function domain_blocks_update_7301(&$sandbox) {
+  // Update 'domain_site'grant first to make sure it does not get overwritten.
+  // Note that Domain module assumes that domain_id is always a foreign key.
+  $query = db_update('domain_blocks')
+    ->condition('domain_id', 0)
+    ->condition('realm', 'domain_site')
+    ->fields(array('domain_id' => '-1'))
+    ->execute();
+
+  $default_id = db_query("SELECT domain_id FROM {domain} WHERE is_default = 1")->fetchField();
+  $query = db_update('domain_blocks')
+    ->condition('domain_id', 0)
+    ->condition('realm', 'domain_id')
+    ->fields(array('domain_id' => $default_id))
+    ->execute();
+  return t('Domain Blocks zero records altered.');
+}
+
+/**
+ * Updates delta field's default value to '0'.
+ */
+function domain_blocks_update_7302() {
+  db_change_field('domain_blocks', 'delta', 'delta', array(
+      'type' => 'varchar',
+      'length' => '32',
+      'not null' => TRUE,
+      'default' => '0'
+    )
+  );
+}
