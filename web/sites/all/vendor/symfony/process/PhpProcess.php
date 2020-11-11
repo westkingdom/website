@@ -11,7 +11,6 @@
 
 namespace Symfony\Component\Process;
 
-use Symfony\Component\Process\Exception\LogicException;
 use Symfony\Component\Process\Exception\RuntimeException;
 
 /**
@@ -30,14 +29,15 @@ class PhpProcess extends Process
      * @param string|null $cwd     The working directory or null to use the working dir of the current PHP process
      * @param array|null  $env     The environment variables or null to use the same environment as the current PHP process
      * @param int         $timeout The timeout in seconds
-     * @param array|null  $php     Path to the PHP binary to use with any additional arguments
+     * @param array       $options An array of options for proc_open
      */
-    public function __construct(string $script, string $cwd = null, array $env = null, int $timeout = 60, array $php = null)
+    public function __construct($script, $cwd = null, array $env = null, $timeout = 60, array $options = null)
     {
-        if (null === $php) {
-            $executableFinder = new PhpExecutableFinder();
-            $php = $executableFinder->find(false);
-            $php = false === $php ? null : array_merge([$php], $executableFinder->findArguments());
+        $executableFinder = new PhpExecutableFinder();
+        if (false === $php = $executableFinder->find(false)) {
+            $php = null;
+        } else {
+            $php = array_merge([$php], $executableFinder->findArguments());
         }
         if ('phpdbg' === \PHP_SAPI) {
             $file = tempnam(sys_get_temp_dir(), 'dbg');
@@ -46,38 +46,30 @@ class PhpProcess extends Process
             $php[] = $file;
             $script = null;
         }
+        if (null !== $options) {
+            @trigger_error(sprintf('The $options parameter of the %s constructor is deprecated since Symfony 3.3 and will be removed in 4.0.', __CLASS__), \E_USER_DEPRECATED);
+        }
 
-        parent::__construct($php, $cwd, $env, $script, $timeout);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function fromShellCommandline(string $command, string $cwd = null, array $env = null, $input = null, ?float $timeout = 60)
-    {
-        throw new LogicException(sprintf('The "%s()" method cannot be called when using "%s".', __METHOD__, self::class));
+        parent::__construct($php, $cwd, $env, $script, $timeout, $options);
     }
 
     /**
      * Sets the path to the PHP binary to use.
-     *
-     * @deprecated since Symfony 4.2, use the $php argument of the constructor instead.
      */
     public function setPhpBinary($php)
     {
-        @trigger_error(sprintf('The "%s()" method is deprecated since Symfony 4.2, use the $php argument of the constructor instead.', __METHOD__), \E_USER_DEPRECATED);
-
         $this->setCommandLine($php);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function start(callable $callback = null, array $env = [])
+    public function start(callable $callback = null/*, array $env = []*/)
     {
         if (null === $this->getCommandLine()) {
             throw new RuntimeException('Unable to find the PHP executable.');
         }
+        $env = 1 < \func_num_args() ? func_get_arg(1) : null;
 
         parent::start($callback, $env);
     }

@@ -16,7 +16,7 @@ namespace Symfony\Component\Finder\Iterator;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class ExcludeDirectoryFilterIterator extends \FilterIterator implements \RecursiveIterator
+class ExcludeDirectoryFilterIterator extends FilterIterator implements \RecursiveIterator
 {
     private $iterator;
     private $isRecursive;
@@ -68,9 +68,6 @@ class ExcludeDirectoryFilterIterator extends \FilterIterator implements \Recursi
         return true;
     }
 
-    /**
-     * @return bool
-     */
     public function hasChildren()
     {
         return $this->isRecursive && $this->iterator->hasChildren();

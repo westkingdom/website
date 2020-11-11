@@ -24,12 +24,14 @@ class LoaderResolver implements LoaderResolverInterface
     /**
      * @var LoaderInterface[] An array of LoaderInterface objects
      */
-    private $loaders = [];
+    private $loaders = array();
 
     /**
+     * Constructor.
+     *
      * @param LoaderInterface[] $loaders An array of loaders
      */
-    public function __construct(array $loaders = [])
+    public function __construct(array $loaders = array())
     {
         foreach ($loaders as $loader) {
             $this->addLoader($loader);
@@ -50,6 +52,11 @@ class LoaderResolver implements LoaderResolverInterface
         return false;
     }
 
+    /**
+     * Adds a loader.
+     *
+     * @param LoaderInterface $loader A LoaderInterface instance
+     */
     public function addLoader(LoaderInterface $loader)
     {
         $this->loaders[] = $loader;

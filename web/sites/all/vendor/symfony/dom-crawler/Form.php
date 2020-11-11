@@ -44,7 +44,7 @@ class Form extends Link implements \ArrayAccess
      *
      * @throws \LogicException if the node is not a button inside a form tag
      */
-    public function __construct(\DOMElement $node, string $currentUri = null, string $method = null, string $baseHref = null)
+    public function __construct(\DOMElement $node, $currentUri, $method = null, $baseHref = null)
     {
         parent::__construct($node, $currentUri, $method);
         $this->baseHref = $baseHref;
@@ -248,16 +248,6 @@ class Form extends Link implements \ArrayAccess
         }
 
         return $this->node->getAttribute('method') ? strtoupper($this->node->getAttribute('method')) : 'GET';
-    }
-
-    /**
-     * Gets the form name.
-     *
-     * If no name is defined on the form, an empty string is returned.
-     */
-    public function getName(): string
-    {
-        return $this->node->getAttribute('name');
     }
 
     /**

@@ -12,7 +12,6 @@
 namespace Symfony\Component\Filesystem;
 
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
-use Symfony\Component\Filesystem\Exception\InvalidArgumentException;
 use Symfony\Component\Filesystem\Exception\IOException;
 
 /**
@@ -31,10 +30,14 @@ class Filesystem
      * If the target file is newer, it is overwritten only when the
      * $overwriteNewerFiles option is set to true.
      *
+     * @param string $originFile          The original filename
+     * @param string $targetFile          The target filename
+     * @param bool   $overwriteNewerFiles If true, target files newer than origin files are overwritten
+     *
      * @throws FileNotFoundException When originFile doesn't exist
      * @throws IOException           When copy fails
      */
-    public function copy(string $originFile, string $targetFile, bool $overwriteNewerFiles = false)
+    public function copy($originFile, $targetFile, $overwriteNewerFiles = false)
     {
         $originIsLocal = stream_is_local($originFile) || 0 === stripos($originFile, 'file://');
         if ($originIsLocal && !is_file($originFile)) {
@@ -83,10 +86,11 @@ class Filesystem
      * Creates a directory recursively.
      *
      * @param string|iterable $dirs The directory path
+     * @param int             $mode The directory mode
      *
      * @throws IOException On any directory creation failure
      */
-    public function mkdir($dirs, int $mode = 0777)
+    public function mkdir($dirs, $mode = 0777)
     {
         foreach ($this->toIterable($dirs) as $dir) {
             if (is_dir($dir)) {
@@ -138,7 +142,7 @@ class Filesystem
      *
      * @throws IOException When touch fails
      */
-    public function touch($files, int $time = null, int $atime = null)
+    public function touch($files, $time = null, $atime = null)
     {
         foreach ($this->toIterable($files) as $file) {
             $touch = $time ? @touch($file, $time, $atime) : @touch($file);
@@ -191,7 +195,7 @@ class Filesystem
      *
      * @throws IOException When the change fails
      */
-    public function chmod($files, int $mode, int $umask = 0000, bool $recursive = false)
+    public function chmod($files, $mode, $umask = 0000, $recursive = false)
     {
         foreach ($this->toIterable($files) as $file) {
             if ((\PHP_VERSION_ID < 80000 || \is_int($mode)) && true !== @chmod($file, $mode & ~$umask)) {
@@ -212,7 +216,7 @@ class Filesystem
      *
      * @throws IOException When the change fails
      */
-    public function chown($files, $user, bool $recursive = false)
+    public function chown($files, $user, $recursive = false)
     {
         foreach ($this->toIterable($files) as $file) {
             if ($recursive && is_dir($file) && !is_link($file)) {
@@ -239,14 +243,14 @@ class Filesystem
      *
      * @throws IOException When the change fails
      */
-    public function chgrp($files, $group, bool $recursive = false)
+    public function chgrp($files, $group, $recursive = false)
     {
         foreach ($this->toIterable($files) as $file) {
             if ($recursive && is_dir($file) && !is_link($file)) {
                 $this->chgrp(new \FilesystemIterator($file), $group, true);
             }
             if (is_link($file) && \function_exists('lchgrp')) {
-                if (true !== @lchgrp($file, $group)) {
+                if (true !== @lchgrp($file, $group) || (\defined('HHVM_VERSION') && !posix_getgrnam($group))) {
                     throw new IOException(sprintf('Failed to chgrp file "%s".', $file), 0, null, $file);
                 }
             } else {
@@ -260,10 +264,14 @@ class Filesystem
     /**
      * Renames a file or a directory.
      *
+     * @param string $origin    The origin filename or directory
+     * @param string $target    The new filename or directory
+     * @param bool   $overwrite Whether to overwrite the target if it already exists
+     *
      * @throws IOException When target file or directory already exists
      * @throws IOException When origin cannot be renamed
      */
-    public function rename(string $origin, string $target, bool $overwrite = false)
+    public function rename($origin, $target, $overwrite = false)
     {
         // we check that target does not exist
         if (!$overwrite && $this->isReadable($target)) {
@@ -285,9 +293,13 @@ class Filesystem
     /**
      * Tells whether a file exists and is readable.
      *
+     * @param string $filename Path to the file
+     *
+     * @return bool
+     *
      * @throws IOException When windows path is longer than 258 characters
      */
-    private function isReadable(string $filename): bool
+    private function isReadable($filename)
     {
         $maxPathLength = \PHP_MAXPATHLEN - 2;
 
@@ -301,9 +313,13 @@ class Filesystem
     /**
      * Creates a symbolic link or copy a directory.
      *
+     * @param string $originDir     The origin directory path
+     * @param string $targetDir     The symbolic link name
+     * @param bool   $copyOnWindows Whether to copy files if on Windows
+     *
      * @throws IOException When symlink fails
      */
-    public function symlink(string $originDir, string $targetDir, bool $copyOnWindows = false)
+    public function symlink($originDir, $targetDir, $copyOnWindows = false)
     {
         if ('\\' === \DIRECTORY_SEPARATOR) {
             $originDir = strtr($originDir, '/', '\\');
@@ -333,12 +349,13 @@ class Filesystem
     /**
      * Creates a hard link, or several hard links to a file.
      *
+     * @param string          $originFile  The original file
      * @param string|string[] $targetFiles The target file(s)
      *
      * @throws FileNotFoundException When original file is missing or not a file
      * @throws IOException           When link fails, including if link already exists
      */
-    public function hardlink(string $originFile, $targetFiles)
+    public function hardlink($originFile, $targetFiles)
     {
         if (!$this->exists($originFile)) {
             throw new FileNotFoundException(null, 0, null, $originFile);
@@ -363,9 +380,11 @@ class Filesystem
     }
 
     /**
+     * @param string $origin
+     * @param string $target
      * @param string $linkType Name of the link type, typically 'symbolic' or 'hard'
      */
-    private function linkException(string $origin, string $target, string $linkType)
+    private function linkException($origin, $target, $linkType)
     {
         if (self::$lastError) {
             if ('\\' === \DIRECTORY_SEPARATOR && false !== strpos(self::$lastError, 'error code(1314)')) {
@@ -386,9 +405,12 @@ class Filesystem
      *      - if $path does not exist, returns null
      *      - if $path exists, returns its absolute fully resolved final version
      *
+     * @param string $path         A filesystem path
+     * @param bool   $canonicalize Whether or not to return a canonicalized path
+     *
      * @return string|null
      */
-    public function readlink(string $path, bool $canonicalize = false)
+    public function readlink($path, $canonicalize = false)
     {
         if (!$canonicalize && !is_link($path)) {
             return null;
@@ -416,16 +438,15 @@ class Filesystem
     /**
      * Given an existing path, convert it to a path relative to a given starting path.
      *
+     * @param string $endPath   Absolute path of target
+     * @param string $startPath Absolute path where traversal begins
+     *
      * @return string Path of target relative to starting path
      */
-    public function makePathRelative(string $endPath, string $startPath)
+    public function makePathRelative($endPath, $startPath)
     {
-        if (!$this->isAbsolutePath($startPath)) {
-            throw new InvalidArgumentException(sprintf('The start path "%s" is not absolute.', $startPath));
-        }
-
-        if (!$this->isAbsolutePath($endPath)) {
-            throw new InvalidArgumentException(sprintf('The end path "%s" is not absolute.', $endPath));
+        if (!$this->isAbsolutePath($endPath) || !$this->isAbsolutePath($startPath)) {
+            @trigger_error(sprintf('Support for passing relative paths to %s() is deprecated since Symfony 3.4 and will be removed in 4.0.', __METHOD__), \E_USER_DEPRECATED);
         }
 
         // Normalize separators on Windows
@@ -440,11 +461,11 @@ class Filesystem
                 : [$path, null];
         };
 
-        $splitPath = function ($path) {
+        $splitPath = function ($path, $absolute) {
             $result = [];
 
             foreach (explode('/', trim($path, '/')) as $segment) {
-                if ('..' === $segment) {
+                if ('..' === $segment && ($absolute || \count($result))) {
                     array_pop($result);
                 } elseif ('.' !== $segment && '' !== $segment) {
                     $result[] = $segment;
@@ -457,8 +478,8 @@ class Filesystem
         list($endPath, $endDriveLetter) = $splitDriveLetter($endPath);
         list($startPath, $startDriveLetter) = $splitDriveLetter($startPath);
 
-        $startPathArr = $splitPath($startPath);
-        $endPathArr = $splitPath($endPath);
+        $startPathArr = $splitPath($startPath, static::isAbsolutePath($startPath));
+        $endPathArr = $splitPath($endPath, static::isAbsolutePath($endPath));
 
         if ($endDriveLetter && $startDriveLetter && $endDriveLetter != $startDriveLetter) {
             // End path is on another drive, so no relative path exists
@@ -497,24 +518,22 @@ class Filesystem
      *  - existing files in the target directory will be overwritten, except if they are newer (see the `override` option)
      *  - files in the target directory that do not exist in the source directory will not be deleted (see the `delete` option)
      *
-     * @param \Traversable|null $iterator Iterator that filters which files and directories to copy, if null a recursive iterator is created
-     * @param array             $options  An array of boolean options
-     *                                    Valid options are:
-     *                                    - $options['override'] If true, target files newer than origin files are overwritten (see copy(), defaults to false)
-     *                                    - $options['copy_on_windows'] Whether to copy files instead of links on Windows (see symlink(), defaults to false)
-     *                                    - $options['delete'] Whether to delete files that are not in the source directory (defaults to false)
+     * @param string            $originDir The origin directory
+     * @param string            $targetDir The target directory
+     * @param \Traversable|null $iterator  Iterator that filters which files and directories to copy, if null a recursive iterator is created
+     * @param array             $options   An array of boolean options
+     *                                     Valid options are:
+     *                                     - $options['override'] If true, target files newer than origin files are overwritten (see copy(), defaults to false)
+     *                                     - $options['copy_on_windows'] Whether to copy files instead of links on Windows (see symlink(), defaults to false)
+     *                                     - $options['delete'] Whether to delete files that are not in the source directory (defaults to false)
      *
      * @throws IOException When file type is unknown
      */
-    public function mirror(string $originDir, string $targetDir, \Traversable $iterator = null, array $options = [])
+    public function mirror($originDir, $targetDir, \Traversable $iterator = null, $options = [])
     {
         $targetDir = rtrim($targetDir, '/\\');
         $originDir = rtrim($originDir, '/\\');
         $originDirLen = \strlen($originDir);
-
-        if (!$this->exists($originDir)) {
-            throw new IOException(sprintf('The origin directory specified "%s" was not found.', $originDir), 0, null, $originDir);
-        }
 
         // Iterate in destination folder to remove obsolete entries
         if ($this->exists($targetDir) && isset($options['delete']) && $options['delete']) {
@@ -532,32 +551,41 @@ class Filesystem
             }
         }
 
-        $copyOnWindows = $options['copy_on_windows'] ?? false;
+        $copyOnWindows = false;
+        if (isset($options['copy_on_windows'])) {
+            $copyOnWindows = $options['copy_on_windows'];
+        }
 
         if (null === $iterator) {
             $flags = $copyOnWindows ? \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS : \FilesystemIterator::SKIP_DOTS;
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($originDir, $flags), \RecursiveIteratorIterator::SELF_FIRST);
         }
 
-        $this->mkdir($targetDir);
-        $filesCreatedWhileMirroring = [];
+        if ($this->exists($originDir)) {
+            $this->mkdir($targetDir);
+        }
 
         foreach ($iterator as $file) {
-            if ($file->getPathname() === $targetDir || $file->getRealPath() === $targetDir || isset($filesCreatedWhileMirroring[$file->getRealPath()])) {
-                continue;
-            }
-
             $target = $targetDir.substr($file->getPathname(), $originDirLen);
-            $filesCreatedWhileMirroring[$target] = true;
 
-            if (!$copyOnWindows && is_link($file)) {
-                $this->symlink($file->getLinkTarget(), $target);
-            } elseif (is_dir($file)) {
-                $this->mkdir($target);
-            } elseif (is_file($file)) {
-                $this->copy($file, $target, isset($options['override']) ? $options['override'] : false);
+            if ($copyOnWindows) {
+                if (is_file($file)) {
+                    $this->copy($file, $target, isset($options['override']) ? $options['override'] : false);
+                } elseif (is_dir($file)) {
+                    $this->mkdir($target);
+                } else {
+                    throw new IOException(sprintf('Unable to guess "%s" file type.', $file), 0, null, $file);
+                }
             } else {
-                throw new IOException(sprintf('Unable to guess "%s" file type.', $file), 0, null, $file);
+                if (is_link($file)) {
+                    $this->symlink($file->getLinkTarget(), $target);
+                } elseif (is_dir($file)) {
+                    $this->mkdir($target);
+                } elseif (is_file($file)) {
+                    $this->copy($file, $target, isset($options['override']) ? $options['override'] : false);
+                } else {
+                    throw new IOException(sprintf('Unable to guess "%s" file type.', $file), 0, null, $file);
+                }
             }
         }
     }
@@ -565,11 +593,13 @@ class Filesystem
     /**
      * Returns whether the file path is an absolute path.
      *
+     * @param string $file A file path
+     *
      * @return bool
      */
-    public function isAbsolutePath(string $file)
+    public function isAbsolutePath($file)
     {
-        return '' !== $file && (strspn($file, '/\\', 0, 1)
+        return '' !== (string) $file && (strspn($file, '/\\', 0, 1)
             || (\strlen($file) > 3 && ctype_alpha($file[0])
                 && ':' === $file[1]
                 && strspn($file, '/\\', 2, 1)
@@ -581,19 +611,18 @@ class Filesystem
     /**
      * Creates a temporary file with support for custom stream wrappers.
      *
+     * @param string $dir    The directory where the temporary filename will be created
      * @param string $prefix The prefix of the generated temporary filename
      *                       Note: Windows uses only the first three characters of prefix
-     * @param string $suffix The suffix of the generated temporary filename
      *
      * @return string The new temporary filename (with path), or throw an exception on failure
      */
-    public function tempnam(string $dir, string $prefix/*, string $suffix = ''*/)
+    public function tempnam($dir, $prefix)
     {
-        $suffix = \func_num_args() > 2 ? func_get_arg(2) : '';
         list($scheme, $hierarchy) = $this->getSchemeAndHierarchy($dir);
 
         // If no scheme or scheme is "file" or "gs" (Google Cloud) create temp file in local filesystem
-        if ((null === $scheme || 'file' === $scheme || 'gs' === $scheme) && '' === $suffix) {
+        if (null === $scheme || 'file' === $scheme || 'gs' === $scheme) {
             $tmpFile = @tempnam($hierarchy, $prefix);
 
             // If tempnam failed or no scheme return the filename otherwise prepend the scheme
@@ -611,7 +640,7 @@ class Filesystem
         // Loop until we create a valid temp file or have reached 10 attempts
         for ($i = 0; $i < 10; ++$i) {
             // Create a unique filename
-            $tmpFile = $dir.'/'.$prefix.uniqid(mt_rand(), true).$suffix;
+            $tmpFile = $dir.'/'.$prefix.uniqid(mt_rand(), true);
 
             // Use fopen instead of file_exists as some streams do not support stat
             // Use mode 'x+' to atomically check existence and create to avoid a TOCTOU vulnerability
@@ -634,16 +663,13 @@ class Filesystem
     /**
      * Atomically dumps content into a file.
      *
-     * @param string|resource $content The data to write into the file
+     * @param string $filename The file to be written to
+     * @param string $content  The data to write into the file
      *
      * @throws IOException if the file cannot be written to
      */
-    public function dumpFile(string $filename, $content)
+    public function dumpFile($filename, $content)
     {
-        if (\is_array($content)) {
-            throw new \TypeError(sprintf('Argument 2 passed to "%s()" must be string or resource, array given.', __METHOD__));
-        }
-
         $dir = \dirname($filename);
 
         if (!is_dir($dir)) {
@@ -670,16 +696,13 @@ class Filesystem
     /**
      * Appends content to an existing file.
      *
-     * @param string|resource $content The content to append
+     * @param string $filename The file to which to append content
+     * @param string $content  The content to append
      *
      * @throws IOException If the file is not writable
      */
-    public function appendToFile(string $filename, $content)
+    public function appendToFile($filename, $content)
     {
-        if (\is_array($content)) {
-            throw new \TypeError(sprintf('Argument 2 passed to "%s()" must be string or resource, array given.', __METHOD__));
-        }
-
         $dir = \dirname($filename);
 
         if (!is_dir($dir)) {
@@ -695,15 +718,24 @@ class Filesystem
         }
     }
 
-    private function toIterable($files): iterable
+    /**
+     * @param mixed $files
+     *
+     * @return array|\Traversable
+     */
+    private function toIterable($files)
     {
         return \is_array($files) || $files instanceof \Traversable ? $files : [$files];
     }
 
     /**
      * Gets a 2-tuple of scheme (may be null) and hierarchical part of a filename (e.g. file:///tmp -> [file, tmp]).
+     *
+     * @param string $filename The filename to be parsed
+     *
+     * @return array The filename scheme and hierarchical part
      */
-    private function getSchemeAndHierarchy(string $filename): array
+    private function getSchemeAndHierarchy($filename)
     {
         $components = explode('://', $filename, 2);
 
@@ -711,18 +743,21 @@ class Filesystem
     }
 
     /**
+     * @param callable $func
+     *
      * @return mixed
      */
-    private static function box(callable $func)
+    private static function box($func)
     {
         self::$lastError = null;
         set_error_handler(__CLASS__.'::handleError');
         try {
-            $result = $func(...\array_slice(\func_get_args(), 1));
+            $result = \call_user_func_array($func, \array_slice(\func_get_args(), 1));
             restore_error_handler();
 
             return $result;
         } catch (\Throwable $e) {
+        } catch (\Exception $e) {
         }
         restore_error_handler();
 

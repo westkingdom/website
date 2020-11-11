@@ -16,27 +16,33 @@ use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
-use Symfony\Component\BrowserKit\AbstractBrowser;
+use Psr\Http\Message\UriInterface;
+use Symfony\Component\BrowserKit\Client as BaseClient;
 use Symfony\Component\BrowserKit\Request;
 use Symfony\Component\BrowserKit\Response;
 
 /**
- * @author Fabien Potencier <fabien@symfony.com>
+ * Client.
+ *
+ * @author Fabien Potencier <fabien.potencier@symfony-project.com>
  * @author Michael Dowling <michael@guzzlephp.org>
  * @author Charles Sarrazin <charles@sarraz.in>
  * @author Kévin Dunglas <dunglas@gmail.com>
  */
-class Client extends AbstractBrowser
+class Client extends BaseClient
 {
     protected $client;
 
-    private $headers = [];
+    private $headers = array();
     private $auth;
 
     public function setClient(GuzzleClientInterface $client)
     {
         $this->client = $client;
 
+        /**
+         * @var $baseUri UriInterface
+         */
         if (null !== $this->getServerParameter('HTTP_HOST', null) || null === $baseUri = $client->getConfig('base_uri')) {
             return $this;
         }
@@ -63,7 +69,7 @@ class Client extends AbstractBrowser
     public function getClient()
     {
         if (!$this->client) {
-            $this->client = new GuzzleClient(['allow_redirects' => false, 'cookies' => true]);
+            $this->client = new GuzzleClient(array('allow_redirects' => false, 'cookies' => true));
         }
 
         return $this->client;
@@ -83,7 +89,7 @@ class Client extends AbstractBrowser
 
     public function resetHeaders()
     {
-        $this->headers = [];
+        $this->headers = array();
 
         return $this;
     }
@@ -100,7 +106,7 @@ class Client extends AbstractBrowser
 
     public function setAuth($user, $password = '', $type = 'basic')
     {
-        $this->auth = [$user, $password, $type];
+        $this->auth = array($user, $password, $type);
 
         return $this;
     }
@@ -119,10 +125,10 @@ class Client extends AbstractBrowser
      */
     protected function doRequest($request)
     {
-        $headers = [];
+        $headers = array();
         foreach ($request->getServer() as $key => $val) {
             $key = strtolower(str_replace('_', '-', $key));
-            $contentHeaders = ['content-length' => true, 'content-md5' => true, 'content-type' => true];
+            $contentHeaders = array('content-length' => true, 'content-md5' => true, 'content-type' => true);
             if (0 === strpos($key, 'http-')) {
                 $headers[substr($key, 5)] = $val;
             }
@@ -137,13 +143,13 @@ class Client extends AbstractBrowser
             parse_url($request->getUri(), PHP_URL_HOST)
         );
 
-        $requestOptions = [
+        $requestOptions = array(
             'cookies' => $cookies,
             'allow_redirects' => false,
             'auth' => $this->auth,
-        ];
+        );
 
-        if (!\in_array($request->getMethod(), ['GET', 'HEAD'])) {
+        if (!in_array($request->getMethod(), array('GET', 'HEAD'))) {
             if (null !== $content = $request->getContent()) {
                 $requestOptions['body'] = $content;
             } else {
@@ -197,7 +203,7 @@ class Client extends AbstractBrowser
                 'name' => $name,
             ];
 
-            if (\is_array($info)) {
+            if (is_array($info)) {
                 if (isset($info['tmp_name'])) {
                     if ('' !== $info['tmp_name']) {
                         $file['contents'] = fopen($info['tmp_name'], 'r');
@@ -226,7 +232,7 @@ class Client extends AbstractBrowser
                 $name = $arrayName.'['.$name.']';
             }
 
-            if (\is_array($value)) {
+            if (is_array($value)) {
                 $this->addPostFields($value, $multipart, $name);
             } else {
                 $multipart[] = [

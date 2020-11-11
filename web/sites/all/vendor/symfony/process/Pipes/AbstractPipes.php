@@ -54,8 +54,10 @@ abstract class AbstractPipes implements PipesInterface
 
     /**
      * Returns true if a system call has been interrupted.
+     *
+     * @return bool
      */
-    protected function hasSystemCallBeenInterrupted(): bool
+    protected function hasSystemCallBeenInterrupted()
     {
         $lastError = $this->lastError;
         $this->lastError = null;
@@ -86,9 +88,11 @@ abstract class AbstractPipes implements PipesInterface
     /**
      * Writes input to stdin.
      *
+     * @return array|null
+     *
      * @throws InvalidArgumentException When an input iterator yields a non supported value
      */
-    protected function write(): ?array
+    protected function write()
     {
         if (!isset($this->pipes[0])) {
             return null;
