@@ -15,7 +15,6 @@
         "composer/installers": "^1.9",
         "cweagans/composer-patches": "^1.7",
         "drupal-composer/preserve-paths": "dev-c2",
-        "pantheon-systems/drops-7-composer": "^7",
         "drupal/adaptive_image": "^1",
         "drupal/admin_menu": "^3",
         "drupal/admin_views": "^1",
@@ -29,6 +28,7 @@
         "drupal/ckeditor_link": "^2",
         "drupal/cnr": "^4",
         "drupal/composer_autoloader": "^1",
+        "drupal/composer_vendor": "^1",
         "drupal/context": "^3",
         "drupal/ctools": "^1",
         "drupal/date": "^2",
@@ -98,6 +98,7 @@
         "drupal/wysiwyg": "^2",
         "drupal/wysiwyg_filter": "^1",
         "drush/drush": "^8",
+        "pantheon-systems/drops-7-composer": "^7",
         "phpdocumentor/reflection-docblock": "^2",
         "westkingdom/hierarchical-group-email": "~1.0"
     },

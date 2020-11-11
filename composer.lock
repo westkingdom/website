@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "947123923328ad67f0e743b8838e964a",
+    "content-hash": "1e644098fe5b29d4e3235fdfc8830c5b",
     "packages": [
         {
             "name": "composer/installers",
@@ -1284,6 +1284,50 @@
             "support": {
                 "source": "https://git.drupalcode.org/project/composer_autoloader",
                 "issues": "http://drupal.org/project/issues/composer_autoloader"
+            }
+        },
+        {
+            "name": "drupal/composer_vendor",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/composer_vendor.git",
+                "reference": "7.x-1.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/composer_vendor-7.x-1.0.zip",
+                "reference": "7.x-1.0",
+                "shasum": "8c3591934f1a79bb569dd150ba6ff9573055d488"
+            },
+            "require": {
+                "drupal/drupal": "~7.0"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "7.x-1.0",
+                    "datestamp": "1361374816",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/7/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "_wdm_",
+                    "homepage": "https://www.drupal.org/user/631972"
+                }
+            ],
+            "description": "Loads the composer generated autoload from the sites/all/vendor directory.",
+            "homepage": "https://www.drupal.org/project/composer_vendor",
+            "support": {
+                "source": "https://git.drupalcode.org/project/composer_vendor"
             }
         },
         {
