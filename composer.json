@@ -40,7 +40,6 @@
         "drupal/domain_blocks": "^3",
         "drupal/domain_views": "^1",
         "drupal/domaincontext": "^1",
-        "drupal/drupal-driver": "dev-master",
         "drupal/elements": "^1",
         "drupal/email_confirm": "^1",
         "drupal/entity": "^1",
@@ -103,14 +102,13 @@
         "westkingdom/hierarchical-group-email": "~1.0"
     },
     "require-dev": {
-        "pantheon-systems/ci-scripts": "1.*",
         "phpunit/phpunit": "^4.8"
     },
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true,
         "platform": {
-            "php": "5.6.40"
+            "php": "5.5.38"
         },
         "vendor-dir": "web/sites/all/vendor"
     },

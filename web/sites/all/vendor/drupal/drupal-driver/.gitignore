@@ -1,7 +1,0 @@
-.idea
-*.tgz
-*.phar
-composer.lock
-reports
-vendor
-drush

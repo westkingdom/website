@@ -7,18 +7,7 @@ $baseDir = dirname(dirname(dirname(dirname($vendorDir))));
 
 return array(
     'phpDocumentor' => array($vendorDir . '/phpdocumentor/reflection-docblock/src'),
-    'WebDriver' => array($vendorDir . '/instaclick/php-webdriver/lib'),
     'Drush\\' => array($vendorDir . '/drush/drush/lib'),
-    'Drupal\\Tests\\Driver' => array($vendorDir . '/drupal/drupal-driver/tests'),
-    'Drupal\\MinkExtension' => array($vendorDir . '/drupal/drupal-extension/src'),
-    'Drupal\\Exception' => array($vendorDir . '/drupal/drupal-extension/src'),
-    'Drupal\\DrupalExtension' => array($vendorDir . '/drupal/drupal-extension/src'),
-    'Drupal\\Drupal' => array($vendorDir . '/drupal/drupal-extension/src'),
-    'Drupal\\Driver' => array($vendorDir . '/drupal/drupal-driver/src'),
     'Dflydev\\DotAccessData' => array($vendorDir . '/dflydev/dot-access-data/src'),
     'Consolidation\\' => array($vendorDir . '/drush/drush/lib'),
-    'Behat\\Testwork' => array($vendorDir . '/behat/behat/src'),
-    'Behat\\MinkExtension' => array($vendorDir . '/behat/mink-extension/src'),
-    'Behat\\Gherkin' => array($vendorDir . '/behat/gherkin/src'),
-    'Behat\\Behat' => array($vendorDir . '/behat/behat/src'),
 );
