@@ -694,5 +694,19 @@ $conf['404_fast_html'] = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN"
 
 $conf['environment_indicator_enabled'] = FALSE;
 
-// Include Domain access settings
-include DRUPAL_ROOT . '/sites/all/modules/contrib/domain/settings.inc';
+// All Pantheon Environments.
+if (defined('PANTHEON_ENVIRONMENT')) {
+
+  // Extract Pantheon environmental configuration for Domain Access
+  extract(json_decode($_SERVER['PRESSFLOW_SETTINGS'], TRUE));
+  // All $conf variables and Redis configuration go after extract()
+
+  // If using Redis add appropriate settings per /docs/redis/
+
+  // Add other $conf variables, for example for Fast 404 pages
+
+  /**
+  * Add the domain module setup routine to the end of settings.php
+  */
+  include DRUPAL_ROOT . '/sites/all/modules/domain/settings.inc';
+}
