@@ -709,7 +709,7 @@ if (defined('PANTHEON_ENVIRONMENT')) {
 // Include local settings file, if it exists.
 $local_settings = __DIR__ . '/settings.local.php';
 if (file_exists($local_settings)) {
-  inlcude $local_settings;
+  include $local_settings;
 }
 
 /**
