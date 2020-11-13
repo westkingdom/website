@@ -704,9 +704,15 @@ if (defined('PANTHEON_ENVIRONMENT')) {
   // If using Redis add appropriate settings per /docs/redis/
 
   // Add other $conf variables, for example for Fast 404 pages
-
-  /**
-  * Add the domain module setup routine to the end of settings.php
-  */
-  include DRUPAL_ROOT . '/sites/all/modules/domain/settings.inc';
 }
+
+// Include local settings file, if it exists.
+$local_settings = __DIR__ . '/settings.local.php';
+if (file_exists($local_settings)) {
+  inlcude $local_settings;
+}
+
+/**
+* Add the domain module setup routine to the end of settings.php
+*/
+include DRUPAL_ROOT . '/sites/all/modules/contrib/domain/settings.inc';
