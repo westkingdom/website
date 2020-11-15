@@ -686,7 +686,9 @@ $conf['file_scan_ignore_directories'] = array(
   'bower_components',
 );
 
-$cookie_domain = '.westkingdom.org';
+if ((defined('PANTHEON_ENVIRONMENT')) && (PANTHEON_ENVIRONMENT == 'live')) {
+  $cookie_domain = '.westkingdom.org';
+}
 
 $conf['404_fast_paths_exclude'] = '/\/(?:styles)\//';
 $conf['404_fast_paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp)$/i';
