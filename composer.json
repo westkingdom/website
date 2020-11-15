@@ -3,10 +3,6 @@
     "description": "Composer file for http://westkingdom.org website.",
     "repositories": [
         {
-            "type": "vcs",
-            "url": "https://github.com/greg-1-anderson/preserve-paths.git"
-        },
-        {
             "type": "composer",
             "url": "https://packages.drupal.org/7"
         }
@@ -14,7 +10,7 @@
     "require": {
         "composer/installers": "^1.9",
         "cweagans/composer-patches": "^1.7",
-        "drupal-composer/preserve-paths": "dev-c2",
+        "drupal-composer/preserve-paths": "^0.1.6",
         "drupal/adaptive_image": "^1",
         "drupal/admin_menu": "^3",
         "drupal/admin_views": "^1",
