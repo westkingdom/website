@@ -686,7 +686,7 @@ $conf['file_scan_ignore_directories'] = array(
   'bower_components',
 );
 
-if ((defined('PANTHEON_ENVIRONMENT')) && (PANTHEON_ENVIRONMENT == 'live')) {
+if ($_ENV["PANTHEON_ENVIRONMENT"] === 'live') {
   $cookie_domain = '.westkingdom.org';
 }
 
