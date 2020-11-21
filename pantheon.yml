@@ -1,5 +1,5 @@
 api_version: 1
-php_version: 5.5
+php_version: 7.2
 drush_version: 8
 
 web_docroot: true
