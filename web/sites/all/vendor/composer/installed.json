@@ -1809,6 +1809,62 @@
         }
     },
     {
+        "name": "drupal/date_ical",
+        "version": "3.10.0",
+        "version_normalized": "3.10.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://git.drupalcode.org/project/date_ical.git",
+            "reference": "7.x-3.10"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://ftp.drupal.org/files/projects/date_ical-7.x-3.10.zip",
+            "reference": "7.x-3.10",
+            "shasum": "887afe826889533e72de9637fd386d3b63d1a056"
+        },
+        "require": {
+            "drupal/date": "*",
+            "drupal/date_api": "*",
+            "drupal/date_views": "*",
+            "drupal/drupal": "~7.0",
+            "drupal/entity": "*",
+            "drupal/libraries": "^2.0",
+            "drupal/views": "^3.5"
+        },
+        "type": "drupal-module",
+        "extra": {
+            "drupal": {
+                "version": "7.x-3.10",
+                "datestamp": "1604698825",
+                "security-coverage": {
+                    "status": "covered",
+                    "message": "Covered by Drupal's security advisory policy"
+                }
+            }
+        },
+        "installation-source": "dist",
+        "notification-url": "https://packages.drupal.org/7/downloads",
+        "license": [
+            "GPL-2.0-or-later"
+        ],
+        "authors": [
+            {
+                "name": "Extatic",
+                "homepage": "https://www.drupal.org/user/1903688"
+            },
+            {
+                "name": "joseph.olstad",
+                "homepage": "https://www.drupal.org/user/1321830"
+            }
+        ],
+        "description": "Enables export of iCal feeds using Views, and import of iCal feeds using Feeds.",
+        "homepage": "https://www.drupal.org/project/date_ical",
+        "support": {
+            "source": "https://git.drupalcode.org/project/date_ical"
+        }
+    },
+    {
         "name": "drupal/date_views",
         "version": "2.10.0",
         "version_normalized": "2.10.0.0",
@@ -8322,12 +8378,12 @@
         "version_normalized": "1.9.1.0",
         "source": {
             "type": "git",
-            "url": "https://github.com/webmozart/assert.git",
+            "url": "https://github.com/webmozarts/assert.git",
             "reference": "bafc69caeb4d49c39fd0779086c03a3738cbb389"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/webmozart/assert/zipball/bafc69caeb4d49c39fd0779086c03a3738cbb389",
+            "url": "https://api.github.com/repos/webmozarts/assert/zipball/bafc69caeb4d49c39fd0779086c03a3738cbb389",
             "reference": "bafc69caeb4d49c39fd0779086c03a3738cbb389",
             "shasum": ""
         },
