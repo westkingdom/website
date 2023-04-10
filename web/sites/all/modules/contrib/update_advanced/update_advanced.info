@@ -1,0 +1,12 @@
+name = Update Status Advanced Settings
+description = Adds advanced settings and extra functionality to the Update Manager module in core.
+configure = admin/reports/updates/settings
+core = 7.x
+dependencies[] = update
+
+; Information added by drupal.org packaging script on 2013-04-05
+version = "7.x-1.0-rc1"
+core = "7.x"
+project = "update_advanced"
+datestamp = "1365179719"
+

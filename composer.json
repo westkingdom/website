@@ -8,9 +8,9 @@
         }
     ],
     "require": {
-        "composer/installers": "^1.0.21",
-        "cweagans/composer-patches": "~1.0",
-        "derhasi/composer-preserve-paths": "0.1.*",
+        "composer/installers": "^1.9",
+        "cweagans/composer-patches": "^1.7",
+        "drupal-composer/preserve-paths": "^0.1.6",
         "drupal/adaptive_image": "^1",
         "drupal/admin_menu": "^3",
         "drupal/admin_views": "^1",
@@ -23,10 +23,12 @@
         "drupal/cck": "^3",
         "drupal/ckeditor_link": "^2",
         "drupal/cnr": "^4",
+        "drupal/composer_autoloader": "^1",
         "drupal/composer_vendor": "^1",
         "drupal/context": "^3",
         "drupal/ctools": "^1",
         "drupal/date": "^2",
+        "drupal/date_ical": "^3.10",
         "drupal/delta": "^3",
         "drupal/devel": "^1",
         "drupal/diff": "^3",
@@ -35,8 +37,6 @@
         "drupal/domain_blocks": "^3",
         "drupal/domain_views": "^1",
         "drupal/domaincontext": "^1",
-        "drupal/drupal": "^7",
-        "drupal/drupal-driver": "dev-master",
         "drupal/elements": "^1",
         "drupal/email_confirm": "^1",
         "drupal/entity": "^1",
@@ -94,45 +94,44 @@
         "drupal/wysiwyg": "^2",
         "drupal/wysiwyg_filter": "^1",
         "drush/drush": "^8",
+        "pantheon-systems/drops-7-composer": "^7",
         "phpdocumentor/reflection-docblock": "^2",
         "westkingdom/hierarchical-group-email": "~1.0"
     },
     "require-dev": {
-        "pantheon-systems/ci-scripts": "1.*",
         "phpunit/phpunit": "^4.8"
     },
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true,
         "platform": {
-            "php": "5.6.32"
+            "php": "5.5.38"
         },
-        "bin-dir": "bin/",
-        "vendor-dir": "drupal/sites/all/vendor"
+        "vendor-dir": "web/sites/all/vendor"
     },
     "extra": {
         "enable-patching": true,
         "patches-file": "composer-patches.json",
         "installer-paths": {
-            "drupal/sites/all/modules/contrib/{$name}/": ["type:drupal-module"],
-            "drupal/sites/all/themes/contrib/{$name}/": ["type:drupal-theme"],
-            "drupal/sites/all/drush/{$name}/": ["type:drupal-drush"],
-            "drupal/profiles/{$name}/": ["type:drupal-profile"],
-            "drupal/": ["drupal/drupal"]
+            "web/sites/all/modules/contrib/{$name}/": ["type:drupal-module"],
+            "web/sites/all/themes/contrib/{$name}/": ["type:drupal-theme"],
+            "web/sites/all/drush/{$name}/": ["type:drupal-drush"],
+            "web/profiles/{$name}/": ["type:drupal-profile"],
+            "web/": ["type:drupal-core"]
         },
         "preserve-paths": [
-            "drupal/sites/all/modules/contrib",
-            "drupal/sites/all/modules/custom",
-            "drupal/sites/all/modules/modified",
-            "drupal/sites/all/themes",
-            "drupal/sites/all/libraries",
-            "drupal/sites/all/drush",
-            "drupal/sites/all/vendor",
-            "drupal/sites/default/settings.php",
-            "drupal/sites/default/files",
-            "drupal/drush",
-            "drupal/files",
-            "drupal/temp"
+            "web/sites/all/modules/contrib",
+            "web/sites/all/modules/custom",
+            "web/sites/all/modules/modified",
+            "web/sites/all/themes",
+            "web/sites/all/libraries",
+            "web/sites/all/drush",
+            "web/sites/all/vendor",
+            "web/sites/default/settings.php",
+            "web/sites/default/files",
+            "web/drush",
+            "web/files",
+            "web/temp"
         ],
         "violinist": {
             "allow_updates_beyond_constraint": 1,

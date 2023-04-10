@@ -1,0 +1,5 @@
+
+Domain Context 6.x-1.x-dev, xxxx-xx-xx
+---------------------------------------
+ o by xjm: Coding standards cleanup.
+ o by rasantiago, rjstatic: Approved domaincontext module.

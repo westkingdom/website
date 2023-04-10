@@ -1,0 +1,6 @@
+Domain Blocks installation instructions:
+1. Enable Domain Blocks
+2. Navigate to Admin->Site Building->Blocks and assign blocks to domains (by default all blocks show up on all domains)
+
+Domain Blocks uses domain access grants similar to those in Domain Access module (domain_site and domain_id).
+A user must have set domain access permission to assign blocks to domains.

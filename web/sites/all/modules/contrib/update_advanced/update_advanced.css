@@ -1,0 +1,12 @@
+
+.update-advanced-settings .form-select {
+  width: 12em;
+}
+
+.update-advanced-settings tr.update-advanced-settings-label td.update-advanced-settings-label {
+  font-size: 70%;
+  font-weight: bold;
+  background: #ddd;
+  color: #666;
+  padding: 0 0 0 2em; /* LTR */
+}

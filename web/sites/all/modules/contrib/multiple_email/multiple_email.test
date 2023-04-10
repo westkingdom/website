@@ -1,0 +1,370 @@
+<?php
+
+/**
+ * @file
+ * Tests for the Multiple E-mail module
+ *
+ * Copyright 2010 by Shawn DeArmond (http://drupal.org/user/77785)
+ */
+
+class MultipleEmailUserTestCase extends DrupalWebTestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('User Tests with Permission'),
+      'description' => t('User registers for the site with use multiple emails permission, and interacts with the module.'),
+      'group' => t('Multiple E-mail'),
+    );
+  }
+
+  /**
+   * Implementation of setUp().
+   */
+  function setUp() {
+    // Enable the Multiple User module
+    parent::setUp('multiple_email');
+
+    // Create a user allowed to have multiple emails.
+    $this->user = $this->drupalCreateUser(array('use multiple emails'));
+    $this->drupalLogin($this->user);
+  }
+
+  /**
+   * Test that the Multiple E-mails user can add a new e-mail address.
+   */
+  function testMultipleEmailUser() {
+    // Test that the e-mail address appears on the page
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses');
+    $this->assertText($this->loggedInUser->mail, t('Registered e-mail successfully added'));
+
+    // Test adding a new e-mail address.
+    $edit = array('email' => $this->randomName() . '@example.com');
+
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit/email-addresses', $edit, t('Save'));
+    $this->assertRaw(t('The e-mail address %email has been added to your account. Check your e-mail in order to confirm this new address.',
+    array('%email' => $edit['email'])), t('Email successfully added.'));
+
+    $addresses = multiple_email_load_addresses($this->loggedInUser->uid);
+    array_shift($addresses);
+    foreach ($addresses as $address) {
+      if ($address->email == $edit['email']) {
+        break;
+      }
+    }
+
+    // Test that the confirmation e-mail was sent correctly.
+    $mail_params = array(
+      'to' => $edit['email'],
+      'subject' => multiple_email_message_part('subject', 'confirmation', $this->loggedInUser, $address),
+    );
+    foreach ($mail_params as $name => $value) {
+      $this->assertMail($name, $value, t('Confirmation e-mail @name verified.', array('@name' => $name)));
+    }
+
+    // Resend the confirmation email
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit/email-addresses/confirm/' . $address->eid . '/resend', array(), t('Resend'));
+    $addresses = multiple_email_load_addresses($this->loggedInUser->uid);
+    array_shift($addresses);
+    foreach ($addresses as $address) {
+      if ($address->email == $edit['email']) {
+        break;
+      }
+    }
+
+    // Test that the confirmation e-mail was re-sent correctly.
+    $mail_params = array(
+      'to' => $edit['email'],
+      'subject' => multiple_email_message_part('subject', 'confirmation', $this->loggedInUser, $address),
+    );
+    foreach ($mail_params as $name => $value) {
+      $this->assertMail($name, $value, t('Resent confirmation e-mail @name verified.', array('@name' => $name)));
+    }
+
+
+    // Get the path to the confirmation page.
+    $path = 'user/' . $this->loggedInUser->uid . '/edit/email-addresses/confirm/' . $address->eid . '/' . $address->confirm_code;
+    // Test confirming the new e-mail address.
+    $this->drupalGet($path);
+    $this->assertRaw(t('The e-mail address %email is awaiting confirmation. You should have received an e-mail at that address with a confirmation code in it. Enter the code below and click confirm.', array('%email' => $address->email)));
+    $this->drupalPost($path, array(), t('Confirm'));
+    $this->assertRaw(t('The address %email has been confirmed!', array('%email' => $address->email)));
+
+    // Test access to e-mail edit form.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses/edit/' . $address->eid);
+    $this->assertText(t('Access denied'));
+    // Allow for e-mail edit form.
+    variable_set('multiple_email_edit_emails', 1);
+    // Test submitting the edit address form with the same address.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses/edit/' . $address->eid);
+    $this->assertText(t('E-mail Address'), t('Email edit page loaded'));
+    $this->assertRaw($address->email);
+    $edit = array('email' => $address->email);
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit/email-addresses/edit/' . $address->eid, $edit, t('Save'));
+    $this->assertText(t('No change was made to the e-mail address.'));
+
+    // Test submitting the edit address form with a different address.
+    $edit = array('email' => $this->randomName() . '@example.com');
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit/email-addresses/edit/' . $address->eid, $edit, t('Save'));
+    $this->assertRaw(t('The e-mail address %email is awaiting confirmation.', array('%email' => $edit['email'])));
+
+    // Test deleting the address.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses/delete/' . $address->eid);
+    $this->assertRaw(t('Are you sure you wish to delete the address %email from your user account?', array('%email' => $edit['email'])));
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit/email-addresses/delete/' . $address->eid, array(), t('Delete'));
+    $this->assertRaw(t('The e-mail address %email has been removed from your account.', array('%email' => $edit['email'])));
+
+    // Test submitting the primary user edit page.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit');
+    $this->assertRaw($this->loggedInUser->mail, t('Primary e-mail address, @email, found before submitting user edit form.', array('@email' => $this->loggedInUser->mail)));
+    $this->assertRaw(t('E-mail addresses are managed on the !multiple_email tab.', array('!multiple_email' => l(t('E-mail addresses'), 'user/' . $this->loggedInUser->uid . '/edit/email-addresses'))));
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit', array(), t('Save'));
+    $this->assertRaw($this->loggedInUser->mail, t('Primary e-mail address, @email, found after user edit form', array('@email' => $this->loggedInUser->mail)));
+    $this->assertNoText(t('You must enter an e-mail address.'));
+  }
+
+  function testNoEmailsError() {
+    // Test that the e-mail address appears on the page
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses');
+    $this->assertText($this->loggedInUser->mail, t('Registered e-mail successfully added'));
+
+    // Test adding a new e-mail address.
+    $edit = array('email' => $this->randomName() . '@example.com');
+
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit/email-addresses', $edit, t('Save'));
+    $this->assertRaw(t('The e-mail address %email has been added to your account. Check your e-mail in order to confirm this new address.',
+        array('%email' => $edit['email'])), t('Email successfully added.'));
+
+    // Lets delete these emails via sql query
+    // @TODO Can it be done via UI?
+    $deleteQuery = db_delete('multiple_email')
+      ->condition('uid', $this->loggedInUser->uid)
+      ->execute();
+
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses');
+    $this->assertText('Unable to find any e-mail addresses.', 'Error message was shown');
+    $this->assertNoRaw($this->loggedInUser->mail, 'Primary email was deleted from this view');
+    $this->assertNoRaw($edit['email'], 'Secondary email was deleted from this view');
+  }
+
+}
+
+class MultipleEmailBasicUserTestCase extends DrupalWebTestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('User Tests without Permission'),
+      'description' => t('User registers for the site without use multiple emails permission, and interacts with the module.'),
+      'group' => t('Multiple E-mail'),
+    );
+  }
+
+  /**
+   * Implementation of setUp().
+   */
+  function setUp() {
+    // Enable the Multiple User module
+    parent::setUp('multiple_email');
+
+    // Create a user allowed to have multiple emails.
+    $this->user = $this->drupalCreateUser();
+    $this->drupalLogin($this->user);
+  }
+
+  /**
+   * Test that the Multiple E-mails user can add a new e-mail address.
+   */
+  function testMultipleEmailBasicUser() {
+    // Test that the e-mail address appears on the page
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit');
+    $this->assertRaw($this->loggedInUser->mail, t('Registered e-mail successfully added'));
+
+    // Test can't add a new e-mail address.
+    $edit = array('email' => $this->randomName() . '@example.com', 'current_pass' => $this->loggedInUser->pass_raw);
+
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses');
+    $this->assertNoText(t('Add E-mail Address'));
+
+    // Load the address object.
+    $addresses = multiple_email_load_addresses($this->loggedInUser->uid);
+    array_shift($addresses);
+    foreach ($addresses as $address) {
+      if ($address->email == $this->loggedInUser->mail) {
+        break;
+      }
+    }
+
+    // Test submitting the user edit form with the same address.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit');
+    $this->assertRaw($address->email);
+    $edit = array('mail' => $address->email);
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit', $edit, t('Save'));
+    $this->assertText(t('The changes have been saved.'));
+    $this->assertRaw($edit['mail']);
+
+    // Test submitting the user edit  form with a different address.
+    $edit = array('mail' => $this->randomName() . '@example.com', 'current_pass' => $this->loggedInUser->pass_raw);
+    $this->drupalPost('user/' . $this->loggedInUser->uid . '/edit', $edit, t('Save'));
+    $this->assertText(t('The changes have been saved.'));
+    $this->assertRaw($edit['mail']);
+
+    // Test deleting the address.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses/delete/' . $address->eid);
+    $this->assertNoRaw(t('Are you sure you wish to delete the address %email from your user account?', array('%email' => $edit['mail'])));
+  }
+
+}
+
+class MultipleEmailAdminUserTestCase extends DrupalWebTestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('Admin User Tests'),
+      'description' => t('Admin user interacts with the module.'),
+      'group' => t('Multiple E-mail'),
+    );
+  }
+
+  /**
+   * Implementation of setUp().
+   */
+  function setUp() {
+    // Enable the Multiple E-mail module
+    parent::setUp('multiple_email');
+
+    // Create a user allowed to administer users.
+    $this->adminuser = $this->drupalCreateUser(array('administer users', 'administer multiple emails'));
+    $this->basicuser = $this->drupalCreateUser();
+    $this->drupalLogin($this->adminuser);
+  }
+
+  /**
+   * Test that the Multiple E-mails user can add a new e-mail address.
+   */
+  function testMultipleEmailsAdminUser() {
+    // Test settings page is accessable
+    $this->drupalGet('admin/config/people/multiple-email');
+    $this->assertText(t('Multiple E-mails'));
+    $this->drupalPost('admin/config/people/multiple-email', array(), t('Save configuration'));
+    $this->assertText(t('The configuration options have been saved.'));
+
+    // Test management of other users' multiple emails
+    $this->drupalGet('user/' . $this->basicuser->uid . '/edit/email-addresses');
+    $email = multiple_email_find_address($this->basicuser->mail);
+    // Check for access denied on the edit form
+    $this->drupalGet('user/' . $this->basicuser->uid . '/edit/email-addresses/edit/' . $email->eid);
+    $this->assertText(t('Access denied'), t('No access to edit form.'));
+    // Submit the basicuser edit form
+    $this->drupalPost('user/' . $this->basicuser->uid . '/edit', array(), t('Save'));
+    $this->assertText(t('The changes have been saved.'));
+    // Submit the basicuser edit form with a new e-mail address
+    $new_email = $this->randomName() . '@example.com';
+    $edit = array('mail' => $new_email);
+    $this->drupalPost('user/' . $this->basicuser->uid . '/edit', $edit, t('Save'));
+    $this->assertRaw(t('The changes have been saved.'));
+  }
+
+}
+
+class MultipleEmailLateInstallTestCase extends DrupalWebTestCase {
+
+  /**
+   * Implementation of getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('Late Module Install'),
+      'description' => t('Module is installed after users are already created.'),
+      'group' => t('Multiple E-mail'),
+    );
+  }
+
+  /**
+   * Implementation of setUp().
+   */
+  function setUp() {
+    // Set up basic Drupal install
+    parent::setUp();
+    // Create a user allowed to have multiple emails.
+    $this->adminuser = $this->drupalCreateUser(array('administer users', 'administer permissions', 'administer modules', 'administer site configuration'));
+    $this->emailuser = $this->drupalCreateUser(array('access content'));
+    $this->basicuser = $this->drupalCreateUser();
+
+    // Log in as adminuser
+    $this->drupalLogin($this->adminuser);
+  }
+
+  /**
+   * Test that the Multiple E-mails user can add a new e-mail address.
+   */
+  function testMultipleEmailsLateInstallModule() {
+    // Enable the Multiple E-mail module
+    $this->drupalGet('admin/modules');
+    $this->assertText('Multiple E-mail Addresses', t('Multiple E-mail Addresses module found'));
+    $this->drupalPost('admin/modules', array('modules[Other][multiple_email][enable]' => 'TRUE'), t('Save configuration'));
+    $this->assertRaw(t("Multiple E-mail settings are available under !link",
+    array('!link' => l(t('Administer') . ' > ' . t('Configuration') . ' > ' . t('People') . ' > ' . t('Multiple E-mail'), 'admin/config/people/multiple-email'))
+    ));
+    $this->assertRaw('<input type="checkbox" id="edit-modules-other-multiple-email-enable" name="modules[Other][multiple_email][enable]" value="1" checked="checked" class="form-checkbox" />', t('Multiple E-mail Addresses module checkbox checked'));
+
+    // Enable 'administer multiple emails' Permissions for adminuser.
+    $this->drupalGet('admin/people/permissions');
+    $this->assertRaw('4[administer multiple emails]');
+    $this->assertRaw(t('Save permissions'));
+    $edit = array(
+      '4[administer multiple emails]' => TRUE,
+    );
+    $this->drupalPost('admin/people/permissions', $edit, t('Save permissions'));
+
+    // Enable 'use multiple emails' Permissions for emailuser.
+    $this->drupalGet('admin/people/permissions');
+    $this->assertRaw('5[use multiple emails]');
+    $this->assertRaw(t('Save permissions'));
+    $edit = array(
+      '5[use multiple emails]' => TRUE,
+    );
+    $this->drupalPost('admin/people/permissions', $edit, t('Save permissions'));
+
+    // Verify that adminuser has access to settings page.
+    $this->drupalGet('admin/config/people/multiple-email');
+    $this->assertText(t('Multiple E-mails'));
+    $this->drupalPost('admin/config/people/multiple-email', array(), t('Save configuration'));
+    $this->assertText(t('The configuration options have been saved.'));
+
+    // Log in as emailuser.
+    $this->drupalLogin($this->emailuser);
+    // emailuser should not have access to settings page.
+    $this->drupalGet('admin/config/people/multiple-email');
+    $this->assertText(t('Access denied'));
+    // Verify access to multiple e-mail addresses.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses');
+    $this->assertText(t('Add new e-mail'));
+    // Load freshly-enabled module code so API can be used.
+    drupal_load('module', 'multiple_email');
+    $address = multiple_email_find_address($this->loggedInUser->mail);
+    $this->assertText($this->loggedInUser->mail);
+    // emailuser should not have access to edit addresses.
+    $this->assertNoRaw(l(t('Edit'), 'user/' . $this->loggedInUser->uid . '/edit/email-addresses/edit/' . $address->eid));
+
+    // Log in as basicuser.
+    $this->drupalLogin($this->basicuser);
+    // basicuser should not have access to settings page.
+    $this->drupalGet('admin/config/people/multiple-email');
+    $this->assertText(t('Access denied'));
+    // basicuser should not have access to E-mail Addresses page.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit/email-addresses');
+    $this->assertText(t('Access denied'));
+    // basicuser should have normal e-mail address field on user edit page.
+    $this->drupalGet('user/' . $this->loggedInUser->uid . '/edit');
+    $this->assertRaw('<input type="text" id="edit-mail" name="mail" value="' . $this->loggedInUser->mail . '" size="60" maxlength="254" class="form-text required" />');
+  }
+
+}

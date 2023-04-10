@@ -1,0 +1,138 @@
+<?php
+
+/**
+ * @file
+ * Install file for multiple_email module
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Imports current users' emails.
+ */
+function multiple_email_install() {
+  db_query("
+    INSERT INTO {multiple_email}
+      (uid, email, time_registered, confirmed)
+    SELECT
+      uid,
+      mail,
+      created,
+      1
+    FROM {users}
+    WHERE uid != 0
+    AND mail != ''
+  ");
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function multiple_email_uninstall() {
+  $variables = array(
+    'multiple_email_hide_field',
+    'multiple_email_edit_emails',
+    'multiple_email_password_reset',
+    'multiple_email_confirm_deadline',
+    'multiple_email_confirm_attempts',
+    'multiple_email_confirmation_subject',
+    'multiple_email_confirmation_body',
+    'multiple_email_expire_subject',
+    'multiple_email_expire_body',
+  );
+  foreach ($variables as $key) {
+    variable_del($key);
+  }
+}
+
+/**
+ * Implements hook_enable().
+ */
+function multiple_email_enable() {
+  drupal_set_message(t("Multiple E-mail settings are available under !link", array(
+    '!link' => l(t('Administer') . ' > ' . t('Configuration') . ' > ' . t('People') . ' > ' . t('Multiple E-mail'), 'admin/config/people/multiple-email'),
+  )));
+}
+
+/**
+ * Implements hook_schema().
+ */
+function multiple_email_schema() {
+  $schema['multiple_email'] = array(
+    'description' => 'The base table for multiple email.',
+    'fields' => array(
+      'eid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'email' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'time_registered' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'confirmed' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'confirm_code' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'time_code_generated' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'attempts' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'uid' => array('uid'),
+    ),
+    'unique keys' => array(
+      'email' => array('email'),
+    ),
+    'primary key' => array('eid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Remove email addresses of deleted users
+ */
+function multiple_email_update_7100() {
+  $subquery = db_select('users', 'u');
+  $subquery->addField('u', 'uid');
+  $query = db_delete('multiple_email');
+  $query->condition('uid', $subquery, 'NOT IN');
+  $query->execute();
+}
+
+/**
+ * Give 'administer multiple emails' to all roles having 'administer users'.
+ */
+function multiple_email_update_7101() {
+  $roles = user_roles(FALSE, 'administer users');
+  foreach ($roles as $rid => $role) {
+    user_role_grant_permissions($rid, array('administer multiple emails'));
+  }
+}
